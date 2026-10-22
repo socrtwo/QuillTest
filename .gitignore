@@ -1,0 +1,20 @@
+# QuillTest local AI configuration (may contain a key if --save-key was used)
+quilltest.ai.json
+
+# Scan outputs and verification artifacts
+/scans/
+/reports/
+*.quilltest-report.json
+
+# Node / build
+node_modules/
+dist/
+.vite/
+*.log
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

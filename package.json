@@ -1,0 +1,33 @@
+{
+  "name": "quilltest",
+  "version": "0.0.0",
+  "private": true,
+  "description": "QuillTest — open-source web application security testing and fixing tool, part of the Quill suite. Planning stage; ships a runnable AI-provider setup wizard.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Paul D Pruitt",
+  "homepage": "https://github.com/socrtwo/QuillTest",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/socrtwo/QuillTest.git"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "quilltest-ai-setup": "scripts/ai-setup-wizard.mjs"
+  },
+  "scripts": {
+    "ai:setup": "node scripts/ai-setup-wizard.mjs",
+    "ai:list": "node scripts/ai-setup-wizard.mjs --list",
+    "test": "node --test \"tests/*.test.mjs\""
+  },
+  "keywords": [
+    "security",
+    "vulnerability-scanner",
+    "web-security",
+    "owasp",
+    "quill-suite",
+    "ai"
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "active": "anthropic",
+  "providers": {
+    "anthropic": {
+      "providerId": "anthropic",
+      "base": "https://api.anthropic.com/v1",
+      "model": "claude-sonnet-4-5",
+      "apiKeyEnv": "ANTHROPIC_API_KEY",
+      "apiKey": null
+    },
+    "openai": {
+      "providerId": "openai",
+      "base": "https://api.openai.com/v1",
+      "model": "gpt-4o-mini",
+      "apiKeyEnv": "OPENAI_API_KEY",
+      "apiKey": null
+    }
+  }
+}
