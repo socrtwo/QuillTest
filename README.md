@@ -35,28 +35,32 @@ A runnable wizard is included now, ahead of the scanner. It walks you through se
 # Interactive CLI wizard (Node 18+)
 node scripts/ai-setup-wizard.mjs
 
-# Non-interactive, e.g. for CI or scripting
-node scripts/ai-setup-wizard.mjs --provider anthropic --model claude-sonnet-4-5 --test
+# Non-interactive, e.g. for CI or scripting (--yes suppresses every prompt;
+# the key is read from $ANTHROPIC_API_KEY, or pass --key-env / --key)
+node scripts/ai-setup-wizard.mjs --provider anthropic --model claude-opus-5-5 --yes --test
+
+# Show the exact request the connectivity test would send, without sending it
+node scripts/ai-setup-wizard.mjs --provider openai --yes --dry-run --no-save
 ```
 
-A browser version of the same wizard lives at `public/ai-wizard.html` (open it directly; it runs entirely client-side and stores config in `localStorage`). Both are driven by the single provider registry in [`src/ai/providers.mjs`](src/ai/providers.mjs), so adding a provider means editing one file.
+A browser version of the same wizard lives at `public/ai-wizard.html` (open it directly; it runs entirely client-side and stores config in `localStorage`). Both are driven by the single provider registry in [`src/ai/providers.mjs`](src/ai/providers.mjs). The browser page is a static file and cannot import that module, so it carries a generated copy: after editing the registry run `npm run ai:sync-browser` (the test suite fails if the copy is stale).
 
 Supported providers out of the box:
 
 | Provider | Models (examples) | Endpoint base | API style |
 |---|---|---|---|
-| OpenAI | gpt-4o, gpt-4o-mini, o3 | `https://api.openai.com/v1` | OpenAI |
-| Anthropic | claude-sonnet-4-5, claude-opus-4-1, claude-haiku-4-5 | `https://api.anthropic.com/v1` | Anthropic Messages |
-| Google (Gemini) | gemini-2.5-pro, gemini-2.5-flash | `https://generativelanguage.googleapis.com/v1beta` | Gemini |
-| xAI (Grok) | grok-4, grok-3, grok-3-mini | `https://api.x.ai/v1` | OpenAI-compatible |
-| Meta (Llama) | llama-4-scout, llama-3.3-70b | gateway (Together, Groq, Fireworks, or api.llama.com) | OpenAI-compatible |
+| OpenAI | gpt-5.4, gpt-5.4-mini, gpt-5.4-nano | `https://api.openai.com/v1` | OpenAI (sends `max_completion_tokens`) |
+| Anthropic | claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5 | `https://api.anthropic.com/v1` | Anthropic Messages |
+| Google (Gemini) | gemini-3.1-pro-preview, gemini-3-flash-preview | `https://generativelanguage.googleapis.com/v1beta` | Gemini (key in `x-goog-api-key` header) |
+| xAI (Grok) | grok-4.6, grok-4.5, grok-4.3 | `https://api.x.ai/v1` | OpenAI-compatible |
+| Meta (Llama) | Llama-4-Maverick-17B-128E-Instruct-FP8, Llama-3.3-70B-Instruct | `https://api.llama.com/compat/v1` or a gateway (Together, Groq, Fireworks, OpenRouter) | OpenAI-compatible |
 | DeepSeek | deepseek-chat, deepseek-reasoner | `https://api.deepseek.com` | OpenAI-compatible |
-| Alibaba (Qwen) | qwen-max, qwen-plus, qwen3-coder | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` | OpenAI-compatible |
-| Mistral | mistral-large-latest, mistral-small-latest | `https://api.mistral.ai/v1` | OpenAI-compatible |
+| Alibaba (Qwen) | qwen3-max, qwen-plus, qwen3-coder-plus | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` | OpenAI-compatible |
+| Mistral | mistral-large-latest, mistral-medium-latest, mistral-small-latest | `https://api.mistral.ai/v1` | OpenAI-compatible |
 | Local | any (Ollama / llama.cpp / LM Studio) | `http://localhost:11434/v1` | OpenAI-compatible |
 | Custom | any | user-supplied | OpenAI-compatible |
 
-> Model names drift. The wizard treats the lists above as suggestions and lets you type any model id the provider accepts; it fetches the live model list where the provider exposes one.
+> Model names drift. The wizard treats the lists above as suggestions and lets you type any model id the provider accepts; it fetches the live model list where the provider exposes one (every provider above does, at `GET {base}/models`). Vendor-hosted Llama model ids in particular differ from gateway to gateway.
 
 ## Platforms (planned)
 
