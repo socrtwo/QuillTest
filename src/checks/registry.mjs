@@ -10,6 +10,11 @@
  *   finalize(site)       → findings[]   runs once after the crawl; reads only
  *   probe(site)          → findings[]   runs once per scan; may send a bounded
  *                                       number of extra benign requests via site.request()
+ *   active(site)         → findings[]   runs once per scan on an active profile only; sends
+ *                                       non-destructive detection requests (intrusiveness 2)
+ *                                       to the injection points the crawl observed, via
+ *                                       site.send(). Detection only: safe markers and error
+ *                                       signatures, never a working exploit, never a write.
  *
  * Intrusiveness: 0 = reads crawled responses only; 1 = extra benign GET/HEAD
  * requests to well-known paths or with a harmless header; 2 = sends test input
@@ -27,6 +32,11 @@ export const CATEGORIES = {
   disclosure: 'Information disclosure',
   components: 'Components and versions',
   content: 'Page content',
+  injection: 'Injection',
+  xss: 'Cross-site scripting',
+  csrf: 'Cross-site request forgery',
+  redirects: 'Open redirects',
+  access: 'Access control',
 };
 
 export const ID_PATTERN = /^[a-z]+\.[a-z][A-Za-z0-9]*$/;
@@ -47,6 +57,7 @@ export const ID_PATTERN = /^[a-z]+\.[a-z][A-Za-z0-9]*$/;
  * @property {(page:object, site:object)=>object[]|Promise<object[]>} [observe]
  * @property {(site:object)=>object[]|Promise<object[]>} [finalize]
  * @property {(site:object)=>Promise<object[]>} [probe]
+ * @property {(site:object)=>Promise<object[]>} [active]
  * @property {string} [requests]    human description of extra requests a probe sends
  * @property {boolean} [consolidate] site-wide finding: one record per key for the whole origin, with the affected URLs listed, instead of one per page
  */
@@ -75,7 +86,12 @@ function validate(c) {
   if (!Array.isArray(c.cwe) || !c.cwe.length || c.cwe.some((n) => !CWE[n])) throw new Error(`${c.id}: cwe must list known CWE ids (add new ones to findings/model.mjs)`);
   if (!OWASP_2021[c.owasp]) throw new Error(`${c.id}: bad owasp category`);
   if (!c.description || !c.remediation?.summary) throw new Error(`${c.id}: description and remediation.summary required`);
-  if (typeof c.observe !== 'function' && typeof c.finalize !== 'function' && typeof c.probe !== 'function') throw new Error(`${c.id}: observe, finalize or probe required`);
+  if (typeof c.observe !== 'function' && typeof c.finalize !== 'function' && typeof c.probe !== 'function' && typeof c.active !== 'function') throw new Error(`${c.id}: observe, finalize, probe or active required`);
+  if (typeof c.active === 'function') {
+    if (c.kind !== 'active') throw new Error(`${c.id}: an active() hook requires kind: 'active'`);
+    if (c.intrusiveness < 2) throw new Error(`${c.id}: an active() hook sends test input, so intrusiveness must be ≥ 2`);
+    if (!c.requests) throw new Error(`${c.id}: an active check must describe its requests`);
+  }
   if (c.probe && c.intrusiveness < 1) throw new Error(`${c.id}: a probe sends requests, so intrusiveness must be ≥ 1`);
 }
 

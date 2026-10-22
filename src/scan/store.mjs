@@ -12,7 +12,7 @@ import { normalizeOrigin } from '../verify/origin.mjs';
 import { FindingSet } from '../findings/model.mjs';
 
 export const SCANS_VERSION = 1;
-export const DEFAULT_SETTINGS = Object.freeze({ profile: 'passive', disabledChecks: [], honorRobots: true, maxDepth: 3, maxPages: 150, maxRequests: 400, concurrency: 4, delayMs: 0, timeoutMs: 15_000, seedSitemap: false });
+export const DEFAULT_SETTINGS = Object.freeze({ profile: 'passive', disabledChecks: [], honorRobots: true, maxDepth: 3, maxPages: 150, maxRequests: 400, maxActiveRequests: 600, maxPointsPerCheck: 60, concurrency: 4, delayMs: 0, timeoutMs: 15_000, seedSitemap: false });
 
 export class ScanStore {
   constructor({ dir = null, now = () => new Date() } = {}) {

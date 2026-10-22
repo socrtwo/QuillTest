@@ -60,6 +60,13 @@ export const CWE = {
   1104: 'Use of Unmaintained Third Party Components',
   1275: 'Sensitive Cookie with Improper SameSite Attribute',
   1395: 'Dependency on Vulnerable Third-Party Component',
+  79: 'Improper Neutralization of Input During Web Page Generation (Cross-site Scripting)',
+  89: 'Improper Neutralization of Special Elements used in an SQL Command (SQL Injection)',
+  93: 'Improper Neutralization of CRLF Sequences (CRLF Injection)',
+  94: 'Improper Control of Generation of Code (Code Injection)',
+  113: 'Improper Neutralization of CRLF Sequences in HTTP Headers (HTTP Response Splitting)',
+  601: 'URL Redirection to Untrusted Site (Open Redirect)',
+  1336: 'Improper Neutralization of Special Elements Used in a Template Engine (Template Injection)',
 };
 
 export function severityRank(s) {

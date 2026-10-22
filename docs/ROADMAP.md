@@ -25,10 +25,13 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 - [x] Findings model with CWE/OWASP/ASVS mapping, severity + confidence, secret scrubbing, signatures, diff (`src/findings/`)
 - [x] Scan orchestrator with profiles, per-target settings, scan records, false-positive learning loop, JSON/CSV/SARIF export (`src/scan/`)
 
-## M3 — Active engine
+## M3 — Active engine (in progress)
 
-- [ ] Active checks (injection, XSS, CSRF, SSRF, XXE, access control, redirects) — detection only, gated on verification
-- [ ] Scan profiles and intrusiveness caps
+- [x] Active-check framework: injection-point model from the crawl (`src/scan/params.mjs`), active phase and request budget in the orchestrator, `active()` hook in the check registry
+- [x] Detection-only active checks (`src/checks/active/`): reflected XSS (safe canary), SQL-error, template-eval and CRLF injection, open redirect, CSRF-token, forced browsing
+- [x] Scan profiles and intrusiveness caps (Standard/Thorough now run the active set; Passive/Quick skip it)
+- [ ] SSRF (out-of-band callback), XXE, deserialization, stored/DOM XSS, IDOR with supplied accounts
+- [ ] Boolean/time-based SQLi detection
 
 ## M4 — Fix layer
 

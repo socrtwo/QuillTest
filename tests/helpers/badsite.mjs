@@ -87,3 +87,77 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop()
   const which = process.argv[2] === 'good' ? goodSiteHandler : badSiteHandler;
   startServer(which).then(({ origin }) => console.log(origin));
 }
+
+// ---- active-engine fixtures (M3) ---------------------------------------------------------------
+
+const enc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+const HOME_ACTIVE = `<!doctype html><html><head><title>App</title></head><body>
+  <a href="/search?q=test">search</a> <a href="/item?id=1">item</a> <a href="/go?url=/home">go</a>
+  <a href="/render?name=hi">render</a> <a href="/hdr?x=1">hdr</a> <a href="/account">account</a>
+  <form method="post" action="/account/update"><input name="email"><input name="bio"><button type="submit">save</button></form></body></html>`;
+
+/** A deliberately vulnerable app that triggers each active detector exactly once. Test double, not real logic. */
+export function vulnAppHandler() {
+  return (req, res) => {
+    const url = new URL(req.url, 'http://x');
+    const q = url.searchParams;
+    const html = (b, extra = {}) => { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...extra }); res.end(b); };
+    switch (url.pathname) {
+      case '/':
+        return html(HOME_ACTIVE, { 'set-cookie': ['SESSIONID=' + 'z9'.repeat(16) + '; Path=/'] }); // no SameSite → CSRF candidate
+      case '/search':                                   // reflected XSS: q echoed raw into HTML body
+        return html(`<html><body><h1>Results for ${q.get('q') ?? ''}</h1></body></html>`);
+      case '/item': {                                   // SQL error only when a quote is present
+        const id = q.get('id') ?? '';
+        if (id.includes("'")) { res.writeHead(500, { 'content-type': 'text/html' }); return res.end('<html><body>You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version near "\'"</body></html>'); }
+        return html(`<html><body>Item ${enc(id)}</body></html>`);
+      }
+      case '/go':                                       // open redirect: Location is the url param, unchecked
+        res.writeHead(302, { location: String(q.get('url') ?? '/').replace(/[\r\n]/g, '') }); return res.end();
+      case '/render': {                                 // template injection: expression evaluated
+        const name = String(q.get('name') ?? '').replace(/\{\{49\*49\}\}|\$\{49\*49\}|#\{49\*49\}|<%=\s*49\*49\s*%>/g, '2401');
+        return html(`<html><body>Hello ${name}</body></html>`);
+      }
+      case '/hdr': {                                    // CRLF: x echoed into a header via raw socket, newlines intact
+        const v = q.get('x') ?? '';
+        const raw = `HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nX-Echo: ${v}\r\nConnection: close\r\nContent-Length: 2\r\n\r\nok`;
+        req.socket.write(raw); return req.socket.end();
+      }
+      case '/account':
+        return html('<html><body><form method="post" action="/account/update"><input name="email"><input name="bio"><button>save</button></form></body></html>');
+      case '/admin':
+        return html('<html><body><h1>Admin Dashboard</h1>Users, settings</body></html>');
+      default:
+        res.writeHead(404, { 'content-type': 'text/plain' }); return res.end('not found');
+    }
+  };
+}
+
+/** The same app written safely: output-encoded, validated redirect, CSRF token, admin 404, SameSite cookie. */
+export function safeAppHandler() {
+  return (req, res) => {
+    const url = new URL(req.url, 'http://x');
+    const q = url.searchParams;
+    const html = (b, extra = {}) => { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...extra }); res.end(b); };
+    switch (url.pathname) {
+      case '/':
+        return html(HOME_ACTIVE.replace('<form method="post" action="/account/update"><input name="email">', '<form method="post" action="/account/update"><input type="hidden" name="csrf_token" value="abc"><input name="email">'), { 'set-cookie': ['SESSIONID=' + 'z9'.repeat(16) + '; Path=/; Secure; HttpOnly; SameSite=Lax'] });
+      case '/search':
+        return html(`<html><body><h1>Results for ${enc(q.get('q') ?? '')}</h1></body></html>`);
+      case '/item':
+        return html(`<html><body>Item ${enc(q.get('id') ?? '')}</body></html>`);        // parameterised: never errors
+      case '/go': {
+        const dest = String(q.get('url') ?? '/').replace(/[\r\n]/g, '');
+        res.writeHead(302, { location: dest.startsWith('/') && !dest.startsWith('//') ? dest : '/' }); return res.end();   // allowlist: same-site paths only, newlines stripped
+      }
+      case '/render':
+        return html(`<html><body>Hello ${enc(q.get('name') ?? '')}</body></html>`);      // value is data, not template source
+      case '/hdr':
+        res.writeHead(200, { 'content-type': 'text/plain', 'x-echo': String(q.get('x') ?? '').replace(/[\r\n]/g, '') }); return res.end('ok');  // newlines stripped
+      case '/account':
+        return html('<html><body><form method="post" action="/account/update"><input type="hidden" name="csrf_token" value="abc"><input name="email"><button>save</button></form></body></html>');
+      default:
+        res.writeHead(404, { 'content-type': 'text/plain' }); return res.end('not found');
+    }
+  };
+}

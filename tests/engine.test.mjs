@@ -118,9 +118,9 @@ test('FindingSet dedupes by signature keeping the worst severity, filters and so
 
 // ----- check registry -------------------------------------------------------------------------
 
-test('every check is well-formed, passive, maps to known CWE/OWASP, and has a remediation', () => {
-  const checks = allChecks();
-  assert.ok(checks.length >= 25, `only ${checks.length} checks`);
+test('every passive check is well-formed, maps to known CWE/OWASP, and has a remediation', () => {
+  const checks = allChecks().filter((c) => c.kind === 'passive');
+  assert.ok(checks.length >= 25, `only ${checks.length} passive checks`);
   for (const c of checks) {
     assert.equal(c.kind, 'passive', c.id);
     assert.ok(c.intrusiveness <= 1, c.id);
@@ -132,7 +132,7 @@ test('every check is well-formed, passive, maps to known CWE/OWASP, and has a re
     const d = describeCheck(c);
     assert.equal(d.owasp.name, OWASP_2021[c.owasp]);
   }
-  for (const cat of Object.keys(CATEGORIES)) assert.ok(checks.some((c) => c.id.startsWith(cat + '.')), `no checks in ${cat}`);
+  for (const cat of ['transport', 'headers', 'cookies', 'cors', 'disclosure', 'components', 'content']) assert.ok(checks.some((c) => c.id.startsWith(cat + '.')), `no checks in ${cat}`);
   assert.throws(() => defineCheck({ id: 'headers.csp', title: 'dup', kind: 'passive', intrusiveness: 0, severity: 'low', confidence: 'firm', cwe: [16], owasp: 'A05', description: 'd', remediation: { summary: 's', references: [] }, observe: () => [] }), /Duplicate check id/);
   assert.throws(() => defineCheck({ id: 'headers.zz', title: 'x', kind: 'passive', intrusiveness: 2, severity: 'low', confidence: 'firm', cwe: [16], owasp: 'A05', description: 'd', remediation: { summary: 's', references: [] }, observe: () => [] }), /passive check cannot have intrusiveness > 1/);
   assert.throws(() => defineCheck({ id: 'headers.zz', title: 'x', kind: 'passive', intrusiveness: 0, severity: 'low', confidence: 'firm', cwe: [16], owasp: 'A05', description: 'd', remediation: { summary: 's', references: [] }, probe: async () => [] }), /probe sends requests/);
@@ -345,8 +345,8 @@ test('false-positive learning loop, status changes, diff, history, log, export, 
   const prev = await exec(ctx, 'scan.preview');
   assert.equal(prev.profile.id, 'quick');
   assert.equal(prev.crawl.maxDepth, 1);
-  assert.ok(prev.checks.length >= 25 && prev.extraRequestChecks >= 4 && prev.activeChecks === 0);
-  assert.deepEqual(prev.skipped.map((s) => s.id), ['transport.tls']);
+  assert.ok(prev.checks.length >= 25 && prev.extraRequestChecks >= 4 && prev.activeChecks === 0, 'quick profile runs passive checks only');
+  assert.ok(prev.skipped.some((s) => s.id === 'transport.tls') && prev.skipped.filter((s) => s.id.startsWith('xss.') || s.id.startsWith('injection.')).length >= 3, 'active checks skipped on the quick profile');
   await exec(ctx, 'checks.disable', 'headers.permissionsPolicy');
   await exec(ctx, 'checks.disableCategory', 'cors');
   const prev2 = await exec(ctx, 'scan.preview');
@@ -381,11 +381,13 @@ test('false-positive learning loop, status changes, diff, history, log, export, 
 test('planChecks and profiles', () => {
   assert.deepEqual(Object.keys(PROFILES), ['passive', 'quick', 'standard', 'thorough']);
   const p = planChecks({ profile: 'passive', origin: 'https://x.example' });
-  assert.equal(p.skipped.length, 0);
-  assert.equal(p.run.length, allChecks().length);
+  assert.ok(p.skipped.every((s) => s.check.kind === 'active'), 'passive profile skips only active checks');
+  assert.equal(p.run.length, allChecks().filter((c) => c.kind === 'passive').length);
   assert.throws(() => planChecks({ profile: 'nope' }), /Unknown profile/);
   const d = planChecks({ profile: 'passive', disabledChecks: ['headers'] });
-  assert.ok(d.skipped.length >= 6 && d.skipped.every((s) => s.check.id.startsWith('headers.')));
+  const disabledSkips = d.skipped.filter((s) => /disabled/.test(s.reason));
+  assert.ok(disabledSkips.length >= 6 && disabledSkips.every((s) => s.check.id.startsWith('headers.')));
+  assert.ok(!d.run.some((c) => c.id.startsWith('headers.')));
 });
 
 test('ScanStore persists records, settings and false positives to disk with restricted modes', async () => {

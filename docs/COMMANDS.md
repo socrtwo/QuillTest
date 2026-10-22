@@ -2,7 +2,7 @@
 
 QuillTest defines **243 commands**. Every one can be placed on the Quick Access Bar, added to a custom tab, bound to a keyboard shortcut, recorded in a macro, run from the command line (`node scripts/quilltest.mjs <id>`) or found with command search (Alt+Q).
 
-**87 are implemented** and **156 are planned** (defined as data, with no implementation yet; running one reports "planned but not implemented"). 3 commands are "not in tabs" — reachable through the Quick Access Bar chooser, Customize Tabs, command search and the command line — so nothing is hidden.
+**88 are implemented** and **155 are planned** (defined as data, with no implementation yet; running one reports "planned but not implemented"). 3 commands are "not in tabs" — reachable through the Quick Access Bar chooser, Customize Tabs, command search and the command line — so nothing is hidden.
 
 **10 commands are gated.** Marked *gated* below, they send requests to the target, and the executor refuses to run them unless the active target's origin has a current ownership verification **and** you have confirmed authorization for that target (see [OWNERSHIP-VERIFICATION.md](OWNERSHIP-VERIFICATION.md) and [ETHICS.md](ETHICS.md)). This is enforced in `src/commands/exec.mjs`, not in the UI.
 
@@ -96,7 +96,7 @@ Default Quick Access Bar: `file.save`, `verify.status`, `scan.start`, `scan.stop
 | Manage Profiles… | Profile |  | `scan.profiles` | implemented |  |
 | Scan Preview | Profile |  | `scan.preview` | implemented | acts on the active target; What this profile would do: checks, request budget, intrusiveness; scan-as-you-configure preview — INNOVATIONS.md |
 | Scan Profile | Profile |  | `scan.profile` | implemented | acts on the active target; menu; Passive / Quick / Standard / Thorough; pass a name to set it for the active target |
-| Active Scan | Run |  | `scan.active` | planned | *gated*; Detection probes for injection, XSS, access control… least-intrusive probe that proves a finding, then stop (M3; not yet available) |
+| Active Scan | Run |  | `scan.active` | implemented | *gated*; Standard profile: passive checks plus detection-only active checks (reflected XSS, SQL-error/template/CRLF injection, open redirect, CSRF-token, forced browsing) |
 | Passive Scan | Run |  | `scan.passive` | implemented | *gated*; Crawl and observe: headers, cookies, TLS, disclosure, components. No test inputs are sent. |
 | Quick Scan | Run |  | `scan.quick` | implemented | *gated*; Passive checks on the entry page and its direct links |
 | Scan Single URL | Run |  | `scan.single` | implemented | *gated*; Passive checks on one URL within the target, no crawl |

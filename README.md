@@ -54,9 +54,17 @@ node scripts/quilltest.mjs findings export sarif --json > findings.sarif
 
 What the passive profile sends: the crawl itself, one TLS handshake, two GETs with an `Origin` header, GETs of about thirty well-known file paths (each confirmed by content signature, so catch-all pages do not count), GETs of discovered asset directories and referenced source maps. No test input, ever. The full list is in [docs/CHECKS.md](docs/CHECKS.md).
 
+### Active scanning (detection-only, built)
+
+The Standard profile adds detection-only active checks: reflected XSS, SQL-error, template-eval and CRLF injection, open redirect, CSRF-token and forced browsing. Each confirms a flaw class with the least intrusive benign signal — a safe canary, an error signature, a benign arithmetic marker — and never sends a working exploit, extracts data, or changes state. Active checks run only on a verified, authorized target, test one parameter at a time, and are capped by a per-scan request budget.
+
+```bash
+node scripts/quilltest.mjs scan active        # Standard profile: passive + detection-only active checks
+```
+
 ## Commands (built as data, UI pending)
 
-The full command set exists now as a registry (`src/commands/`), 243 commands across File, Verify, Scan, Targets, Checks, Findings, Fix, AI, Report, Review, Share, View, Developer and Help, with ids like `verify.issue` and `scan.start`. Verify, Targets, Scan (passive), Checks, Findings, AI setup, macros and Help are implemented; the rest are defined and waiting on their engines. The generated reference is [docs/COMMANDS.md](docs/COMMANDS.md). Any command runs from the terminal:
+The full command set exists now as a registry (`src/commands/`), 243 commands across File, Verify, Scan, Targets, Checks, Findings, Fix, AI, Report, Review, Share, View, Developer and Help, with ids like `verify.issue` and `scan.start`. Verify, Targets, Scan (passive and detection-only active), Checks, Findings, AI setup, macros and Help are implemented; the rest are defined and waiting on their engines. The generated reference is [docs/COMMANDS.md](docs/COMMANDS.md). Any command runs from the terminal:
 
 ```bash
 node scripts/quilltest.mjs commands verify                 # search the registry

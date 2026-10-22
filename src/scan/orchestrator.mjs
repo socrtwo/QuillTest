@@ -10,6 +10,7 @@
 
 import { randomBytes } from 'node:crypto';
 import { Crawler } from '../crawl/crawler.mjs';
+import { enumerate, buildRequest } from './params.mjs';
 import { inspectTls } from '../crawl/tls.mjs';
 import { allChecks, getCheck } from '../checks/index.mjs';
 import { createFinding, FindingSet } from '../findings/model.mjs';
@@ -18,8 +19,8 @@ import { AuthorizationRequiredError } from '../targets/store.mjs';
 export const PROFILES = Object.freeze({
   passive: { label: 'Passive', description: 'Crawl and observe. Extra requests only to well-known paths, with a harmless Origin header, and one TLS handshake. No test input is ever sent.', maxIntrusiveness: 1, active: false },
   quick: { label: 'Quick', description: 'Passive checks on the entry page and its direct links only.', maxIntrusiveness: 1, active: false, crawl: { maxDepth: 1, maxPages: 12, maxRequests: 80 } },
-  standard: { label: 'Standard', description: 'Passive plus detection-only active checks (M3, not yet available — runs as Passive until then).', maxIntrusiveness: 2, active: true },
-  thorough: { label: 'Thorough', description: 'Everything in Standard with deeper crawl limits (M3, not yet available — runs as Passive until then).', maxIntrusiveness: 3, active: true, crawl: { maxDepth: 5, maxPages: 500, maxRequests: 1500 } },
+  standard: { label: 'Standard', description: 'Passive checks plus detection-only active checks: reflected XSS, SQL-error, template and CRLF injection, open redirect, CSRF-token and forced-browsing. Safe markers and error signatures only — no exploit, no data change.', maxIntrusiveness: 2, active: true },
+  thorough: { label: 'Thorough', description: 'Everything in Standard with deeper crawl limits and a larger active-request budget.', maxIntrusiveness: 3, active: true, crawl: { maxDepth: 5, maxPages: 500, maxRequests: 1500 } },
 });
 
 /**
@@ -95,13 +96,27 @@ export async function runScan(ctx, { target, profile, url, spiderOnly = false, c
   const findings = new FindingSet();
   const checksRun = [];
   const { run: plan, skipped } = spiderOnly ? { run: [], skipped: allChecks().map((c) => ({ check: c, reason: 'crawl-only scan' })) } : planChecks({ profile: profileName, disabledChecks: settings.disabledChecks, origin: target.origin });
+  const injectionPoints = spiderOnly ? [] : enumerate(crawlResult.pages, target.origin);
+  let activeSent = 0;
+  const activeBudget = settings.maxActiveRequests;
   const site = {
     origin: target.origin,
     pages: crawlResult.pages,
     external: crawlResult.external,
     fingerprint: new Map(),
     inspectTls: tlsImpl,
+    points: injectionPoints,
+    maxPointsPerCheck: settings.maxPointsPerCheck,
     request: (u, opts = {}) => crawler.request(u, { kind: 'probe', followRedirects: false, ...opts }),
+    // Active, non-destructive detection request against one injection point with
+    // a single parameter replaced. Budgeted; never follows redirects; logged as 'active'.
+    send: (point, value, opts = {}) => {
+      if (activeSent >= activeBudget) return null;
+      activeSent++;
+      const { url, init } = buildRequest(point, value);
+      return crawler.request(url, { kind: 'active', method: init.method, headers: init.headers, body: init.body, followRedirects: false, ...opts });
+    },
+    activeBudgetLeft: () => Math.max(0, activeBudget - activeSent),
   };
   const emit = (check, items) => {
     for (const item of items || []) {
@@ -130,6 +145,13 @@ export async function runScan(ctx, { target, profile, url, spiderOnly = false, c
     await safely(check, 'probe', () => check.probe(site));
     if (!checksRun.includes(check.id)) checksRun.push(check.id);
   }
+  for (const check of plan.filter((c) => c.active)) {
+    if (crawler.stopped) { skipped.push({ check, reason: `request budget exhausted before active checks (${crawler.stopReason})` }); continue; }
+    if (site.activeBudgetLeft() === 0) { skipped.push({ check, reason: `active request budget (${activeBudget}) exhausted` }); continue; }
+    onProgress({ type: 'active', checkId: check.id, points: injectionPoints.length });
+    await safely(check, 'active', () => check.active(site));
+    if (!checksRun.includes(check.id)) checksRun.push(check.id);
+  }
 
   const suppressed = ctx.scans.applyFalsePositives(target.origin, findings);
   const finishedAt = ctx.now();
@@ -145,7 +167,7 @@ export async function runScan(ctx, { target, profile, url, spiderOnly = false, c
     durationMs: finishedAt.getTime() - startedAt.getTime(),
     verification: { method: verification.method, verifiedAt: verification.verifiedAt, validUntil: verification.validUntil, tokenHash: verification.tokenHash, targetAddress: verification.targetAddress || null },
     authorization: { ...target.authorization },
-    crawl: { pages: pages.length, assets: site.pages.filter((p) => p.kind === 'asset').length, probes: crawlResult.requestLog.filter((r) => r.kind === 'probe').length, requests: crawlResult.requestLog.length, errors: pages.filter((p) => p.error).length, stopReason: crawlResult.stopReason, robotsDisallow: crawlResult.robots.disallow, external: Object.fromEntries(Object.entries(crawlResult.external).map(([k, v]) => [k, v.length])), urls: pages.map((p) => ({ url: p.finalUrl, status: p.status, depth: p.depth, ms: p.ms, bytes: p.bytes, ...(p.error ? { error: p.error } : {}) })) },
+    crawl: { pages: pages.length, assets: site.pages.filter((p) => p.kind === 'asset').length, probes: crawlResult.requestLog.filter((r) => r.kind === 'probe').length, active: crawlResult.requestLog.filter((r) => r.kind === 'active').length, injectionPoints: injectionPoints.length, requests: crawlResult.requestLog.length, errors: pages.filter((p) => p.error).length, stopReason: crawlResult.stopReason, robotsDisallow: crawlResult.robots.disallow, external: Object.fromEntries(Object.entries(crawlResult.external).map(([k, v]) => [k, v.length])), urls: pages.map((p) => ({ url: p.finalUrl, status: p.status, depth: p.depth, ms: p.ms, bytes: p.bytes, ...(p.error ? { error: p.error } : {}) })) },
     checks: { run: checksRun, skipped: skipped.map((s) => ({ id: s.check.id, reason: s.reason })), errors },
     fingerprint: [...site.fingerprint.values()],
     summary: findings.summary(),

@@ -226,7 +226,8 @@ test('docs/COMMANDS.md is generated from the registry and up to date', () => {
   assert.equal(readFileSync(CATALOG_PATH, 'utf8'), catalog(), 'run: npm run catalog');
   const text = catalog();
   assert.match(text, /\*\*\d+ commands are gated\.\*\*/);
-  assert.match(text, /`scan\.active` \| planned \| \*gated\*/);
+  assert.match(text, /`scan\.resume` \| planned \| \*gated\*/);
   assert.match(text, /`scan\.start` \| implemented \| \*gated\*/);
+  assert.match(text, /`scan\.active` \| implemented \| \*gated\*/);
   assert.match(text, /`verify\.issue` \| implemented/);
 });

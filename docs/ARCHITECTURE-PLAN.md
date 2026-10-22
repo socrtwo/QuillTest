@@ -47,8 +47,8 @@ Planning. Built so far:
 - `src/commands/` — the command registry (every command as data, `area.name` ids), and `exec.mjs`, the one path that runs a command: it refuses any `requiresVerification` command unless the active target is verified **and** authorized. `src/ui/ribbonLayout.mjs` is the default tab layout, ids only. `scripts/quilltest.mjs` runs any command from the terminal; `docs/COMMANDS.md` is generated from the registry.
 
 - `src/crawl/` — crawler, HTML extraction, cookie parsing, TLS inspection.
-- `src/checks/` — check registry and the 27 passive checks (observe / finalize / probe hooks, intrusiveness 0–1).
+- `src/checks/` — check registry, 27 passive checks (observe / finalize / probe, intrusiveness 0–1) and 7 detection-only active checks (`active()` hook, intrusiveness 2, run only on active profiles against a verified, authorized target).
 - `src/findings/` — findings model (severity, confidence, CWE/OWASP/ASVS, scrubbed evidence, signatures, diff) and JSON/CSV/SARIF export.
-- `src/scan/` — orchestrator (calls the gate itself before any request), profiles, scan store with per-target settings and false-positive rules.
+- `src/scan/` — orchestrator (calls the gate itself before any request; passive then active phases, each budgeted), the injection-point model, profiles, scan store with per-target settings and false-positive rules.
 
-The UI shell, active checks (M3), fixes (M4), AI analysis (M5) and reports (M6) are specified, not built. Planned commands exist in the registry now so the shell can be generic from day one; running one reports "planned but not implemented".
+The UI shell, the remaining active checks (SSRF out-of-band, XXE, deserialization, stored/DOM XSS, account-based IDOR), fixes (M4), AI analysis (M5) and reports (M6) are specified, not built. Planned commands exist in the registry now so the shell can be generic from day one; running one reports "planned but not implemented".

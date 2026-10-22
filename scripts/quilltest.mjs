@@ -149,7 +149,7 @@ function print(result, json) {
   if (result?.id && result.crawl && result.summary && Array.isArray(result.findings)) {
     const sm = result.summary;
     console.log(c.bold(`\nScan ${result.id}`) + c.dim(`  ${result.origin}  ${result.profile}  ${result.durationMs} ms`));
-    console.log(`  crawled ${result.crawl.pages} page(s), ${result.crawl.assets} asset(s), ${result.crawl.probes} probe request(s); ${result.crawl.requests} requests total${result.crawl.stopReason ? c.dim(' (' + result.crawl.stopReason + ')') : ''}`);
+    console.log(`  crawled ${result.crawl.pages} page(s), ${result.crawl.assets} asset(s), ${result.crawl.probes} probe request(s)${result.crawl.active ? `, ${result.crawl.active} active detection request(s) across ${result.crawl.injectionPoints} injection point(s)` : ''}; ${result.crawl.requests} requests total${result.crawl.stopReason ? c.dim(' (' + result.crawl.stopReason + ')') : ''}`);
     if (result.fingerprint.length) console.log('  stack: ' + result.fingerprint.map((f) => f.name + (f.version ? ' ' + f.version : '')).join(', '));
     console.log(`  findings: ${c.red(sm.critical + ' critical')}, ${c.red(sm.high + ' high')}, ${c.yellow(sm.medium + ' medium')}, ${sm.low} low, ${c.dim(sm.informational + ' informational')}${sm.suppressed ? c.dim(`; ${sm.suppressed} suppressed`) : ''}`);
     for (const f of result.findings.filter((x) => x.status === 'open').sort((a, b) => sevRank(b.severity) - sevRank(a.severity)).slice(0, 40)) console.log(`  ${sevColor(f.severity)} ${c.cyan(f.checkId.padEnd(32))} ${f.title}${f.key ? c.dim(' [' + f.key + ']') : ''}  ${c.dim(f.url)}`);
