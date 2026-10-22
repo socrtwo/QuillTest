@@ -39,4 +39,11 @@ Android, iOS/iPadOS, Windows, macOS, Linux (incl. Raspberry Pi OS), ChromeOS and
 
 ## Status
 
-Planning. Built so far: `src/ai/` (provider registry, config loader/validator, setup wizard) and `src/verify/` (ownership verification and the scan gate, `VerificationStore.assertVerified`). The orchestrator, crawler, checks, findings, fixes and report layers are specified, not built.
+Planning. Built so far:
+
+- `src/ai/` — provider registry, config loader/validator, setup wizard.
+- `src/verify/` — ownership verification; `VerificationStore.assertVerified` is the gate.
+- `src/targets/` — target list with authorization statements and path scope.
+- `src/commands/` — the command registry (every command as data, `area.name` ids), and `exec.mjs`, the one path that runs a command: it refuses any `requiresVerification` command unless the active target is verified **and** authorized. `src/ui/ribbonLayout.mjs` is the default tab layout, ids only. `scripts/quilltest.mjs` runs any command from the terminal; `docs/COMMANDS.md` is generated from the registry.
+
+The UI shell, orchestrator, crawler, checks, findings, fixes and report layers are specified, not built. Planned commands exist in the registry now so the shell can be generic from day one; running one reports "planned but not implemented".

@@ -39,6 +39,21 @@ node scripts/verify.mjs status https://example.com      # exit 0 if scanning is 
 
 Details, including the exact file format, redirect rules and the DNS alternative, are in [docs/OWNERSHIP-VERIFICATION.md](docs/OWNERSHIP-VERIFICATION.md).
 
+## Commands (built as data, UI pending)
+
+The full command set exists now as a registry (`src/commands/`), 241 commands across File, Verify, Scan, Targets, Checks, Findings, Fix, AI, Report, Review, Share, View, Developer and Help, with ids like `verify.issue` and `scan.start`. Verify, Targets, AI setup, macros and Help are implemented; the rest are defined and waiting on their engines. The generated reference is [docs/COMMANDS.md](docs/COMMANDS.md). Any command runs from the terminal:
+
+```bash
+node scripts/quilltest.mjs commands verify                 # search the registry
+node scripts/quilltest.mjs target add https://example.com --name "Prod"
+node scripts/quilltest.mjs target confirmAuthorization --statement "I own this site"
+node scripts/quilltest.mjs verify issue && node scripts/quilltest.mjs verify check
+node scripts/quilltest.mjs target status                   # READY TO SCAN only when verified AND authorized
+node scripts/quilltest.mjs scan start                      # refused by the executor until then
+```
+
+Commands that send requests to a target are marked *gated*: the executor (`src/commands/exec.mjs`) refuses them unless the active target's origin has a current ownership verification and you have recorded an authorization statement for it. The UI will never call a command's implementation directly, so this cannot be bypassed from a button.
+
 ## The AI setup wizard
 
 A runnable wizard is included now, ahead of the scanner. It walks you through selecting a provider, entering credentials, picking a model, and running a connectivity test, then writes a local `quilltest.ai.json` config (git-ignored).

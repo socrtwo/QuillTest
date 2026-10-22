@@ -4,6 +4,9 @@ quilltest.ai.json
 # Ownership-verification records (pending challenges hold live tokens)
 quilltest.verifications.json
 
+# Target list (origins, authorization statements, scope)
+quilltest.targets.json
+
 # Scan outputs and verification artifacts
 /scans/
 /reports/

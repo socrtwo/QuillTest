@@ -16,13 +16,16 @@
   },
   "bin": {
     "quilltest-ai-setup": "scripts/ai-setup-wizard.mjs",
-    "quilltest-verify": "scripts/verify.mjs"
+    "quilltest-verify": "scripts/verify.mjs",
+    "quilltest": "scripts/quilltest.mjs"
   },
   "scripts": {
     "ai:setup": "node scripts/ai-setup-wizard.mjs",
     "ai:list": "node scripts/ai-setup-wizard.mjs --list",
     "ai:sync-browser": "node scripts/sync-browser-registry.mjs",
     "verify": "node scripts/verify.mjs",
+    "quilltest": "node scripts/quilltest.mjs",
+    "catalog": "node scripts/gen-catalog.mjs",
     "test": "node --test"
   },
   "keywords": [

@@ -1,0 +1,33 @@
+/** File (Backstage) — workspace files, import/export, options, customization. Shell: M1/M6. */
+import { def } from './registry.mjs';
+
+def([
+  { id: 'file.new', label: 'New Workspace', icon: 'note_add', tab: 'File', group: 'New', keys: ['Ctrl+N'], tip: 'A workspace holds targets, scans, findings and fixes' },
+  { id: 'file.open', label: 'Open…', icon: 'folder_open', tab: 'File', group: 'Open', keys: ['Ctrl+O'] },
+  { id: 'file.openRecent', label: 'Open Recent', icon: 'history', tab: 'File', group: 'Open', kind: 'menu' },
+  { id: 'file.clearRecent', label: 'Clear Unpinned Recent Workspaces', icon: 'clear_all', tab: 'File', group: 'Open' },
+  { id: 'file.save', label: 'Save', icon: 'save', tab: 'File', group: 'Save', keys: ['Ctrl+S'], popular: true },
+  { id: 'file.saveAs', label: 'Save As…', icon: 'save_as', tab: 'File', group: 'Save', keys: ['F12'] },
+  { id: 'file.autosave', label: 'AutoSave', icon: 'cloud_sync', tab: 'File', group: 'Save', kind: 'toggle' },
+  { id: 'file.close', label: 'Close', icon: 'close', tab: 'File', group: 'Close', keys: ['Ctrl+W'] },
+  { id: 'file.exit', label: 'Exit', icon: 'logout', tab: 'File', group: 'Close' },
+  { id: 'file.properties', label: 'Workspace Properties…', icon: 'info', tab: 'File', group: 'Info' },
+  { id: 'file.encrypt', label: 'Encrypt Workspace with Password…', icon: 'lock', tab: 'File', group: 'Info', tip: 'Findings and request logs are sensitive; AES-256 at rest' },
+  { id: 'file.import.targets', label: 'Import Targets…', icon: 'upload_file', tab: 'File', group: 'Import' },
+  { id: 'file.import.findings', label: 'Import Findings (JSON/SARIF)…', icon: 'upload_file', tab: 'File', group: 'Import' },
+  { id: 'file.import.urls', label: 'Import URL List…', icon: 'upload_file', tab: 'File', group: 'Import' },
+  { id: 'file.export.json', label: 'Export Workspace as JSON', icon: 'data_object', tab: 'File', group: 'Export' },
+  { id: 'file.export.sarif', label: 'Export Findings as SARIF', icon: 'download', tab: 'File', group: 'Export', tip: 'For code-scanning dashboards and IDEs' },
+  { id: 'file.export.csv', label: 'Export Findings as CSV', icon: 'table_view', tab: 'File', group: 'Export' },
+  { id: 'file.export.pdf', label: 'Export Report as PDF', icon: 'picture_as_pdf', tab: 'File', group: 'Export' },
+  { id: 'file.export.html', label: 'Export Report as HTML', icon: 'html', tab: 'File', group: 'Export' },
+  { id: 'file.export.markdown', label: 'Export Report as Markdown', icon: 'description', tab: 'File', group: 'Export' },
+  { id: 'file.print', label: 'Print Report', icon: 'print', tab: 'File', group: 'Print', keys: ['Ctrl+P'] },
+  { id: 'file.share', label: 'Share…', icon: 'share', tab: 'File', group: 'Share' },
+  { id: 'file.options', label: 'Options…', icon: 'settings', tab: 'File', group: 'Options' },
+  { id: 'file.customizeQat', label: 'Customize Quick Access Bar…', icon: 'bookmark_add', tab: 'File', group: 'Options' },
+  { id: 'file.customizeRibbon', label: 'Customize Tabs…', icon: 'view_week', tab: 'File', group: 'Options' },
+  { id: 'file.customizeKeyboard', label: 'Customize Keyboard…', icon: 'keyboard', tab: 'File', group: 'Options' },
+  { id: 'file.exportSettings', label: 'Export / Import Settings…', icon: 'settings_backup_restore', tab: 'File', group: 'Options' },
+  { id: 'file.resetCustomizations', label: 'Reset All Customizations', icon: 'restart_alt', tab: 'File', group: 'Options' },
+]);

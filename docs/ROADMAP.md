@@ -14,8 +14,9 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 ## M1 — Ownership and shell (in progress)
 
 - [x] Ownership verification module (file-upload + DNS TXT), the scan gate (`src/verify/`, `scripts/verify.mjs`)
-- [ ] Command registry + minimal ribbon/QAB shell
-- [ ] Target management
+- [x] Command registry (`src/commands/`, 241 commands as data, 40 implemented), default tab layout (`src/ui/ribbonLayout.mjs`), executor with the scan gate (`exec.mjs`), command-line shell (`scripts/quilltest.mjs`), generated `docs/COMMANDS.md`
+- [ ] Ribbon/QAB UI shell (Vite) over the registry
+- [x] Target management (`src/targets/`): origins, authorization statements, path scope, active target
 
 ## M2 — Passive engine
 
