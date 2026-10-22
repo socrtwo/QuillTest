@@ -37,6 +37,7 @@ export const CATEGORIES = {
   csrf: 'Cross-site request forgery',
   redirects: 'Open redirects',
   access: 'Access control',
+  methods: 'HTTP methods',
 };
 
 export const ID_PATTERN = /^[a-z]+\.[a-z][A-Za-z0-9]*$/;

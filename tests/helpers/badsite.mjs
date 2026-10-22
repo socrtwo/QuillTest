@@ -91,10 +91,13 @@ if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop()
 // ---- active-engine fixtures (M3) ---------------------------------------------------------------
 
 const enc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+const readBody = (req) => new Promise((resolve) => { let b = ''; req.on('data', (c) => { b += c; if (b.length > 1e6) req.destroy(); }); req.on('end', () => resolve(b)); req.on('error', () => resolve('')); });
+const field = (body, name) => new URLSearchParams(body).get(name) ?? '';
 const HOME_ACTIVE = `<!doctype html><html><head><title>App</title></head><body>
   <a href="/search?q=test">search</a> <a href="/item?id=1">item</a> <a href="/go?url=/home">go</a>
   <a href="/render?name=hi">render</a> <a href="/hdr?x=1">hdr</a> <a href="/account">account</a>
-  <form method="post" action="/account/update"><input name="email"><input name="bio"><button type="submit">save</button></form></body></html>`;
+  <form method="post" action="/account/update"><input name="email"><input name="bio"><button type="submit">save</button></form>
+  <form method="post" action="/comment"><input name="text"><button type="submit">post</button></form></body></html>`;
 
 /** A deliberately vulnerable app that triggers each active detector exactly once. Test double, not real logic. */
 export function vulnAppHandler() {
@@ -102,9 +105,13 @@ export function vulnAppHandler() {
     const url = new URL(req.url, 'http://x');
     const q = url.searchParams;
     const html = (b, extra = {}) => { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...extra }); res.end(b); };
+    if (req.method === 'OPTIONS') { res.writeHead(204, { allow: 'GET, POST, OPTIONS, TRACE, PUT, DELETE' }); return res.end(); }  // advertises unsafe methods
     switch (url.pathname) {
-      case '/':
-        return html(HOME_ACTIVE, { 'set-cookie': ['SESSIONID=' + 'z9'.repeat(16) + '; Path=/'] }); // no SameSite → CSRF candidate
+      case '/': {
+        const xfh = req.headers['x-forwarded-host'];
+        const canon = xfh ? `<link rel="canonical" href="https://${xfh}/">` : '';   // host-header reflection
+        return html(HOME_ACTIVE.replace('</head>', canon + '</head>'), { 'set-cookie': ['SESSIONID=' + 'z9'.repeat(16) + '; Path=/'] }); // no SameSite → CSRF candidate
+      }
       case '/search':                                   // reflected XSS: q echoed raw into HTML body
         return html(`<html><body><h1>Results for ${q.get('q') ?? ''}</h1></body></html>`);
       case '/item': {                                   // SQL error only when a quote is present
@@ -127,6 +134,9 @@ export function vulnAppHandler() {
         return html('<html><body><form method="post" action="/account/update"><input name="email"><input name="bio"><button>save</button></form></body></html>');
       case '/admin':
         return html('<html><body><h1>Admin Dashboard</h1>Users, settings</body></html>');
+      case '/comment':                                  // reflected XSS via a POST body field
+        if (req.method === 'POST') return readBody(req).then((b) => html(`<html><body>Posted: ${field(b, 'text')}</body></html>`));
+        return html('<html><body>comment</body></html>');
       default:
         res.writeHead(404, { 'content-type': 'text/plain' }); return res.end('not found');
     }
@@ -139,9 +149,10 @@ export function safeAppHandler() {
     const url = new URL(req.url, 'http://x');
     const q = url.searchParams;
     const html = (b, extra = {}) => { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', ...extra }); res.end(b); };
+    if (req.method === 'OPTIONS') { res.writeHead(204, { allow: 'GET, POST, OPTIONS' }); return res.end(); }
     switch (url.pathname) {
       case '/':
-        return html(HOME_ACTIVE.replace('<form method="post" action="/account/update"><input name="email">', '<form method="post" action="/account/update"><input type="hidden" name="csrf_token" value="abc"><input name="email">'), { 'set-cookie': ['SESSIONID=' + 'z9'.repeat(16) + '; Path=/; Secure; HttpOnly; SameSite=Lax'] });
+        return html(HOME_ACTIVE.replace(/(<form method="post"[^>]*>)/g, '$1<input type="hidden" name="csrf_token" value="abc">'), { 'set-cookie': ['SESSIONID=' + 'z9'.repeat(16) + '; Path=/; Secure; HttpOnly; SameSite=Lax'] });
       case '/search':
         return html(`<html><body><h1>Results for ${enc(q.get('q') ?? '')}</h1></body></html>`);
       case '/item':
@@ -156,6 +167,9 @@ export function safeAppHandler() {
         res.writeHead(200, { 'content-type': 'text/plain', 'x-echo': String(q.get('x') ?? '').replace(/[\r\n]/g, '') }); return res.end('ok');  // newlines stripped
       case '/account':
         return html('<html><body><form method="post" action="/account/update"><input type="hidden" name="csrf_token" value="abc"><input name="email"><button>save</button></form></body></html>');
+      case '/comment':
+        if (req.method === 'POST') return readBody(req).then((b) => html(`<html><body>Posted: ${enc(field(b, 'text'))}</body></html>`));
+        return html('<html><body>comment</body></html>');
       default:
         res.writeHead(404, { 'content-type': 'text/plain' }); return res.end('not found');
     }

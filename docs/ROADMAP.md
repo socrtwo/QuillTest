@@ -28,7 +28,7 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 ## M3 — Active engine (in progress)
 
 - [x] Active-check framework: injection-point model from the crawl (`src/scan/params.mjs`), active phase and request budget in the orchestrator, `active()` hook in the check registry
-- [x] Detection-only active checks (`src/checks/active/`): reflected XSS (safe canary), SQL-error, template-eval and CRLF injection, open redirect, CSRF-token, forced browsing
+- [x] Detection-only active checks (`src/checks/active/`): reflected XSS (safe canary, GET and POST), SQL-error, template-eval and CRLF injection, open redirect, host-header injection, CSRF-token, forced browsing, unsafe HTTP methods
 - [x] Scan profiles and intrusiveness caps (Standard/Thorough now run the active set; Passive/Quick skip it)
 - [ ] SSRF (out-of-band callback), XXE, deserialization, stored/DOM XSS, IDOR with supplied accounts
 - [ ] Boolean/time-based SQLi detection

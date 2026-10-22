@@ -111,10 +111,17 @@ export async function runScan(ctx, { target, profile, url, spiderOnly = false, c
     // Active, non-destructive detection request against one injection point with
     // a single parameter replaced. Budgeted; never follows redirects; logged as 'active'.
     send: (point, value, opts = {}) => {
-      if (activeSent >= activeBudget) return null;
+      if (activeSent >= activeBudget || crawler.stopped) return null;
       activeSent++;
       const { url, init } = buildRequest(point, value);
       return crawler.request(url, { kind: 'active', method: init.method, headers: init.headers, body: init.body, followRedirects: false, ...opts });
+    },
+    // Budgeted active request to an arbitrary same-origin URL (forced browsing, host-header
+    // and method checks). Logged 'active'; counts against the active budget.
+    sendUrl: (url, opts = {}) => {
+      if (activeSent >= activeBudget || crawler.stopped) return null;
+      activeSent++;
+      return crawler.request(url, { kind: 'active', followRedirects: false, ...opts });
     },
     activeBudgetLeft: () => Math.max(0, activeBudget - activeSent),
   };

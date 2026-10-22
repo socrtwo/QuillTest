@@ -94,7 +94,7 @@ export class Crawler {
    * Same-origin redirects are followed (≤ 5); off-origin ones are recorded
    * as external and not followed.
    */
-  async request(url, { kind = 'page', method = 'GET', headers = {}, followRedirects = true, maxBodyBytes = this.opts.maxBodyBytes } = {}) {
+  async request(url, { kind = 'page', method = 'GET', headers = {}, body, followRedirects = true, maxBodyBytes = this.opts.maxBodyBytes } = {}) {
     const redirects = [];
     let current = url;
     for (let hop = 0; ; hop++) {
@@ -108,6 +108,7 @@ export class Crawler {
           method,
           redirect: 'manual',
           headers: { 'user-agent': this.userAgent, accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', ...this.extraHeaders, ...headers },
+          ...(body !== undefined && method !== 'GET' && method !== 'HEAD' ? { body } : {}),
           signal: AbortSignal.timeout(this.opts.timeoutMs),
         });
       } catch (e) {

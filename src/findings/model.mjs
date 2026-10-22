@@ -67,6 +67,8 @@ export const CWE = {
   113: 'Improper Neutralization of CRLF Sequences in HTTP Headers (HTTP Response Splitting)',
   601: 'URL Redirection to Untrusted Site (Open Redirect)',
   1336: 'Improper Neutralization of Special Elements Used in a Template Engine (Template Injection)',
+  644: 'Improper Neutralization of HTTP Headers for Scripting Syntax',
+  650: 'Trusting HTTP Permission Methods on the Server Side',
 };
 
 export function severityRank(s) {

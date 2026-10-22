@@ -100,9 +100,16 @@ test('active scan of the vulnerable app detects every planted flaw, each detecti
   assert.deepEqual(rec.checks.errors, []);
   assert.ok(rec.crawl.injectionPoints >= 6 && rec.crawl.active > 0);
   const ids = new Set(rec.findings.map((f) => f.checkId));
-  for (const id of ['redirects.open', 'xss.reflected', 'injection.sqlError', 'injection.templateEval', 'injection.crlf', 'csrf.formToken', 'access.forcedBrowsing']) {
+  for (const id of ['redirects.open', 'xss.reflected', 'injection.sqlError', 'injection.templateEval', 'injection.crlf', 'csrf.formToken', 'access.forcedBrowsing', 'injection.hostHeader', 'methods.enabled']) {
     assert.ok(ids.has(id), `expected a ${id} finding`);
   }
+  // Regression: a POST form field is reflected — proving the crawler forwards the request body.
+  const formXss = rec.findings.find((f) => f.checkId === 'xss.reflected' && f.key === 'text');
+  assert.ok(formXss, 'reflected XSS via a POST form field must be detected (body forwarding)');
+  // methods.enabled flags TRACE at medium; the write methods at low.
+  const trace = rec.findings.find((f) => f.checkId === 'methods.enabled' && f.key === 'TRACE');
+  assert.ok(trace && trace.severity === 'medium');
+  assert.ok(rec.findings.some((f) => f.checkId === 'injection.hostHeader' && f.severity === 'medium'));
   const xss = rec.findings.filter((f) => f.checkId === 'xss.reflected');
   assert.ok(xss.some((f) => f.key === 'q' && f.severity === 'high' && f.confidence === 'firm'));
   assert.equal(rec.findings.find((f) => f.checkId === 'injection.sqlError').severity, 'high');
@@ -154,4 +161,49 @@ test('scan.active command and scan.preview reflect the active set', async () => 
   assert.ok(prev.checks.some((c) => c.id === 'xss.reflected' && c.intrusiveness === 2));
   assert.equal(PROFILES.standard.active, true);
   assert.equal(PROFILES.passive.active, false);
+});
+
+// ----- M3 continued: POST body forwarding, host-header and method checks ------------------------
+
+test('crawler.request forwards a POST body (regression)', async () => {
+  const seen = [];
+  const fakeFetch = async (url, init) => { seen.push({ url, method: init.method, body: init.body }); return new Response('ok', { status: 200, headers: { 'content-type': 'text/plain' } }); };
+  const { Crawler } = await import('../src/crawl/crawler.mjs');
+  const c = new Crawler('https://a.example', { fetch: fakeFetch });
+  await c.request('https://a.example/post', { kind: 'active', method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'user=MARK' });
+  assert.deepEqual(seen[0], { url: 'https://a.example/post', method: 'POST', body: 'user=MARK' });
+  await c.request('https://a.example/x', { kind: 'page' });   // GET never carries a body
+  assert.equal(seen[1].body, undefined);
+});
+
+test('host-header reflection fires on the vulnerable app, silent on the safe one', async () => {
+  const check = getCheck('injection.hostHeader');
+  assert.equal(check.cwe.includes(644), true);
+  const ctxV = readyContext(vuln.origin);
+  const recV = await exec(ctxV, 'scan.active');
+  assert.ok(recV.findings.some((f) => f.checkId === 'injection.hostHeader'));
+  const ctxS = readyContext(safe.origin);
+  const recS = await exec(ctxS, 'scan.active');
+  assert.ok(!recS.findings.some((f) => f.checkId === 'injection.hostHeader'));
+});
+
+test('method check advertises unsafe methods without ever sending them', async () => {
+  const ctx = readyContext(vuln.origin);
+  const rec = await exec(ctx, 'scan.active');
+  const methods = rec.findings.filter((f) => f.checkId === 'methods.enabled').map((f) => f.key).sort();
+  assert.deepEqual(methods, ['DELETE', 'PUT', 'TRACE']);
+  // QuillTest never issues TRACE or a write method: only GET/POST/OPTIONS appear in the request log.
+  const verbs = new Set(rec.requestLog.map((r) => r.method));
+  assert.ok(!verbs.has('TRACE') && !verbs.has('PUT') && !verbs.has('DELETE') && !verbs.has('PATCH') && !verbs.has('CONNECT'), [...verbs].join(','));
+  assert.ok(verbs.has('OPTIONS'));
+});
+
+test('forced browsing uses the budgeted active sender (counts against the budget, logged active)', async () => {
+  const ctx = readyContext(vuln.origin);
+  const rec = await exec(ctx, 'scan.active');
+  const admin = rec.findings.find((f) => f.checkId === 'access.forcedBrowsing' && f.key === '/admin');
+  assert.ok(admin);
+  // every forced-browsing request is an 'active' request in the log (none mislabeled 'probe')
+  assert.ok(rec.requestLog.some((r) => r.kind === 'active' && r.url.endsWith('/admin')));
+  assert.ok(!rec.requestLog.some((r) => r.kind === 'probe' && r.url.endsWith('/admin')));
 });

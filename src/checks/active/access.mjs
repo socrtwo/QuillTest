@@ -22,7 +22,6 @@ const PATHS = [
   { path: '/manage', what: 'management area' },
   { path: '/dashboard', what: 'dashboard' },
   { path: '/console', what: 'console' },
-  { path: '/.git/config', what: 'VCS metadata' },
   { path: '/actuator', what: 'Spring Boot Actuator' },
   { path: '/actuator/env', what: 'Spring Boot Actuator environment' },
   { path: '/metrics', what: 'metrics endpoint' },
@@ -42,12 +41,13 @@ defineCheck({
   remediation: { summary: 'Put every administrative and operational endpoint behind authentication and authorization; return 404 (not 403) for unauthenticated requests to hide their existence; remove debug, metrics and actuator endpoints from production or bind them to an internal interface.', references: ['https://owasp.org/Top10/A01_2021-Broken_Access_Control/'] },
   active: async (site) => {
     const baselineUrl = `${site.origin}/qt-${randomBytes(6).toString('hex')}`;
-    const baseline = await site.request(baselineUrl, { kind: 'active' });
+    const baseline = await site.sendUrl(baselineUrl);
     const baseStatus = baseline?.status ?? 404;
     const baseLen = baseline?.body?.length ?? 0;
+    if (!baseline) return [];
     const out = [];
     for (const entry of PATHS) {
-      const res = await site.request(site.origin + entry.path, { kind: 'active' });
+      const res = await site.sendUrl(site.origin + entry.path);
       if (!res || res.status === 0) continue;
       const interesting = res.status === 200 || res.status === 401 || res.status === 403;
       if (!interesting) continue;
@@ -57,7 +57,7 @@ defineCheck({
       out.push({
         url: site.origin + entry.path, key: entry.path,
         title: entry.positive ? 'security.txt published' : undefined,
-        severity: entry.positive ? 'informational' : protectedByAuth ? 'informational' : entry.path.includes('.git') || entry.path.includes('actuator') || entry.path.includes('phpmyadmin') ? 'medium' : 'low',
+        severity: entry.positive ? 'informational' : protectedByAuth ? 'informational' : entry.path.includes('actuator') || entry.path.includes('phpmyadmin') ? 'medium' : 'low',
         confidence: 'tentative',
         description: entry.positive ? 'A security.txt file is published (good practice).' : protectedByAuth ? `The ${entry.what} at ${entry.path} exists but requires authentication (HTTP ${res.status}).` : `The ${entry.what} at ${entry.path} answered HTTP ${res.status} without credentials; confirm it is meant to be public.`,
         evidence: { detail: { path: entry.path, status: res.status, baselineStatus: baseStatus, bytes: res.body?.length ?? 0 } },

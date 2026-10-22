@@ -9,3 +9,4 @@ import './csrf.mjs';
 import './xss.mjs';
 import './injection.mjs';
 import './access.mjs';
+import './requests.mjs';

@@ -39,7 +39,7 @@ defineCheck({
       const res = site.send(point, canary);
       if (!res) break;
       const awaited = await res;
-      if (!awaited || !awaited.body || !/text\/html|application\/xhtml|$^/.test(awaited.contentType || 'text/html')) continue;
+      if (!awaited || !awaited.body || !/text\/html|application\/xhtml/.test(awaited.contentType || 'text/html')) continue;
       const at = awaited.body.indexOf(token);
       if (at < 0) continue;
       const after = awaited.body.slice(at + token.length, at + token.length + 8);
