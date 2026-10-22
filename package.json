@@ -20,7 +20,8 @@
   "scripts": {
     "ai:setup": "node scripts/ai-setup-wizard.mjs",
     "ai:list": "node scripts/ai-setup-wizard.mjs --list",
-    "test": "node --test \"tests/*.test.mjs\""
+    "ai:sync-browser": "node scripts/sync-browser-registry.mjs",
+    "test": "node --test"
   },
   "keywords": [
     "security",

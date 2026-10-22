@@ -10,7 +10,7 @@
  *
  *   node scripts/ai-setup-wizard.mjs                 # interactive
  *   node scripts/ai-setup-wizard.mjs --list          # list providers
- *   node scripts/ai-setup-wizard.mjs --provider anthropic --model claude-sonnet-4-5 --test
+ *   node scripts/ai-setup-wizard.mjs --provider anthropic --model claude-opus-5-5 --yes --test
  *   node scripts/ai-setup-wizard.mjs --config quilltest.ai.json --test-only
  *
  * See docs/AI-WIZARD.md for the full flag list.
@@ -18,19 +18,21 @@
 
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout, env, argv, exit } from 'node:process';
-import { writeFileSync, readFileSync, existsSync } from 'node:fs';
-import { resolve, dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { writeFileSync, readFileSync, existsSync, chmodSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 import {
   PROVIDERS,
   getProvider,
+  keyOptional,
   buildTestRequest,
+  buildListModelsRequest,
+  extractModelIds,
   extractText,
 } from '../src/ai/providers.mjs';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_OUT = resolve(process.cwd(), 'quilltest.ai.json');
+const REQUEST_TIMEOUT_MS = 30_000;
 
 // ----- tiny arg parser -------------------------------------------------------
 
@@ -147,7 +149,7 @@ async function runInteractive(rl, preset) {
     if (ans.trim()) apiKey = ans.trim();
   }
   if (!apiKey && apiKeyEnv && env[apiKeyEnv]) apiKey = env[apiKeyEnv];
-  if (!apiKey && provider.id !== 'local') {
+  if (!apiKey && !keyOptional(provider.id)) {
     console.log(c.yellow(`\nNo key provided. Will store a reference to $${apiKeyEnv}; set it before scanning.`));
   }
 
@@ -203,23 +205,11 @@ async function promptHidden(rl, query) {
 // ----- provider calls --------------------------------------------------------
 
 async function fetchModels(provider, base, apiKey) {
-  const url = `${base.replace(/\/+$/, '')}${provider.listModelsPath}`;
-  const headers = {};
-  if (provider.apiStyle === 'anthropic') {
-    headers['x-api-key'] = apiKey;
-    headers['anthropic-version'] = '2023-06-01';
-  } else if (provider.apiStyle === 'gemini') {
-    // Gemini lists models at /models?key=
-  } else {
-    headers['authorization'] = `Bearer ${apiKey}`;
-  }
-  const u = provider.apiStyle === 'gemini' ? `${url}?key=${encodeURIComponent(apiKey)}` : url;
-  const res = await fetch(u, { headers });
+  const req = buildListModelsRequest({ providerId: provider.id, base, apiKey });
+  if (!req) return [];
+  const res = await fetch(req.url, { ...req.init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const json = await res.json();
-  if (Array.isArray(json.data)) return json.data.map((m) => m.id);          // OpenAI-style
-  if (Array.isArray(json.models)) return json.models.map((m) => (m.name || m.id || '').replace(/^models\//, '')); // Gemini
-  return [];
+  return extractModelIds(await res.json());
 }
 
 async function runTest(cfg, { dryRun } = {}) {
@@ -233,20 +223,20 @@ async function runTest(cfg, { dryRun } = {}) {
   if (dryRun) {
     const redacted = { ...init, headers: redactHeaders(init.headers) };
     console.log(c.bold('\n[dry-run] Request that would be sent:'));
-    console.log('  ' + c.cyan(init.method) + ' ' + url.replace(/key=[^&]+/, 'key=REDACTED'));
+    console.log('  ' + c.cyan(init.method) + ' ' + url);
     console.log('  headers: ' + JSON.stringify(redacted.headers));
     console.log('  body:    ' + redacted.body);
     return { ok: true, dryRun: true };
   }
 
-  if (!effectiveKey && provider.id !== 'local') {
+  if (!effectiveKey && !keyOptional(provider.id)) {
     return { ok: false, error: `No API key available (set $${cfg.apiKeyEnv} or pass --key).` };
   }
 
   process.stdout.write('\nTesting connectivity… ');
   const t0 = Date.now();
   try {
-    const res = await fetch(url, init);
+    const res = await fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
     const ms = Date.now() - t0;
     const text = await res.text();
     let json;
@@ -258,7 +248,8 @@ async function runTest(cfg, { dryRun } = {}) {
     const reply = json ? extractText(provider.apiStyle, json) : '';
     return { ok: true, ms, reply: reply || '(empty)' };
   } catch (e) {
-    return { ok: false, error: e.message };
+    const msg = e?.name === 'TimeoutError' ? `No response within ${REQUEST_TIMEOUT_MS / 1000}s` : (e?.cause?.message || e.message);
+    return { ok: false, error: msg };
   }
 }
 
@@ -301,12 +292,16 @@ function mergeIntoExisting(outPath, newConfig) {
   }
 }
 
-function writeConfig(outPath, config, { saveKey }) {
-  // Guard: never let a literal key be written unless explicitly opted in.
-  if (!saveKey) {
-    for (const p of Object.values(config.providers)) p.apiKey = null;
+function writeConfig(outPath, config, { saveKey, providerId }) {
+  // Guard: never let a literal key be written for the provider just configured
+  // unless explicitly opted in. Keys other providers already stored in this file
+  // (from an earlier --save-key run) are left as they are.
+  if (!saveKey && config.providers?.[providerId]) {
+    config.providers[providerId].apiKey = null;
   }
   writeFileSync(outPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
+  // `mode` only applies when the file is created; tighten an existing file too.
+  try { chmodSync(outPath, 0o600); } catch { /* best effort (e.g. Windows) */ }
 }
 
 // ----- main ------------------------------------------------------------------
@@ -390,7 +385,7 @@ async function main() {
   const outPath = resolve(process.cwd(), typeof args.out === 'string' ? args.out : DEFAULT_OUT);
   const built = buildConfig(choice, { saveKey });
   const merged = mergeIntoExisting(outPath, built);
-  writeConfig(outPath, merged, { saveKey });
+  writeConfig(outPath, merged, { saveKey, providerId: choice.provider.id });
 
   console.log(c.green(`\n✓ Wrote ${outPath}`));
   console.log(`  active provider: ${c.bold(choice.provider.id)}  model: ${c.bold(choice.model)}`);
