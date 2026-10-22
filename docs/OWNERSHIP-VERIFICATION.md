@@ -57,6 +57,39 @@ expires=2026-10-23T14:00:00Z
 
 Normalized origin = lowercase scheme + host + explicit port only when non-default, no trailing slash, no path.
 
-## Status
+## Implementation
 
-Planning. The verification module (`src/verify/`) is specified here but not yet implemented. The token format and the gate behavior above are the contract the implementation will follow.
+`src/verify/` implements this document; `scripts/verify.mjs` is the CLI. The scan orchestrator (not yet built) will call `VerificationStore.assertVerified(origin)` before its first request and refuse to run when it throws.
+
+```bash
+node scripts/verify.mjs issue  https://example.com          # prints the file to publish + the DNS alternative
+node scripts/verify.mjs issue  https://example.com --write-file ./public   # also writes it under ./public/.well-known/…
+node scripts/verify.mjs check  https://example.com          # fetches the file; records the origin as verified on success
+node scripts/verify.mjs check  https://example.com --method dns
+node scripts/verify.mjs status https://example.com          # exit 0 when scanning is permitted, 1 otherwise
+node scripts/verify.mjs list | revoke <origin> | cancel <origin>
+```
+
+Programmatic use:
+
+```js
+import { VerificationStore, verifyChallenge, renderVerificationFile, wellKnownPath } from './src/verify/index.mjs';
+
+const store = VerificationStore.load('quilltest.verifications.json');
+const challenge = store.issue('https://example.com');
+// publish renderVerificationFile(challenge) at wellKnownPath(challenge), then:
+const result = await verifyChallenge(challenge, 'http');     // or 'dns'
+if (result.ok) store.complete(challenge, result);
+store.assertVerified('https://example.com');                 // the gate: throws VerificationRequiredError otherwise
+```
+
+Decisions the implementation makes where this document left room:
+
+- **Records file.** Pending challenges and verification records live in `quilltest.verifications.json` (mode `0600`, git-ignored). A pending challenge stores the token, because the verifier must compare against it; a completed record stores only `sha256(token)` and a URL with the token replaced by `<token>`.
+- **Validity of a verification.** A successful verification permits scanning that origin for **30 days** (`DEFAULT_VERIFIED_TTL_MS`), after which `assertVerified` throws and the challenge must be redone. `revoke` removes a record early.
+- **Redirects.** Same-origin redirects are followed, at most 3, and noted as warnings. Any redirect to a different scheme, host or port fails immediately; the file is never fetched from the redirect target.
+- **Catch-all pages.** A server that returns 200 for every path does not pass: the body must carry the exact token and checksum lines.
+- **IP-literal origins** (`http://192.0.2.10:8080`) can only use the file method; the DNS method is reported as unavailable rather than attempted.
+- **Verifying IP.** The record's `targetAddress` is the address the target host resolved to at verification time (best effort), for the scan report.
+- **Timeouts.** HTTP fetches time out after 15 s. The file is parsed leniently (BOM, CRLF, surrounding whitespace, comment lines, upper-case keys) but matched strictly, with constant-time comparison of the token and checksum.
+- **Expired challenges** are pruned when next touched; `check` on an origin with no live challenge tells you to `issue` a new one.

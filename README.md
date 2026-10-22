@@ -4,7 +4,7 @@
 
 **Quill Test** (repository `QuillTest`) is an original, open-source web application security **testing and fixing** tool for Windows, macOS, Linux, ChromeOS and the web. It tests a target website for known classes of security flaws and uses AI, through the major provider APIs, to reason about the vulnerabilities an attacker — including an AI-assisted one — would look for, then helps you **fix** them with concrete, mapped remediations. It does not exploit anything. Its goal is the same as the rest of the Quill suite: **no missing commands**. It provides the familiar office-suite workflow plus the best ideas from current and former web security scanners.
 
-> **Status: planning. There is no scanner engine yet.** This repository holds the plan, the documentation, and a runnable AI-provider setup wizard (`scripts/`, `src/ai/`). The scanning and remediation engine described below is not implemented.
+> **Status: planning. There is no scanner engine yet.** This repository holds the plan, the documentation, a runnable AI-provider setup wizard (`scripts/ai-setup-wizard.mjs`, `src/ai/`), and the ownership-verification module and CLI that will gate every scan (`scripts/verify.mjs`, `src/verify/`). The scanning and remediation engine described below is not implemented.
 
 ## Scope and ethics — read first
 
@@ -26,6 +26,18 @@ See [docs/LEGAL.md](docs/LEGAL.md) and [docs/ETHICS.md](docs/ETHICS.md).
 - **AI-assisted analysis (optional).** A setup wizard, and several-AI modes: triage and deduplicate findings, rank by exploitability, explain each flaw in plain language, draft and refine the remediations, map to CWE/OWASP, draft the executive summary, and flag likely false positives. The AI layer reviews *QuillTest's own findings and the target's observed responses* — it never runs the scan for you and never emits attack payloads. See [docs/AI.md](docs/AI.md).
 - **Bring-your-own-model setup wizard.** Configure any of the major API providers — OpenAI, Anthropic, Google (Gemini), xAI (Grok), Meta (Llama, via a hosted gateway), DeepSeek, Alibaba (Qwen), and Mistral — or a local model (Ollama / llama.cpp / LM Studio) and any OpenAI-compatible endpoint. Keys are stored locally, never committed. See [docs/AI-WIZARD.md](docs/AI-WIZARD.md).
 - **Original ideas.** An attacker's-eye priority queue, a findings diff across scans, a plain-language remediation writer, a false-positive learning loop, scan-as-you-configure preview, and export-ready review packages. See [docs/INNOVATIONS.md](docs/INNOVATIONS.md).
+
+## Ownership verification (built)
+
+The scan gate exists ahead of the scanner. It issues a challenge bound to one exact origin, checks the published file (or DNS TXT record), and records the result; the future orchestrator refuses to run for any origin without a current record.
+
+```bash
+node scripts/verify.mjs issue  https://example.com      # prints the file to publish at /.well-known/quilltest-verification/<token>.txt
+node scripts/verify.mjs check  https://example.com      # fetches it back; on success the origin is verified for 30 days
+node scripts/verify.mjs status https://example.com      # exit 0 if scanning is permitted
+```
+
+Details, including the exact file format, redirect rules and the DNS alternative, are in [docs/OWNERSHIP-VERIFICATION.md](docs/OWNERSHIP-VERIFICATION.md).
 
 ## The AI setup wizard
 

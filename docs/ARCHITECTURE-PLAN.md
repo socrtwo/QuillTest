@@ -39,4 +39,4 @@ Android, iOS/iPadOS, Windows, macOS, Linux (incl. Raspberry Pi OS), ChromeOS and
 
 ## Status
 
-Planning. Only `src/ai/providers.mjs` and the setup wizard exist. Everything else is specified, not built.
+Planning. Built so far: `src/ai/` (provider registry, config loader/validator, setup wizard) and `src/verify/` (ownership verification and the scan gate, `VerificationStore.assertVerified`). The orchestrator, crawler, checks, findings, fixes and report layers are specified, not built.

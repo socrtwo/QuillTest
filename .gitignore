@@ -1,6 +1,9 @@
 # QuillTest local AI configuration (may contain a key if --save-key was used)
 quilltest.ai.json
 
+# Ownership-verification records (pending challenges hold live tokens)
+quilltest.verifications.json
+
 # Scan outputs and verification artifacts
 /scans/
 /reports/

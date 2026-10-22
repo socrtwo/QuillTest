@@ -8,12 +8,12 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 - [x] AI provider registry (`src/ai/providers.mjs`)
 - [x] AI setup wizard — CLI (`scripts/ai-setup-wizard.mjs`)
 - [x] AI setup wizard — browser (`public/ai-wizard.html`)
-- [ ] Config module + schema validation for `quilltest.ai.json`
+- [x] Config module + schema validation for `quilltest.ai.json` (`src/ai/config.mjs`)
 - [ ] Project scaffold matching QuillStage stack (Vite, Capacitor, Electron, CI)
 
-## M1 — Ownership and shell
+## M1 — Ownership and shell (in progress)
 
-- [ ] Ownership verification module (file-upload + DNS TXT), the scan gate
+- [x] Ownership verification module (file-upload + DNS TXT), the scan gate (`src/verify/`, `scripts/verify.mjs`)
 - [ ] Command registry + minimal ribbon/QAB shell
 - [ ] Target management
 

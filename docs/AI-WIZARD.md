@@ -74,6 +74,8 @@ Credentials travel as headers in every case: `Authorization: Bearer` (OpenAI-sty
 
 By default the wizard stores a **reference to an environment variable** (`apiKeyEnv`), not the key itself, so secrets never land in the file. Pass `--save-key` (CLI) or tick "store key in this browser" (browser) only if you accept the key being written to disk / localStorage. The CLI writes the file with mode `0600`. Re-running the wizard for a second provider merges into the existing file and leaves other providers' entries, including any key they stored with `--save-key`, untouched. The `.gitignore` excludes `quilltest.ai.json`.
 
+`src/ai/config.mjs` loads and validates this file (`loadAiConfig`, `validateAiConfig`, `resolveApiKey`). The wizard validates before writing and refuses to write a file it would not load back; `--test-only` reports every schema problem by path (for example `providers.openai.base must not end with a slash`). Unknown fields, unknown provider ids, an `active` that names no provider, and a non-local provider with neither `apiKeyEnv` nor `apiKey` are all errors.
+
 ## Adding a provider
 
 Add one object to the `PROVIDERS` array in `src/ai/providers.mjs`: `id`, `label`, `apiStyle`, `defaultBase`, `baseEditable`, `keyEnv`, `keysUrl`, `models`, `listModelsPath`, `notes`, and optionally `requiresBase` and `maxTokensParam`. Then run `npm run ai:sync-browser` to refresh the browser copy and `npm test`. The CLI wizard and the (future) analysis layer pick it up with no other changes. If the provider is OpenAI-compatible, that single entry is all that is needed.

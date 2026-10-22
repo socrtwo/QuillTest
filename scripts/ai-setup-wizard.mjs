@@ -30,6 +30,7 @@ import {
   extractModelIds,
   extractText,
 } from '../src/ai/providers.mjs';
+import { loadAiConfig, activeProvider, resolveApiKey, AiConfigError, validateAiConfig } from '../src/ai/config.mjs';
 
 const DEFAULT_OUT = resolve(process.cwd(), 'quilltest.ai.json');
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -214,7 +215,7 @@ async function fetchModels(provider, base, apiKey) {
 
 async function runTest(cfg, { dryRun } = {}) {
   const provider = getProvider(cfg.providerId);
-  const effectiveKey = cfg.apiKey || (cfg.apiKeyEnv ? env[cfg.apiKeyEnv] : '') || '';
+  const effectiveKey = resolveApiKey(cfg, env);
   const { url, init } = buildTestRequest(
     { providerId: cfg.providerId, base: cfg.base, apiKey: effectiveKey, model: cfg.model },
     'Reply with the single word: OK',
@@ -314,15 +315,16 @@ async function main() {
 
   // --test-only path: load config, test active provider, exit.
   if (args['test-only']) {
-    const cfgPath = resolve(process.cwd(), args.config || DEFAULT_OUT);
-    if (!existsSync(cfgPath)) {
-      console.error(c.red(`No config at ${cfgPath}`));
+    const cfgPath = resolve(process.cwd(), typeof args.config === 'string' ? args.config : DEFAULT_OUT);
+    let cfg;
+    try {
+      cfg = loadAiConfig(cfgPath).config;
+    } catch (e) {
+      if (!(e instanceof AiConfigError)) throw e;
+      console.error(c.red(e.message));
       exit(1);
     }
-    const cfg = JSON.parse(readFileSync(cfgPath, 'utf8'));
-    const active = cfg.providers[cfg.active];
-    if (!active) { console.error(c.red('Config has no active provider.')); exit(1); }
-    const r = await runTest(active, { dryRun: args['dry-run'] });
+    const r = await runTest(activeProvider(cfg), { dryRun: args['dry-run'] });
     reportTest(r);
     exit(r.ok ? 0 : 1);
   }
@@ -385,6 +387,11 @@ async function main() {
   const outPath = resolve(process.cwd(), typeof args.out === 'string' ? args.out : DEFAULT_OUT);
   const built = buildConfig(choice, { saveKey });
   const merged = mergeIntoExisting(outPath, built);
+  const problems = validateAiConfig(merged);
+  if (problems.length) {
+    console.error(c.red('Refusing to write an invalid config:\n  - ' + problems.join('\n  - ')));
+    exit(1);
+  }
   writeConfig(outPath, merged, { saveKey, providerId: choice.provider.id });
 
   console.log(c.green(`\n✓ Wrote ${outPath}`));
