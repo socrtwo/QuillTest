@@ -95,7 +95,7 @@ function readyContext() {
 test('executor: unknown, planned, disabled', async () => {
   const ctx = readyContext();
   await assert.rejects(exec(ctx, 'nope.nothing'), UnknownCommandError);
-  await assert.rejects(exec(ctx, 'checks.list'), NotImplementedError);
+  await assert.rejects(exec(ctx, 'report.generate'), NotImplementedError);
   def({ id: 'dev.disabledTest', label: 'x', tab: 'Developer', group: 'g', internal: true, isEnabled: () => false, run: () => 1 });
   await assert.rejects(exec(ctx, 'dev.disabledTest'), CommandDisabledError);
   assert.ok(!allCommands().some((c) => c.id === 'dev.disabledTest'), 'internal commands are hidden from listings');
@@ -122,8 +122,14 @@ test('executor: THE GATE — scan.start needs an active target, a current verifi
   const r = scanReadiness(ctx, 'https://example.com');
   assert.equal(r.ready, true);
   assert.deepEqual(r.reasons, []);
-  // Gate open; the scanner itself is not built yet.
-  await assert.rejects(exec(ctx, 'scan.start'), NotImplementedError);
+  // Gate open: the scan runs. Stub the network so the test never touches example.com.
+  let requests = 0;
+  ctx.fetch = async () => { requests++; return new Response('<html><body>stub</body></html>', { status: 200, headers: { 'content-type': 'text/html' } }); };
+  ctx.inspectTls = async () => ({ ok: false, error: 'stubbed in test' });
+  const record = await exec(ctx, 'scan.start');
+  assert.equal(record.origin, 'https://example.com');
+  assert.ok(requests > 0, 'the scan contacted the (stubbed) target only after the gate opened');
+  assert.equal(record.authorization.statement, 'I own example.com');
 
   // A different origin on the same host is a different target: closed again.
   ctx.targets.add('https://www.example.com');
@@ -220,6 +226,7 @@ test('docs/COMMANDS.md is generated from the registry and up to date', () => {
   assert.equal(readFileSync(CATALOG_PATH, 'utf8'), catalog(), 'run: npm run catalog');
   const text = catalog();
   assert.match(text, /\*\*\d+ commands are gated\.\*\*/);
-  assert.match(text, /`scan\.start` \| planned \| \*gated\*/);
+  assert.match(text, /`scan\.active` \| planned \| \*gated\*/);
+  assert.match(text, /`scan\.start` \| implemented \| \*gated\*/);
   assert.match(text, /`verify\.issue` \| implemented/);
 });

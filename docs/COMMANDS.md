@@ -1,8 +1,8 @@
 # QuillTest Command Reference
 
-QuillTest defines **241 commands**. Every one can be placed on the Quick Access Bar, added to a custom tab, bound to a keyboard shortcut, recorded in a macro, run from the command line (`node scripts/quilltest.mjs <id>`) or found with command search (Alt+Q).
+QuillTest defines **243 commands**. Every one can be placed on the Quick Access Bar, added to a custom tab, bound to a keyboard shortcut, recorded in a macro, run from the command line (`node scripts/quilltest.mjs <id>`) or found with command search (Alt+Q).
 
-**40 are implemented** and **201 are planned** (defined as data, with no implementation yet; running one reports "planned but not implemented"). 3 commands are "not in tabs" — reachable through the Quick Access Bar chooser, Customize Tabs, command search and the command line — so nothing is hidden.
+**87 are implemented** and **156 are planned** (defined as data, with no implementation yet; running one reports "planned but not implemented"). 3 commands are "not in tabs" — reachable through the Quick Access Bar chooser, Customize Tabs, command search and the command line — so nothing is hidden.
 
 **10 commands are gated.** Marked *gated* below, they send requests to the target, and the executor refuses to run them unless the active target's origin has a current ownership verification **and** you have confirmed authorization for that target (see [OWNERSHIP-VERIFICATION.md](OWNERSHIP-VERIFICATION.md) and [ETHICS.md](ETHICS.md)). This is enforced in `src/commands/exec.mjs`, not in the UI.
 
@@ -82,25 +82,25 @@ Default Quick Access Bar: `file.save`, `verify.status`, `scan.start`, `scan.stop
 | Pause | Control |  | `scan.pause` | planned | acts on the active target |
 | Resume | Control |  | `scan.resume` | planned | *gated* |
 | Stop | Control | Shift+F5 | `scan.stop` | planned | acts on the active target |
-| Crawl Depth | Crawl |  | `scan.crawlDepth` | planned | acts on the active target; combo |
-| Crawl Limits… | Crawl |  | `scan.crawlLimits` | planned | acts on the active target; Max pages, max time, max requests |
-| Crawl Only (no checks) | Crawl |  | `scan.spiderOnly` | planned | *gated* |
+| Crawl Depth | Crawl |  | `scan.crawlDepth` | implemented | acts on the active target; combo |
+| Crawl Limits… | Crawl |  | `scan.crawlLimits` | implemented | acts on the active target; Max pages, max requests, timeout, concurrency, delay between requests, sitemap seeding |
+| Crawl Only (no checks) | Crawl |  | `scan.spiderOnly` | implemented | *gated* |
 | Import URL List… | Crawl |  | `scan.importUrls` | planned | acts on the active target; inspired by Burp target site map import |
-| Seed from sitemap.xml | Crawl |  | `scan.sitemap` | planned | acts on the active target; toggle |
-| Compare with Previous Scan | History |  | `scan.diff` | planned | acts on the active target; findings diff — see INNOVATIONS.md |
-| Re-run Last Scan | History |  | `scan.rescan` | planned | *gated* |
-| Request Log | History |  | `scan.log` | planned | acts on the active target; Every request QuillTest sent, for audit |
-| Scan History | History |  | `scan.history` | planned | acts on the active target |
+| Seed from sitemap.xml | Crawl |  | `scan.sitemap` | implemented | acts on the active target; toggle |
+| Compare with Previous Scan | History |  | `scan.diff` | implemented | acts on the active target; findings diff — see INNOVATIONS.md |
+| Re-run Last Scan | History |  | `scan.rescan` | implemented | *gated* |
+| Request Log | History |  | `scan.log` | implemented | acts on the active target; Every request QuillTest sent in a scan, for audit |
+| Scan History | History |  | `scan.history` | implemented | acts on the active target |
 | Schedule… | History |  | `scan.schedule` | planned | acts on the active target; Recurring scans; each run re-checks verification first |
-| Intrusiveness Cap | Profile |  | `scan.intrusiveness` | planned | acts on the active target; combo; Highest intrusiveness level a check may use in this scan |
-| Manage Profiles… | Profile |  | `scan.profiles` | planned |  |
-| Scan Preview | Profile |  | `scan.preview` | planned | acts on the active target; What this profile would do: checks, request budget, intrusiveness; scan-as-you-configure preview — INNOVATIONS.md |
-| Scan Profile | Profile |  | `scan.profile` | planned | acts on the active target; menu; Passive / Standard / Thorough / Custom |
-| Active Scan | Run |  | `scan.active` | planned | *gated*; Detection probes for injection, XSS, access control… least-intrusive probe that proves a finding, then stop |
-| Passive Scan | Run |  | `scan.passive` | planned | *gated*; Crawl and observe only: headers, cookies, TLS, disclosure. No test inputs are sent. |
-| Quick Scan | Run |  | `scan.quick` | planned | *gated*; Passive checks plus the fastest active ones on the entry page |
-| Scan Single URL | Run |  | `scan.single` | planned | *gated* |
-| Start Scan | Run | F5 | `scan.start` | planned | *gated*; Run the active profile against the active target |
+| Intrusiveness Cap | Profile |  | `scan.intrusiveness` | implemented | acts on the active target; combo; Highest intrusiveness level the current profile permits (0 observe, 1 benign extra requests, 2 test input, 3 state-changing) |
+| Manage Profiles… | Profile |  | `scan.profiles` | implemented |  |
+| Scan Preview | Profile |  | `scan.preview` | implemented | acts on the active target; What this profile would do: checks, request budget, intrusiveness; scan-as-you-configure preview — INNOVATIONS.md |
+| Scan Profile | Profile |  | `scan.profile` | implemented | acts on the active target; menu; Passive / Quick / Standard / Thorough; pass a name to set it for the active target |
+| Active Scan | Run |  | `scan.active` | planned | *gated*; Detection probes for injection, XSS, access control… least-intrusive probe that proves a finding, then stop (M3; not yet available) |
+| Passive Scan | Run |  | `scan.passive` | implemented | *gated*; Crawl and observe: headers, cookies, TLS, disclosure, components. No test inputs are sent. |
+| Quick Scan | Run |  | `scan.quick` | implemented | *gated*; Passive checks on the entry page and its direct links |
+| Scan Single URL | Run |  | `scan.single` | implemented | *gated*; Passive checks on one URL within the target, no crawl |
+| Start Scan | Run | F5 | `scan.start` | implemented | *gated*; Run the target's scan profile (default Passive) against the active target |
 
 ## Targets (19)
 
@@ -113,8 +113,8 @@ Default Quick Access Bar: `file.save`, `verify.status`, `scan.start`, `scan.stop
 | Withdraw Authorization | Authorization |  | `target.revokeAuthorization` | implemented |  |
 | Export Targets… | Exchange |  | `target.export` | planned |  |
 | Import Targets… | Exchange |  | `target.import` | planned | From a text file, one origin per line, or a QuillTest targets JSON |
-| Honor robots.txt | Politeness |  | `target.robots` | planned | acts on the active target; toggle |
-| Rate Limit… | Politeness |  | `target.rateLimit` | planned | acts on the active target; Requests per second and concurrency cap for this target |
+| Honor robots.txt | Politeness |  | `target.robots` | implemented | acts on the active target; toggle |
+| Rate Limit… | Politeness |  | `target.rateLimit` | implemented | acts on the active target; Delay between requests (ms) and concurrency cap for this target |
 | Is URL in Scope? | Scope |  | `target.inScope` | implemented |  |
 | Scope… | Scope |  | `target.scope` | implemented | Limit a scan to path prefixes within the origin, and exclude paths (logout, destructive admin pages) |
 | Add Target | Targets | Ctrl+T | `target.add` | implemented | Add an origin (scheme + host + port) to the target list |
@@ -126,54 +126,56 @@ Default Quick Access Bar: `file.save`, `verify.status`, `scan.start`, `scan.stop
 | Target Notes | Targets |  | `target.notes` | implemented | acts on the active target; not in tabs |
 | Target Status | Targets |  | `target.status` | implemented | Verification, authorization and scan readiness for a target |
 
-## Checks (15)
+## Checks (16)
 
 | Command | Group | Shortcut | ID | Status | Notes |
 |---|---|---|---|---|---|
-| Disable Category | Categories |  | `checks.disableCategory` | planned |  |
-| Enable Category | Categories |  | `checks.enableCategory` | planned |  |
-| Passive Checks Only | Categories |  | `checks.passiveOnly` | planned | toggle |
-| All Checks | Checks |  | `checks.list` | planned |  |
-| Check Details | Checks |  | `checks.details` | planned | What it detects, how, intrusiveness, CWE/OWASP mapping, remediation |
-| Disable Check | Checks |  | `checks.disable` | planned |  |
-| Enable Check | Checks |  | `checks.enable` | planned |  |
-| Export Checks… | Custom |  | `checks.export` | planned |  |
+| Disable Category | Categories |  | `checks.disableCategory` | implemented | acts on the active target |
+| Enable Category | Categories |  | `checks.enableCategory` | implemented | acts on the active target |
+| Passive Checks Only | Categories |  | `checks.passiveOnly` | implemented | acts on the active target; toggle; Equivalent to the Passive profile |
+| All Checks | Checks |  | `checks.list` | implemented |  |
+| Check Details | Checks |  | `checks.details` | implemented | What it detects, how, intrusiveness, CWE/OWASP mapping, remediation |
+| Disable Check | Checks |  | `checks.disable` | implemented | acts on the active target; Per target; a disabled check is skipped by every profile |
+| Enable Check | Checks |  | `checks.enable` | implemented | acts on the active target |
+| Export Checks… | Custom |  | `checks.export` | implemented |  |
 | Import Checks… | Custom |  | `checks.import` | planned |  |
 | New Custom Check… | Custom |  | `checks.custom` | planned | Pattern/response-based detection check; no payload fields by design |
 | Update Check Signatures | Custom |  | `checks.update` | planned | Component fingerprints and known-vulnerable version data |
-| Group by ASVS | View |  | `checks.byAsvs` | planned | toggle |
-| Group by CWE | View |  | `checks.byCwe` | planned | toggle |
-| Group by OWASP Top 10 | View |  | `checks.byOwasp` | planned | toggle |
-| Search Checks | View |  | `checks.search` | planned |  |
+| Check Categories | View |  | `checks.categories` | implemented |  |
+| Group by ASVS | View |  | `checks.byAsvs` | implemented | toggle |
+| Group by CWE | View |  | `checks.byCwe` | implemented | toggle |
+| Group by OWASP Top 10 | View |  | `checks.byOwasp` | implemented | toggle |
+| Search Checks | View |  | `checks.search` | implemented |  |
 
-## Findings (24)
+## Findings (25)
 
 | Command | Group | Shortcut | ID | Status | Notes |
 |---|---|---|---|---|---|
-| Add Note | Annotate |  | `findings.note` | planned |  |
+| Add Note | Annotate |  | `findings.note` | implemented | acts on the active target |
 | Assign To… | Annotate |  | `findings.assign` | planned |  |
 | Tag | Annotate |  | `findings.tag` | planned |  |
-| Finding Details | Browse |  | `findings.details` | planned | Evidence, request/response excerpt, mapping, remediation |
-| Findings | Browse | Ctrl+Shift+F | `findings.list` | planned |  |
+| Finding Details | Browse |  | `findings.details` | implemented | acts on the active target; Evidence, mapping, remediation |
+| Findings | Browse | Ctrl+Shift+F | `findings.list` | implemented | acts on the active target; Findings of the latest scan (or --scan <id>); filter with severity / minSeverity / status / check / owasp / url |
 | Next Finding | Browse | F8 | `findings.next` | planned |  |
 | Previous Finding | Browse | Shift+F8 | `findings.prev` | planned |  |
-| Search Findings | Browse |  | `findings.search` | planned |  |
-| Copy Finding | Exchange |  | `findings.copy` | planned | Markdown summary to the clipboard |
-| Export Findings… | Exchange |  | `findings.export` | planned | JSON, CSV, SARIF |
+| Search Findings | Browse |  | `findings.search` | implemented | acts on the active target |
+| Copy Finding | Exchange |  | `findings.copy` | implemented | acts on the active target; Markdown summary |
+| Export Findings… | Exchange |  | `findings.export` | implemented | acts on the active target; json \| csv \| sarif |
 | Import Findings… | Exchange |  | `findings.import` | planned | From a previous QuillTest export, for comparison |
-| Attacker's-Eye Priority | Organize |  | `findings.prioritize` | planned | Order by what an attacker would exploit first (deterministic; AI can refine); INNOVATIONS.md |
-| Filter | Organize |  | `findings.filter` | planned | menu; By severity, confidence, category, status, URL |
-| Group By | Organize |  | `findings.group` | planned | menu; Severity, OWASP category, CWE, URL, check |
-| Merge Duplicates | Organize |  | `findings.dedupe` | planned |  |
+| Attacker's-Eye Priority | Organize |  | `findings.prioritize` | implemented | acts on the active target; Deterministic ordering: severity, then confidence, then how many pages are affected; AI can refine it (ai.prioritize); INNOVATIONS.md |
+| Filter | Organize |  | `findings.filter` | planned | menu; By severity, confidence, category, status, URL (use findings.list arguments) |
+| Group By | Organize |  | `findings.group` | implemented | acts on the active target; menu; severity \| owasp \| check \| url |
+| Merge Duplicates | Organize |  | `findings.dedupe` | planned | Findings are deduplicated by signature as they are recorded; this re-applies it to an imported set |
 | Sort | Organize |  | `findings.sort` | planned | menu |
-| Accept Risk… | Triage |  | `findings.markAccepted` | planned | Record a reason; shown in the report |
-| False-Positive Rules | Triage |  | `findings.falsePositives` | planned | Signatures remembered for this target |
-| Mark False Positive | Triage |  | `findings.markFalsePositive` | planned | Remembered for future scans of this target; false-positive learning loop — INNOVATIONS.md |
-| Mark Fixed | Triage |  | `findings.markFixed` | planned |  |
-| Re-check Finding | Triage |  | `findings.recheck` | planned | *gated*; Run just this check again to confirm a fix |
+| Accept Risk… | Triage |  | `findings.markAccepted` | implemented | acts on the active target; Record a reason; shown in the report |
+| False-Positive Rules | Triage |  | `findings.falsePositives` | implemented | acts on the active target; Signatures remembered for this target |
+| Mark False Positive | Triage |  | `findings.markFalsePositive` | implemented | acts on the active target; Suppresses the finding and remembers its signature for future scans of this target; false-positive learning loop — INNOVATIONS.md |
+| Mark Fixed | Triage |  | `findings.markFixed` | implemented | acts on the active target |
+| Re-check Finding | Triage |  | `findings.recheck` | implemented | *gated*; Scan just the finding's URL again (passive) and report whether the finding is still present |
+| Reopen Finding | Triage |  | `findings.reopen` | implemented | acts on the active target |
 | Set Confidence | Triage |  | `findings.setConfidence` | planned | menu |
-| Set Severity | Triage |  | `findings.setSeverity` | planned | menu |
-| Unmark False Positive | Triage |  | `findings.unmarkFalsePositive` | planned | not in tabs |
+| Set Severity | Triage |  | `findings.setSeverity` | implemented | acts on the active target; menu |
+| Unmark False Positive | Triage |  | `findings.unmarkFalsePositive` | implemented | acts on the active target; not in tabs |
 
 ## Fix (22)
 

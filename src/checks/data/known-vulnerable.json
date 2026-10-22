@@ -1,0 +1,22 @@
+{
+  "_comment": "Starting set of component fingerprints with versions known to carry published vulnerabilities or to be end-of-life. `below` means every version lower than it is affected (semver compare on numeric parts). Extend freely; checks.update will fetch newer data in a later milestone.",
+  "components": [
+    { "name": "jQuery", "below": "3.5.0", "severity": "medium", "advisories": ["CVE-2020-11022", "CVE-2020-11023"], "note": "htmlPrefilter XSS when passing untrusted HTML to manipulation methods" },
+    { "name": "jQuery", "below": "1.9.0", "severity": "medium", "advisories": ["CVE-2012-6708"], "note": "Selector-vs-HTML confusion XSS in $()" },
+    { "name": "jQuery UI", "below": "1.13.2", "severity": "medium", "advisories": ["CVE-2022-31160", "CVE-2021-41184"], "note": "XSS via option values" },
+    { "name": "Bootstrap", "below": "3.4.1", "severity": "medium", "advisories": ["CVE-2019-8331", "CVE-2018-14041"], "note": "XSS in tooltip/popover data-template and affix" },
+    { "name": "Bootstrap", "range": ["4.0.0", "4.3.1"], "severity": "medium", "advisories": ["CVE-2019-8331"], "note": "XSS in tooltip/popover data-template" },
+    { "name": "AngularJS", "below": "2.0.0", "severity": "low", "advisories": ["EOL-2022-01"], "note": "AngularJS 1.x reached end of life in January 2022; several unfixed sanitizer bypasses" },
+    { "name": "Lodash", "below": "4.17.21", "severity": "medium", "advisories": ["CVE-2021-23337", "CVE-2020-8203"], "note": "Command injection in template; prototype pollution" },
+    { "name": "Moment.js", "below": "2.29.4", "severity": "low", "advisories": ["CVE-2022-31129", "CVE-2022-24785"], "note": "ReDoS in string parsing; path traversal in locale loading" },
+    { "name": "Vue", "below": "2.6.0", "severity": "low", "advisories": ["EOL-2023-12"], "note": "Vue 2 reached end of life December 2023" },
+    { "name": "PHP", "below": "8.1.0", "severity": "medium", "advisories": ["EOL"], "note": "PHP branches before 8.1 no longer receive security fixes" },
+    { "name": "nginx", "below": "1.24.0", "severity": "low", "advisories": ["CVE-2023-44487"], "note": "Older than the current stable branch; HTTP/2 rapid reset mitigations arrived in 1.25.3/1.24.x point releases" },
+    { "name": "Apache", "below": "2.4.58", "severity": "low", "advisories": ["CVE-2023-45802", "CVE-2023-43622"], "note": "Several fixed HTTP/2 and request-handling issues" },
+    { "name": "OpenSSL", "below": "3.0.0", "severity": "low", "advisories": ["EOL-2023-09"], "note": "OpenSSL 1.1.1 reached end of life September 2023" },
+    { "name": "WordPress", "below": "6.4.0", "severity": "low", "advisories": ["see wordpress.org/news/category/security"], "note": "Keep core on the current release; older branches accumulate fixed XSS and privilege issues" },
+    { "name": "Drupal", "below": "10.0.0", "severity": "low", "advisories": ["EOL-2023-11"], "note": "Drupal 7/9 are end of life" },
+    { "name": "Express", "below": "4.17.3", "severity": "low", "advisories": ["CVE-2022-24999"], "note": "qs prototype pollution via dependency" },
+    { "name": "ASP.NET", "below": "4.8.0", "severity": "informational", "advisories": [], "note": "Older .NET Framework; verify patch level" }
+  ]
+}

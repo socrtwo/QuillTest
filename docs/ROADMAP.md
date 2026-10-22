@@ -18,11 +18,12 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 - [ ] Ribbon/QAB UI shell (Vite) over the registry
 - [x] Target management (`src/targets/`): origins, authorization statements, path scope, active target
 
-## M2 — Passive engine
+## M2 — Passive engine (done)
 
-- [ ] Crawler/spider
-- [ ] Passive checks (transport, headers, cookies, CORS, disclosure, component fingerprinting)
-- [ ] Findings model with CWE/OWASP mapping, severity + confidence
+- [x] Crawler/spider (`src/crawl/`: same-origin BFS, scope, robots.txt, redirect handling, body caps, request log)
+- [x] Passive checks (`src/checks/passive/`: 27 checks — transport, headers, cookies, CORS, disclosure, components, content)
+- [x] Findings model with CWE/OWASP/ASVS mapping, severity + confidence, secret scrubbing, signatures, diff (`src/findings/`)
+- [x] Scan orchestrator with profiles, per-target settings, scan records, false-positive learning loop, JSON/CSV/SARIF export (`src/scan/`)
 
 ## M3 — Active engine
 

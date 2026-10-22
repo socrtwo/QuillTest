@@ -45,7 +45,7 @@ export const DEFAULT_TABS = [
     id: 'checks', label: 'Checks', groups: [
       { id: 'checks', label: 'Checks', items: ['checks.list', 'checks.details', 'checks.enable', 'checks.disable'] },
       { id: 'categories', label: 'Categories', items: ['checks.enableCategory', 'checks.disableCategory', 'checks.passiveOnly'] },
-      { id: 'view', label: 'View', items: ['checks.byOwasp', 'checks.byCwe', 'checks.byAsvs', 'checks.search'] },
+      { id: 'view', label: 'View', items: ['checks.categories', 'checks.byOwasp', 'checks.byCwe', 'checks.byAsvs', 'checks.search'] },
       { id: 'custom', label: 'Custom', items: ['checks.custom', 'checks.import', 'checks.export', 'checks.update'] },
     ],
   },
@@ -53,7 +53,7 @@ export const DEFAULT_TABS = [
     id: 'findings', label: 'Findings', groups: [
       { id: 'browse', label: 'Browse', items: ['findings.list', 'findings.details', 'findings.prev', 'findings.next', 'findings.search'] },
       { id: 'organize', label: 'Organize', items: ['findings.filter', 'findings.sort', 'findings.group', 'findings.dedupe', 'findings.prioritize'] },
-      { id: 'triage', label: 'Triage', items: ['findings.setSeverity', 'findings.setConfidence', 'findings.markFalsePositive', 'findings.markFixed', 'findings.markAccepted', 'findings.recheck'], launcher: 'findings.falsePositives' },
+      { id: 'triage', label: 'Triage', items: ['findings.setSeverity', 'findings.setConfidence', 'findings.markFalsePositive', 'findings.markFixed', 'findings.markAccepted', 'findings.reopen', 'findings.recheck'], launcher: 'findings.falsePositives' },
       { id: 'annotate', label: 'Annotate', items: ['findings.note', 'findings.tag', 'findings.assign'] },
       { id: 'exchange', label: 'Exchange', items: ['findings.copy', 'findings.export', 'findings.import'] },
     ],

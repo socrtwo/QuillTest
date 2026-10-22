@@ -112,6 +112,10 @@ function buildArg(cmd, positional, flags) {
   return Object.keys(arg).length ? arg : undefined;
 }
 
+const SEV = ['informational', 'low', 'medium', 'high', 'critical'];
+const sevRank = (s) => SEV.indexOf(s);
+const sevColor = (s) => ({ critical: c.red, high: c.red, medium: c.yellow, low: (x) => x, informational: c.dim }[s] || ((x) => x))(s.padEnd(13));
+
 function print(result, json) {
   if (json) { console.log(JSON.stringify(result ?? null, null, 2)); return; }
   if (result === undefined) return;
@@ -140,6 +144,35 @@ function print(result, json) {
     console.log(`  authorized: ${result.authorized ? c.green('yes') : c.red('no')}${result.target?.authorization?.statement ? c.dim(`  "${result.target.authorization.statement}"`) : ''}`);
     for (const r of result.reasons || []) console.log('  ' + c.yellow('• ' + r));
     if (result.pending) console.log(c.dim(`  pending challenge expires ${result.pending.expires}`));
+    return;
+  }
+  if (result?.id && result.crawl && result.summary && Array.isArray(result.findings)) {
+    const sm = result.summary;
+    console.log(c.bold(`\nScan ${result.id}`) + c.dim(`  ${result.origin}  ${result.profile}  ${result.durationMs} ms`));
+    console.log(`  crawled ${result.crawl.pages} page(s), ${result.crawl.assets} asset(s), ${result.crawl.probes} probe request(s); ${result.crawl.requests} requests total${result.crawl.stopReason ? c.dim(' (' + result.crawl.stopReason + ')') : ''}`);
+    if (result.fingerprint.length) console.log('  stack: ' + result.fingerprint.map((f) => f.name + (f.version ? ' ' + f.version : '')).join(', '));
+    console.log(`  findings: ${c.red(sm.critical + ' critical')}, ${c.red(sm.high + ' high')}, ${c.yellow(sm.medium + ' medium')}, ${sm.low} low, ${c.dim(sm.informational + ' informational')}${sm.suppressed ? c.dim(`; ${sm.suppressed} suppressed`) : ''}`);
+    for (const f of result.findings.filter((x) => x.status === 'open').sort((a, b) => sevRank(b.severity) - sevRank(a.severity)).slice(0, 40)) console.log(`  ${sevColor(f.severity)} ${c.cyan(f.checkId.padEnd(32))} ${f.title}${f.key ? c.dim(' [' + f.key + ']') : ''}  ${c.dim(f.url)}`);
+    if (result.findings.length > 40) console.log(c.dim(`  … ${result.findings.length - 40} more; use findings list --json`));
+    if (result.checks.errors.length) console.log(c.yellow(`  ${result.checks.errors.length} check error(s): ` + result.checks.errors.map((e) => e.checkId).join(', ')));
+    console.log(c.dim(`  details: node scripts/quilltest.mjs findings details <id>   export: findings export sarif --json`));
+    return;
+  }
+  if (result?.scan && Array.isArray(result.findings) && result.summary) {
+    const sm = result.summary;
+    console.log(c.bold(`Findings of ${result.scan}`) + c.dim(`  open ${sm.open}, suppressed ${sm.suppressed}`));
+    for (const f of result.findings) console.log(`  ${sevColor(f.severity)} ${c.dim(f.id)} ${c.cyan(f.checkId.padEnd(32))} ${f.title}${f.key ? c.dim(' [' + f.key + ']') : ''}${f.status !== 'open' ? c.dim(' (' + f.status + ')') : ''}  ${c.dim(f.url)}`);
+    return;
+  }
+  if (result?.scans && Array.isArray(result.scans)) {
+    if (!result.scans.length) { console.log(c.dim('No scans yet.')); return; }
+    for (const s of result.scans) console.log(`  ${c.cyan(s.id)}  ${s.profile.padEnd(8)} ${s.startedAt}  ${s.pages} pages  ${c.red(s.summary.high + s.summary.critical + ' high+')} ${c.yellow(s.summary.medium + ' med')} ${s.summary.low} low ${c.dim(s.summary.informational + ' info')}`);
+    return;
+  }
+  if (result?.counts && result.after) {
+    console.log(c.bold(`Compared ${result.after} with ${result.before}`) + `  ${c.red('+' + result.counts.added + ' new')}  ${c.green('-' + result.counts.fixed + ' fixed')}  ${result.counts.persisting} persisting`);
+    for (const f of result.added) console.log(`  ${c.red('+')} ${sevColor(f.severity)} ${f.checkId} ${f.title}  ${c.dim(f.url)}`);
+    for (const f of result.fixed) console.log(`  ${c.green('-')} ${sevColor(f.severity)} ${f.checkId} ${f.title}  ${c.dim(f.url)}`);
     return;
   }
   if (result?.targets && Array.isArray(result.targets)) {

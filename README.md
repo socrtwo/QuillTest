@@ -39,9 +39,24 @@ node scripts/verify.mjs status https://example.com      # exit 0 if scanning is 
 
 Details, including the exact file format, redirect rules and the DNS alternative, are in [docs/OWNERSHIP-VERIFICATION.md](docs/OWNERSHIP-VERIFICATION.md).
 
+## Passive scanning (built)
+
+The M2 engine is in: a polite same-origin crawler, 27 passive checks, and a findings model with CWE/OWASP/ASVS mapping and secret-scrubbed evidence. Every scan runs through the gate: verified origin **and** confirmed authorization, checked again inside the orchestrator before the first request.
+
+```bash
+node scripts/quilltest.mjs scan start            # passive profile: crawl, observe, a few benign probes
+node scripts/quilltest.mjs findings list         # latest scan's findings, worst first
+node scripts/quilltest.mjs findings details <id>
+node scripts/quilltest.mjs findings markFalsePositive <id> --note "decoy header"   # remembered for future scans
+node scripts/quilltest.mjs scan diff             # new / fixed / persisting since the previous scan
+node scripts/quilltest.mjs findings export sarif --json > findings.sarif
+```
+
+What the passive profile sends: the crawl itself, one TLS handshake, two GETs with an `Origin` header, GETs of about thirty well-known file paths (each confirmed by content signature, so catch-all pages do not count), GETs of discovered asset directories and referenced source maps. No test input, ever. The full list is in [docs/CHECKS.md](docs/CHECKS.md).
+
 ## Commands (built as data, UI pending)
 
-The full command set exists now as a registry (`src/commands/`), 241 commands across File, Verify, Scan, Targets, Checks, Findings, Fix, AI, Report, Review, Share, View, Developer and Help, with ids like `verify.issue` and `scan.start`. Verify, Targets, AI setup, macros and Help are implemented; the rest are defined and waiting on their engines. The generated reference is [docs/COMMANDS.md](docs/COMMANDS.md). Any command runs from the terminal:
+The full command set exists now as a registry (`src/commands/`), 243 commands across File, Verify, Scan, Targets, Checks, Findings, Fix, AI, Report, Review, Share, View, Developer and Help, with ids like `verify.issue` and `scan.start`. Verify, Targets, Scan (passive), Checks, Findings, AI setup, macros and Help are implemented; the rest are defined and waiting on their engines. The generated reference is [docs/COMMANDS.md](docs/COMMANDS.md). Any command runs from the terminal:
 
 ```bash
 node scripts/quilltest.mjs commands verify                 # search the registry

@@ -13,6 +13,7 @@
 import { getCommand } from './registry.mjs';
 import { VerificationStore } from '../verify/store.mjs';
 import { TargetStore, AuthorizationRequiredError, NoActiveTargetError } from '../targets/store.mjs';
+import { ScanStore } from '../scan/store.mjs';
 
 export class UnknownCommandError extends Error {
   constructor(id) { super(`Unknown command ${JSON.stringify(id)}`); this.name = 'UnknownCommandError'; this.id = id; }
@@ -28,6 +29,7 @@ export class CommandDisabledError extends Error {
  * @typedef {Object} Context
  * @property {VerificationStore} verifications
  * @property {TargetStore} targets
+ * @property {ScanStore} scans
  * @property {string} aiConfigPath
  * @property {string} cwd
  * @property {Record<string,string|undefined>} env
@@ -41,7 +43,7 @@ export class CommandDisabledError extends Error {
  * Build a context. Stores default to the git-ignored JSON files in `cwd`;
  * pass `memory: true` for an in-memory context (tests, dry runs).
  */
-export function createContext({ cwd = process.cwd(), memory = false, env = process.env, now = () => new Date(), out = () => {}, verificationsPath, targetsPath, aiConfigPath } = {}) {
+export function createContext({ cwd = process.cwd(), memory = false, env = process.env, now = () => new Date(), out = () => {}, verificationsPath, targetsPath, scansDir, aiConfigPath } = {}) {
   const join = (f) => `${cwd.replace(/[\\/]+$/, '')}/${f}`;
   const ctx = {
     cwd,
@@ -51,6 +53,7 @@ export function createContext({ cwd = process.cwd(), memory = false, env = proce
     recording: null,
     verifications: memory ? new VerificationStore({ now }) : VerificationStore.load(verificationsPath || join('quilltest.verifications.json'), { now }),
     targets: memory ? new TargetStore({ now }) : TargetStore.load(targetsPath || join('quilltest.targets.json'), { now }),
+    scans: memory ? new ScanStore({ now }) : ScanStore.load(scansDir || join('scans'), { now }),
     aiConfigPath: aiConfigPath || join('quilltest.ai.json'),
   };
   ctx.exec = (id, arg) => exec(ctx, id, arg);
