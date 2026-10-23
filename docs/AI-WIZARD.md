@@ -1,6 +1,6 @@
 # AI setup wizard
 
-QuillTest uses AI only as an optional analysis layer, and it is bring-your-own-model. The setup wizard configures which provider and model QuillTest talks to, stores the credential locally, and runs a connectivity test. It exists in two forms that share one provider registry.
+QuillTest uses AI only as an optional analysis layer, and it is bring-your-own-model. The setup wizard configures **which providers** QuillTest consults (one or many), which model and endpoint each uses, how they are consulted (sequential or concurrent), stores the credentials locally, and runs a connectivity test against each. It exists in two forms that share one provider registry.
 
 ## Running it
 
@@ -10,37 +10,42 @@ QuillTest uses AI only as an optional analysis layer, and it is bring-your-own-m
 node scripts/ai-setup-wizard.mjs
 ```
 
-Interactive prompts walk through: pick provider → endpoint base (pre-filled, editable) → API key (hidden input; defaults to the provider's env var if set) → model (suggested list or type your own; can fetch the live list) → run a test request → save.
+Interactive prompts walk through: select providers (numbers or ids, comma-separated, or `all`) → for each, endpoint base (pre-filled, editable) → API key (hidden input; defaults to the provider's env var if set) → model (suggested list or type your own; can fetch the live list) → analysis mode when more than one is selected → test each → save.
 
-Non-interactive flags for CI/scripting. `--yes` together with `--provider` is what suppresses the prompts; without `--yes` the wizard still asks for anything you did not pass:
+Non-interactive flags for CI/scripting. `--yes` together with `--providers`/`--provider` is what suppresses the prompts; without `--yes` the wizard still asks for anything you did not pass:
 
 ```bash
+# Enable several providers at once and test each
+node scripts/ai-setup-wizard.mjs \
+  --providers openai,anthropic,xai,deepseek \
+  --mode concurrent \
+  --yes --test
+
+# Single provider with explicit model/base/key
 node scripts/ai-setup-wizard.mjs \
   --provider openai \
   --model gpt-5.4-mini \
   --base https://api.openai.com/v1 \
   --key-env OPENAI_API_KEY \
-  --yes \
-  --test \
-  --out quilltest.ai.json
+  --yes --test --out quilltest.ai.json
 
-# Preview the exact connectivity-test request (headers redacted) without sending it
-node scripts/ai-setup-wizard.mjs --provider anthropic --yes --dry-run --no-save
+# Preview the exact connectivity-test request(s) (headers redacted) without sending
+node scripts/ai-setup-wizard.mjs --providers anthropic,openai --yes --dry-run --no-save
 
 # List supported providers and exit
 node scripts/ai-setup-wizard.mjs --list
 
-# Test an existing config without changing it
+# Test every provider in an existing config without changing it
 node scripts/ai-setup-wizard.mjs --config quilltest.ai.json --test-only
 ```
 
-Flags: `--provider <id>`, `--model <id>`, `--base <url>`, `--key <value>` (or `--key-env <VAR>`; prefer the latter so the key never enters shell history), `--test` (run connectivity test before saving), `--test-only`, `--dry-run` (print the request, send nothing), `--out <path>` (default `quilltest.ai.json`), `--config <path>`, `--save-key` (write the literal key into the file; off by default), `--list`, `--no-save`, `--yes` (accept defaults; with `--provider`, no prompts at all), `--help`.
+Flags: `--providers <ids>` (comma-separated) or `--provider <id>` (single), `--mode <sequential|concurrent>`, `--model <id>` / `--base <url>` / `--key <value>` / `--key-env <VAR>` (applied to the single selected provider; prefer `--key-env` so the key never enters shell history), `--test` (connectivity-test every selected provider before saving), `--test-only`, `--dry-run` (print the request(s), send nothing), `--out <path>` (default `quilltest.ai.json`), `--config <path>`, `--save-key` (write literal keys into the file; off by default), `--list`, `--no-save`, `--yes` (accept defaults; with a provider selection, no prompts at all), `--help`.
 
-Network requests (the connectivity test and the live model list) time out after 30 seconds.
+When several providers are selected non-interactively, per-provider model/base/key come from the registry defaults and environment variables; run the wizard interactively to set each one individually. Network requests (the connectivity test and the live model list) time out after 30 seconds.
 
 ### Browser
 
-Open `public/ai-wizard.html` directly in any browser. It runs entirely client-side, uses the same registry, stores config in `localStorage` under `quilltest.ai`, and can export the same `quilltest.ai.json`. The connectivity test runs from the browser, so a provider that blocks cross-origin requests may need the CLI instead. Anthropic requires the `anthropic-dangerous-direct-browser-access` opt-in header for browser calls; the page sends it.
+Open `public/ai-wizard.html` directly in any browser. Tick each provider you want, set its model/base/key, choose the analysis mode, and click **Test all enabled** (which honors the mode — concurrent fires the tests in parallel). It runs entirely client-side, uses the same registry, stores config in `localStorage` under `quilltest.ai`, and can export the same `quilltest.ai.json`. The connectivity test runs from the browser, so a provider that blocks cross-origin requests may need the CLI instead. Anthropic requires the `anthropic-dangerous-direct-browser-access` opt-in header for browser calls; the page sends it.
 
 The page is a static file and cannot import `src/ai/providers.mjs`, so it carries a generated copy of the registry between two marker comments. Regenerate it after any registry change with `npm run ai:sync-browser` (`node scripts/sync-browser-registry.mjs`; `--check` exits non-zero when stale). `npm test` includes that check.
 
@@ -54,25 +59,27 @@ Credentials travel as headers in every case: `Authorization: Bearer` (OpenAI-sty
 
 ## Config file format
 
-`quilltest.ai.json` (git-ignored by default):
+`quilltest.ai.json` (git-ignored by default). Version 2 holds an ordered list of enabled providers and the analysis mode:
 
 ```json
 {
-  "version": 1,
-  "active": "anthropic",
+  "version": 2,
+  "analysisMode": "concurrent",
+  "activeProviders": ["openai", "anthropic", "xai"],
+  "active": "openai",
   "providers": {
-    "anthropic": {
-      "providerId": "anthropic",
-      "base": "https://api.anthropic.com/v1",
-      "model": "claude-opus-5-5",
-      "apiKeyEnv": "ANTHROPIC_API_KEY",
-      "apiKey": null
-    }
+    "openai":    { "providerId": "openai",    "base": "https://api.openai.com/v1",    "model": "gpt-5.4-mini",      "apiKeyEnv": "OPENAI_API_KEY",    "apiKey": null },
+    "anthropic": { "providerId": "anthropic", "base": "https://api.anthropic.com/v1", "model": "claude-opus-5-5",   "apiKeyEnv": "ANTHROPIC_API_KEY", "apiKey": null },
+    "xai":       { "providerId": "xai",       "base": "https://api.x.ai/v1",          "model": "grok-4.6",          "apiKeyEnv": "XAI_API_KEY",       "apiKey": null }
   }
 }
 ```
 
-By default the wizard stores a **reference to an environment variable** (`apiKeyEnv`), not the key itself, so secrets never land in the file. Pass `--save-key` (CLI) or tick "store key in this browser" (browser) only if you accept the key being written to disk / localStorage. The CLI writes the file with mode `0600`. Re-running the wizard for a second provider merges into the existing file and leaves other providers' entries, including any key they stored with `--save-key`, untouched. The `.gitignore` excludes `quilltest.ai.json`.
+- `analysisMode` is `sequential` or `concurrent` (see [AI.md](AI.md)).
+- `activeProviders` is the ordered set QuillTest consults; `active` is kept as a backward-compatible pointer to the first one.
+- Version 1 configs (single `active` provider, no `activeProviders`/`analysisMode`) are still read: the wizard and the `--test-only` path normalize them to a one-provider, sequential config.
+
+By default the wizard stores a **reference to an environment variable** (`apiKeyEnv`), not the key itself, so secrets never land in the file. Pass `--save-key` (CLI) or tick "store keys in this browser" (browser) only if you accept the keys being written to disk / localStorage. The CLI writes the file with mode `0600`. Re-running the wizard merges into the existing file and leaves other providers' entries, including any key they stored with `--save-key`, untouched. The `.gitignore` excludes `quilltest.ai.json`.
 
 ## Adding a provider
 

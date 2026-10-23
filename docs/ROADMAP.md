@@ -6,8 +6,9 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 
 - [x] Repository, license, documentation plan
 - [x] AI provider registry (`src/ai/providers.mjs`)
-- [x] AI setup wizard — CLI (`scripts/ai-setup-wizard.mjs`)
-- [x] AI setup wizard — browser (`public/ai-wizard.html`)
+- [x] AI setup wizard — CLI (`scripts/ai-setup-wizard.mjs`), multi-provider + mode
+- [x] AI setup wizard — browser (`public/ai-wizard.html`), multi-provider + mode
+- [x] Multi-provider config (v2: `activeProviders`, `analysisMode`) + v1 normalization
 - [ ] Config module + schema validation for `quilltest.ai.json`
 - [ ] Project scaffold matching QuillStage stack (Vite, Capacitor, Electron, CI)
 
@@ -16,6 +17,7 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 - [ ] Ownership verification module (file-upload + DNS TXT), the scan gate
 - [ ] Command registry + minimal ribbon/QAB shell
 - [ ] Target management
+- [ ] Staging-mirror capture/serve pipeline (own-site snapshot, loopback serve)
 
 ## M2 — Passive engine
 
@@ -26,6 +28,7 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 ## M3 — Active engine
 
 - [ ] Active checks (injection, XSS, CSRF, SSRF, XXE, access control, redirects) — detection only, gated on verification
+- [ ] Protocol checks beyond HTTP (FTP, mail, DNS, TLS) — detection only, per-host ownership-gated
 - [ ] Scan profiles and intrusiveness caps
 
 ## M4 — Fix layer

@@ -23,87 +23,88 @@
     --card: #1c1f26; --code: #20242c;
   }
   * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--fg);
-    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 24px 16px 64px; }
   header h1 { font-size: 22px; margin: 0 0 4px; }
   header p { color: var(--muted); margin: 0 0 20px; }
   .step { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; margin-bottom: 16px; }
-  .step h2 { font-size: 15px; margin: 0 0 12px; letter-spacing: .01em; }
-  label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+  .step h2 { font-size: 15px; margin: 0 0 6px; }
+  .step .sub { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+  label { display: block; font-size: 13px; color: var(--muted); margin: 10px 0 4px; }
   select, input[type=text], input[type=password] {
-    width: 100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: 7px;
-    background: var(--bg); color: var(--fg); font-size: 14px;
-  }
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px;
+    background: var(--bg); color: var(--fg); font-size: 14px; }
+  .prov { border: 1px solid var(--border); border-radius: 9px; padding: 12px 14px; margin: 10px 0; background: var(--bg); }
+  .prov.on { border-color: var(--accent); }
+  .prov-head { display: flex; align-items: center; gap: 10px; }
+  .prov-head input[type=checkbox] { width: 18px; height: 18px; flex: 0 0 auto; }
+  .prov-head .name { font-weight: 600; font-size: 14px; }
+  .prov-head .pill { font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
+  .prov-body { margin-top: 10px; display: none; }
+  .prov.on .prov-body { display: block; }
+  .prov-note { font-size: 12.5px; color: var(--muted); margin: 2px 0 0; }
   .row { display: flex; gap: 10px; flex-wrap: wrap; }
-  .row > * { flex: 1 1 220px; }
-  button {
-    appearance: none; border: 1px solid var(--border); background: var(--bg); color: var(--fg);
-    padding: 9px 14px; border-radius: 7px; font-size: 14px; cursor: pointer;
-  }
+  .row > * { flex: 1 1 240px; }
+  .prov-result { font-size: 13px; margin-top: 8px; }
+  .prov-result.ok { color: var(--ok); } .prov-result.err { color: var(--err); }
+  button { appearance: none; border: 1px solid var(--border); background: var(--bg); color: var(--fg);
+    padding: 9px 14px; border-radius: 7px; font-size: 14px; cursor: pointer; }
   button.primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
   button:disabled { opacity: .5; cursor: default; }
-  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .modes { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 6px; }
+  .modes label { display: flex; align-items: center; gap: 7px; color: var(--fg); margin: 0; font-size: 14px; }
   .note { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
-  .pill { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
   pre { background: var(--code); border: 1px solid var(--border); border-radius: 8px; padding: 12px; overflow: auto; font-size: 12.5px; }
-  .result { margin-top: 12px; font-size: 14px; }
-  .result.ok { color: var(--ok); }
-  .result.err { color: var(--err); }
-  .check { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .result { margin-top: 10px; font-size: 14px; }
+  .result.ok { color: var(--ok); } .result.err { color: var(--err); }
+  .check { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
   .check input { width: auto; flex: 0 0 auto; }
-  a { color: var(--accent); }
-  .warn { color: var(--err); font-size: 12.5px; margin-top: 6px; }
+  a { color: var(--accent); } .warn { color: var(--err); font-size: 12.5px; margin-top: 6px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>QuillTest — AI Setup Wizard</h1>
-    <p>Configure the optional AI analysis layer. Runs entirely in your browser; keys stay local.</p>
+    <p>Enable one or more AI providers for the optional analysis layer. Runs entirely in your browser; keys stay local. The providers review QuillTest's findings — they do not run scans.</p>
   </header>
 
   <div class="step">
-    <h2>1 · Provider</h2>
-    <select id="provider"></select>
-    <p class="note" id="providerNote"></p>
-    <p class="note" id="keysLink"></p>
-  </div>
-
-  <div class="step">
-    <h2>2 · Endpoint &amp; model</h2>
-    <div class="row">
-      <div>
-        <label for="base">Endpoint base URL</label>
-        <input type="text" id="base" autocomplete="off" spellcheck="false">
-      </div>
-      <div>
-        <label for="model">Model</label>
-        <input type="text" id="model" list="modelList" autocomplete="off" spellcheck="false">
-        <datalist id="modelList"></datalist>
-      </div>
+    <h2>1 · Providers</h2>
+    <p class="sub">Tick every provider you want to consult. Each enabled provider gets its own endpoint, model, and key.</p>
+    <div class="actions" style="margin-bottom:6px">
+      <button id="selectAll">Select all</button>
+      <button id="selectNone">Clear</button>
     </div>
-    <p class="note">Model lists are suggestions — type any id the provider accepts. <span class="pill" id="stylePill"></span></p>
+    <div id="providers"></div>
   </div>
 
   <div class="step">
-    <h2>3 · API key</h2>
-    <label for="key">API key</label>
-    <input type="password" id="key" autocomplete="off" placeholder="Paste key (kept in this browser only)">
+    <h2>2 · Analysis mode</h2>
+    <p class="sub">How QuillTest consults the enabled providers when analyzing a scan's findings.</p>
+    <div class="modes">
+      <label><input type="radio" name="mode" value="sequential" checked> Sequential — one provider after another</label>
+      <label><input type="radio" name="mode" value="concurrent"> Concurrent — all providers at once</label>
+    </div>
+    <p class="note">Concurrent pairs with the staging-mirror scan mode, so several reviews run in parallel against a copy of your own verified site. See docs/STAGING-MIRROR.md.</p>
+  </div>
+
+  <div class="step">
+    <h2>3 · Key storage</h2>
     <div class="check">
-      <input type="checkbox" id="storeKey">
-      <label for="storeKey" style="margin:0;color:var(--fg)">Store the key in this browser (localStorage)</label>
+      <input type="checkbox" id="storeKeys">
+      <label for="storeKeys" style="margin:0;color:var(--fg)">Store keys in this browser (localStorage)</label>
     </div>
-    <p class="warn" id="keyWarn" hidden>The key will be saved in localStorage on this device. Only do this on a machine you control.</p>
-    <p class="note">Nothing is sent anywhere except to the provider endpoint above, and only when you click Test.</p>
+    <p class="warn" id="keyWarn" hidden>Keys will be saved in localStorage on this device. Only do this on a machine you control.</p>
+    <p class="note">Otherwise keys are kept only for this session's tests and the config stores an env-var reference instead.</p>
   </div>
 
   <div class="step">
     <h2>4 · Test &amp; save</h2>
     <div class="actions">
-      <button class="primary" id="testBtn">Test connectivity</button>
+      <button class="primary" id="testBtn">Test all enabled</button>
       <button id="saveBtn">Save config</button>
       <button id="exportBtn">Download quilltest.ai.json</button>
     </div>
@@ -111,9 +112,9 @@
   </div>
 
   <div class="step">
-    <h2>Current config preview</h2>
+    <h2>Config preview</h2>
     <pre id="preview"></pre>
-    <p class="note">This is what “Download” writes (with the key omitted unless you ticked the box). The file is git-ignored in the repo.</p>
+    <p class="note">This is what “Download” writes (keys omitted unless you ticked the box). The file is git-ignored in the repo.</p>
   </div>
 </div>
 
@@ -294,6 +295,7 @@ const PROVIDERS = [
 ];
 // @registry-end
 
+const CONFIG_VERSION = 2;
 const keyOptional = (providerId) => providerId === 'local';
 
 function authHeaders(p, apiKey) {
@@ -327,129 +329,149 @@ function extractText(style, json) {
   } catch { return ''; }
 }
 
-// ----- UI wiring -----
+// ----- UI wiring (multi-provider) -----
 const $ = (id) => document.getElementById(id);
-const providerSel = $('provider');
 const STORAGE_KEY = 'quilltest.ai';
+const container = $('providers');
 
-PROVIDERS.forEach(p => {
-  const o = document.createElement('option');
-  o.value = p.id; o.textContent = p.label;
-  providerSel.appendChild(o);
-});
-
-function current() {
-  const p = PROVIDERS.find(x => x.id === providerSel.value);
-  return {
-    providerId: p.id,
-    base: $('base').value.trim() || p.defaultBase,
-    model: $('model').value.trim() || p.models[0] || '',
-    apiKey: $('key').value.trim(),
-    apiKeyEnv: p.keyEnv,
-    storeKey: $('storeKey').checked,
-  };
+for (const p of PROVIDERS) {
+  const el = document.createElement('div');
+  el.className = 'prov'; el.dataset.id = p.id;
+  const keyLink = /^https?:/.test(p.keysUrl.split(/\s+/)[0])
+    ? `· <a href="${p.keysUrl.split(/\s+/)[0]}" target="_blank" rel="noopener">get a key</a>`
+    : '· ' + p.keysUrl;
+  el.innerHTML = `
+    <div class="prov-head">
+      <input type="checkbox" class="enable" id="en-${p.id}">
+      <label class="name" for="en-${p.id}" style="margin:0;color:var(--fg)">${p.label}</label>
+      <span class="pill">${p.apiStyle}</span>
+    </div>
+    <div class="prov-body">
+      <p class="prov-note">${p.notes} ${keyLink}</p>
+      <div class="row">
+        <div><label>Endpoint base</label><input type="text" class="base" spellcheck="false" autocomplete="off"></div>
+        <div><label>Model</label><input type="text" class="model" list="dl-${p.id}" spellcheck="false" autocomplete="off"><datalist id="dl-${p.id}">${p.models.map(m=>`<option value="${m}">`).join('')}</datalist></div>
+      </div>
+      <label>API key</label>
+      <input type="password" class="key" autocomplete="off" placeholder="Paste key (kept in this browser only)">
+      <div class="prov-result" id="pr-${p.id}"></div>
+    </div>`;
+  container.appendChild(el);
+  el.querySelector('.base').value = p.defaultBase;
+  el.querySelector('.base').placeholder = p.requiresBase ? 'required' : p.defaultBase;
+  el.querySelector('.model').value = p.models[0] || '';
+  const cb = el.querySelector('.enable');
+  cb.addEventListener('change', () => { el.classList.toggle('on', cb.checked); renderPreview(); });
+  el.querySelectorAll('.base,.model,.key').forEach(i => i.addEventListener('input', renderPreview));
 }
 
-function applyProvider() {
-  const p = PROVIDERS.find(x => x.id === providerSel.value);
-  $('providerNote').textContent = p.notes || '';
-  const keysLink = $('keysLink'); keysLink.textContent = 'Get a key: ';
-  const [href, ...rest] = p.keysUrl.split(/\s+/);
-  if (/^https?:/.test(href)) {
-    const a = document.createElement('a'); a.href = href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = href;
-    keysLink.appendChild(a);
-    if (rest.length) keysLink.appendChild(document.createTextNode(' ' + rest.join(' ')));
-  } else {
-    keysLink.appendChild(document.createTextNode(p.keysUrl));
+function mode() { return document.querySelector('input[name="mode"]:checked').value; }
+function storeKeys() { return $('storeKeys').checked; }
+
+function enabledEntries() {
+  const out = [];
+  for (const p of PROVIDERS) {
+    const el = container.querySelector(`.prov[data-id="${p.id}"]`);
+    if (!el.querySelector('.enable').checked) continue;
+    out.push({
+      providerId: p.id,
+      base: (el.querySelector('.base').value.trim() || p.defaultBase).replace(/\/+$/, ''),
+      model: el.querySelector('.model').value.trim() || p.models[0] || '',
+      apiKey: el.querySelector('.key').value.trim(),
+      apiKeyEnv: p.keyEnv,
+    });
   }
-  $('base').value = p.defaultBase;
-  $('base').placeholder = p.requiresBase ? 'required for this provider' : p.defaultBase;
-  const dl = $('modelList'); dl.innerHTML = '';
-  p.models.forEach(m => { const o = document.createElement('option'); o.value = m; dl.appendChild(o); });
-  $('model').value = p.models[0] || '';
-  $('stylePill').textContent = p.apiStyle;
-  renderPreview();
+  return out;
 }
 
 function buildConfig() {
-  const cfg = current();
-  const stored = {
-    providerId: cfg.providerId, base: cfg.base, model: cfg.model,
-    apiKeyEnv: cfg.apiKeyEnv, apiKey: cfg.storeKey ? (cfg.apiKey || null) : null,
-  };
-  return { version: 1, active: cfg.providerId, providers: { [cfg.providerId]: stored } };
+  const entries = enabledEntries();
+  const providers = {}; const order = [];
+  for (const e of entries) {
+    providers[e.providerId] = {
+      providerId: e.providerId, base: e.base, model: e.model,
+      apiKeyEnv: e.apiKeyEnv, apiKey: storeKeys() ? (e.apiKey || null) : null,
+    };
+    order.push(e.providerId);
+  }
+  return { version: CONFIG_VERSION, analysisMode: mode(), activeProviders: order, active: order[0] || null, providers };
 }
 
-function renderPreview() {
-  $('preview').textContent = JSON.stringify(buildConfig(), null, 2);
-}
+function renderPreview() { $('preview').textContent = JSON.stringify(buildConfig(), null, 2); }
 
-async function test() {
-  const cfg = current();
-  const res = $('result');
-  if (!cfg.apiKey && !keyOptional(cfg.providerId)) { res.className='result err'; res.textContent='Enter an API key first (or choose the Local provider).'; return; }
-  res.className = 'result'; res.textContent = 'Testing…';
-  const { url, init } = buildTestRequest(cfg);
+async function testOne(entry) {
+  const prEl = $('pr-' + entry.providerId);
+  const p = PROVIDERS.find(x => x.id === entry.providerId);
+  if (!entry.apiKey && !keyOptional(entry.providerId)) { prEl.className='prov-result err'; prEl.textContent='Enter a key first.'; return false; }
+  prEl.className='prov-result'; prEl.textContent='Testing…';
+  const { url, init } = buildTestRequest(entry);
   const t0 = performance.now();
   try {
     const r = await fetch(url, { ...init, signal: AbortSignal.timeout(30000) });
     const ms = Math.round(performance.now() - t0);
-    const text = await r.text();
-    let json; try { json = JSON.parse(text); } catch { json = null; }
-    if (!r.ok) {
-      const msg = json?.error?.message || json?.message || text.slice(0,200);
-      res.className='result err'; res.textContent = `FAILED — HTTP ${r.status} (${ms}ms): ${msg}`;
-      return;
-    }
-    const reply = json ? extractText(PROVIDERS.find(p=>p.id===cfg.providerId).apiStyle, json) : '';
-    res.className='result ok'; res.textContent = `OK (${ms}ms) — model replied: ${JSON.stringify(reply||'(empty)')}`;
+    const text = await r.text(); let json; try { json = JSON.parse(text); } catch { json = null; }
+    if (!r.ok) { prEl.className='prov-result err'; prEl.textContent = `FAILED — HTTP ${r.status} (${ms}ms): ${json?.error?.message || json?.message || text.slice(0,140)}`; return false; }
+    const reply = json ? extractText(p.apiStyle, json) : '';
+    prEl.className='prov-result ok'; prEl.textContent = `OK (${ms}ms) — replied ${JSON.stringify(reply||'(empty)')}`; return true;
   } catch (e) {
-    res.className='result err';
-    res.textContent = `FAILED — ${e.message}. Browser CORS may block this provider; try the CLI wizard (scripts/ai-setup-wizard.mjs).`;
+    prEl.className='prov-result err'; prEl.textContent = `FAILED — ${e.message}. Browser CORS may block this provider; try the CLI wizard.`; return false;
   }
 }
 
+async function testAll() {
+  const entries = enabledEntries();
+  const res = $('result');
+  if (!entries.length) { res.className='result err'; res.textContent='Enable at least one provider first.'; return; }
+  res.className='result'; res.textContent = `Testing ${entries.length} provider(s)…`;
+  const results = mode() === 'concurrent'
+    ? await Promise.all(entries.map(testOne))
+    : await (async () => { const r=[]; for (const e of entries) r.push(await testOne(e)); return r; })();
+  const okCount = results.filter(Boolean).length;
+  res.className = okCount === entries.length ? 'result ok' : 'result err';
+  res.textContent = `${okCount}/${entries.length} provider(s) OK.`;
+}
+
 function save() {
-  const cfg = current();
+  const cfg = buildConfig();
+  if (!cfg.activeProviders.length) { const r=$('result'); r.className='result err'; r.textContent='Enable at least one provider first.'; return; }
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(buildConfig()));
-    const res = $('result'); res.className='result ok';
-    res.textContent = cfg.storeKey ? 'Saved to this browser (including key).' : 'Saved to this browser (key omitted — set the env var when scanning).';
-  } catch (e) {
-    const res = $('result'); res.className='result err'; res.textContent = 'Could not save: ' + e.message;
-  }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+    const r=$('result'); r.className='result ok';
+    r.textContent = storeKeys() ? 'Saved to this browser (including keys).' : 'Saved to this browser (keys omitted — set env vars when scanning).';
+  } catch (e) { const r=$('result'); r.className='result err'; r.textContent='Could not save: '+e.message; }
 }
 
 function exportFile() {
   const blob = new Blob([JSON.stringify(buildConfig(), null, 2) + '\n'], { type:'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = 'quilltest.ai.json';
-  a.click(); URL.revokeObjectURL(a.href);
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'quilltest.ai.json'; a.click(); URL.revokeObjectURL(a.href);
 }
 
 function loadSaved() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
+    const raw = localStorage.getItem(STORAGE_KEY); if (!raw) return;
     const cfg = JSON.parse(raw);
-    const active = cfg.providers?.[cfg.active];
-    if (!active) return;
-    providerSel.value = active.providerId;
-    applyProvider();
-    $('base').value = active.base || '';
-    $('model').value = active.model || '';
-    if (active.apiKey) { $('key').value = active.apiKey; $('storeKey').checked = true; }
+    const active = Array.isArray(cfg.activeProviders) && cfg.activeProviders.length ? cfg.activeProviders : (cfg.active ? [cfg.active] : []);
+    const modeRadio = document.querySelector(`input[name="mode"][value="${cfg.analysisMode||'sequential'}"]`);
+    if (modeRadio) modeRadio.checked = true;
+    for (const id of active) {
+      const stored = cfg.providers?.[id]; if (!stored) continue;
+      const el = container.querySelector(`.prov[data-id="${id}"]`); if (!el) continue;
+      el.querySelector('.enable').checked = true; el.classList.add('on');
+      if (stored.base) el.querySelector('.base').value = stored.base;
+      if (stored.model) el.querySelector('.model').value = stored.model;
+      if (stored.apiKey) { el.querySelector('.key').value = stored.apiKey; $('storeKeys').checked = true; }
+    }
   } catch {}
 }
 
-providerSel.addEventListener('change', applyProvider);
-['base','model','key'].forEach(id => $(id).addEventListener('input', renderPreview));
-$('storeKey').addEventListener('change', () => { $('keyWarn').hidden = !$('storeKey').checked; renderPreview(); });
-$('testBtn').addEventListener('click', test);
+$('selectAll').addEventListener('click', () => { container.querySelectorAll('.enable').forEach(cb => { cb.checked = true; cb.closest('.prov').classList.add('on'); }); renderPreview(); });
+$('selectNone').addEventListener('click', () => { container.querySelectorAll('.enable').forEach(cb => { cb.checked = false; cb.closest('.prov').classList.remove('on'); }); renderPreview(); });
+$('storeKeys').addEventListener('change', () => { $('keyWarn').hidden = !$('storeKeys').checked; renderPreview(); });
+document.querySelectorAll('input[name="mode"]').forEach(r => r.addEventListener('change', renderPreview));
+$('testBtn').addEventListener('click', testAll);
 $('saveBtn').addEventListener('click', save);
 $('exportBtn').addEventListener('click', exportFile);
 
-applyProvider();
 loadSaved();
 renderPreview();
 </script>

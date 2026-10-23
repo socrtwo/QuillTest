@@ -311,3 +311,66 @@ export function extractText(apiStyle, json) {
     return '';
   }
 }
+
+// ---------------------------------------------------------------------------
+// Multi-provider configuration
+//
+// QuillTest's analysis layer can consult more than one provider over the same
+// set of findings. The wizard lets the user enable any subset of providers and
+// an analysis mode:
+//   - "sequential": consult each enabled provider in turn (deterministic order,
+//     gentle on rate limits, lets a later model react to earlier output).
+//   - "concurrent": consult all enabled providers at once (faster; pairs with
+//     the staging-mirror scan mode so several reviews run against a snapshot).
+// In both modes the providers analyze QuillTest's findings and the observed
+// responses. They do not run the scan and never emit attack payloads.
+// ---------------------------------------------------------------------------
+
+export const CONFIG_VERSION = 2;
+export const ANALYSIS_MODES = ['sequential', 'concurrent'];
+
+/**
+ * Build a QuillTest AI config object from an ordered list of provider selections.
+ * @param {Array<{providerId:string, base?:string, model?:string, apiKey?:string|null, apiKeyEnv?:string|null, saveKey?:boolean}>} selections
+ * @param {{mode?:string}} [opts]
+ */
+export function buildMultiConfig(selections, opts = {}) {
+  const mode = ANALYSIS_MODES.includes(opts.mode) ? opts.mode : 'sequential';
+  const providers = {};
+  const order = [];
+  for (const sel of selections) {
+    const provider = getProvider(sel.providerId);
+    if (!provider) throw new Error(`Unknown provider: ${sel.providerId}`);
+    if (providers[provider.id]) continue; // de-dupe, keep first occurrence
+    providers[provider.id] = {
+      providerId: provider.id,
+      base: (sel.base || provider.defaultBase || '').replace(/\/+$/, ''),
+      model: sel.model || provider.models[0] || '',
+      apiKeyEnv: sel.apiKeyEnv || provider.keyEnv || null,
+      apiKey: sel.saveKey ? (sel.apiKey || null) : null,
+    };
+    order.push(provider.id);
+  }
+  return {
+    version: CONFIG_VERSION,
+    analysisMode: mode,
+    activeProviders: order,
+    active: order[0] || null, // backward-compatible single-provider pointer
+    providers,
+  };
+}
+
+/**
+ * Normalize a config read from disk (v1 single-provider or v2 multi-provider)
+ * into a common { analysisMode, activeProviders[], providers{} } shape.
+ */
+export function normalizeConfig(obj) {
+  if (!obj || typeof obj !== 'object') return { analysisMode: 'sequential', activeProviders: [], providers: {} };
+  const providers = obj.providers || {};
+  let activeProviders = Array.isArray(obj.activeProviders) && obj.activeProviders.length
+    ? obj.activeProviders.slice()
+    : (obj.active ? [obj.active] : Object.keys(providers));
+  activeProviders = activeProviders.filter((id) => providers[id]);
+  const analysisMode = ANALYSIS_MODES.includes(obj.analysisMode) ? obj.analysisMode : 'sequential';
+  return { analysisMode, activeProviders, providers };
+}

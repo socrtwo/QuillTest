@@ -23,20 +23,25 @@ See [docs/LEGAL.md](docs/LEGAL.md) and [docs/ETHICS.md](docs/ETHICS.md).
 - **No missing commands.** Commands are data. The ribbon, Quick Access Bar, custom tabs, context menus, shortcuts, macros and command search (Alt+Q) all refer to command ids.
 - **Known-flaw coverage.** Passive and active checks mapped to the OWASP Top 10, OWASP ASVS, and CWE: injection (SQLi, command, template, header), cross-site scripting (reflected, stored, DOM), CSRF, SSRF, XXE, insecure deserialization, broken authentication and session handling, broken access control / IDOR, security-header and TLS misconfiguration, cookie flags, CORS misconfiguration, open redirects, directory listing and sensitive-file exposure, outdated/vulnerable components, and information disclosure. See [docs/CHECKS.md](docs/CHECKS.md).
 - **Test *and* fix.** Every finding carries a remediation: the specific config change, header, code pattern, or dependency bump that closes it, mapped to the framework/server QuillTest detected. Where the fix is a copy-pasteable artifact — a security-header block for nginx/Apache/Caddy, a Content-Security-Policy, a cookie-flag change, a dependency version bump — QuillTest generates it, and (for assets you can verify you own) can produce a ready-to-apply patch or config file. It never changes a live site on its own. See [docs/FIXES.md](docs/FIXES.md).
-- **AI-assisted analysis (optional).** A setup wizard, and several-AI modes: triage and deduplicate findings, rank by exploitability, explain each flaw in plain language, draft and refine the remediations, map to CWE/OWASP, draft the executive summary, and flag likely false positives. The AI layer reviews *QuillTest's own findings and the target's observed responses* — it never runs the scan for you and never emits attack payloads. See [docs/AI.md](docs/AI.md).
-- **Bring-your-own-model setup wizard.** Configure any of the major API providers — OpenAI, Anthropic, Google (Gemini), xAI (Grok), Meta (Llama, via a hosted gateway), DeepSeek, Alibaba (Qwen), and Mistral — or a local model (Ollama / llama.cpp / LM Studio) and any OpenAI-compatible endpoint. Keys are stored locally, never committed. See [docs/AI-WIZARD.md](docs/AI-WIZARD.md).
+- **AI-assisted analysis (optional), with as many models as you like.** The setup wizard has a checkbox per provider; enable one or several, and QuillTest consults each over the same findings — **sequentially** (one after another) or **concurrently** (all at once). More models means more corroboration: findings they all agree on surface first, disagreements get flagged for review. The AI layer reviews *QuillTest's own findings and the target's observed responses* — it never runs the scan for you and never emits attack payloads. See [docs/AI.md](docs/AI.md).
+- **Bring-your-own-model setup wizard.** Enable any of the major API providers — OpenAI, Anthropic, Google (Gemini), xAI (Grok), Meta (Llama, via a hosted gateway), DeepSeek, Alibaba (Qwen), and Mistral — or a local model (Ollama / llama.cpp / LM Studio) and any OpenAI-compatible endpoint. Tick several at once and pick the analysis mode; each is connectivity-tested. Keys are stored locally (env-var references by default), never committed. See [docs/AI-WIZARD.md](docs/AI-WIZARD.md).
+- **Test a copy of your own site.** Point QuillTest at a staging mirror of a site you have verified you own (or let it capture a bounded same-origin snapshot), so production is never stressed and several AI reviewers can work a stable snapshot in parallel. Same non-destructive check set — just run against a disposable copy. See [docs/STAGING-MIRROR.md](docs/STAGING-MIRROR.md).
+- **More than HTTP.** On hosts you have verified you own, QuillTest also checks FTP, mail (SMTP/IMAP/POP3), DNS, and TLS for known weaknesses — plaintext where encryption should be, anonymous access, outdated vulnerable versions, missing SPF/DKIM/DMARC, public zone transfer. Detection only: no credential guessing, no exploitation. See [docs/PROTOCOLS.md](docs/PROTOCOLS.md).
 - **Original ideas.** An attacker's-eye priority queue, a findings diff across scans, a plain-language remediation writer, a false-positive learning loop, scan-as-you-configure preview, and export-ready review packages. See [docs/INNOVATIONS.md](docs/INNOVATIONS.md).
 
 ## The AI setup wizard
 
-A runnable wizard is included now, ahead of the scanner. It walks you through selecting a provider, entering credentials, picking a model, and running a connectivity test, then writes a local `quilltest.ai.json` config (git-ignored).
+A runnable wizard is included now, ahead of the scanner. It walks you through selecting one or more providers, entering credentials, picking a model and analysis mode, and running a connectivity test against each, then writes a local `quilltest.ai.json` config (git-ignored).
 
 ```bash
-# Interactive CLI wizard (Node 18+)
+# Interactive CLI wizard (Node 18+) — multi-select providers, choose mode
 node scripts/ai-setup-wizard.mjs
 
-# Non-interactive, e.g. for CI or scripting (--yes suppresses every prompt;
-# the key is read from $ANTHROPIC_API_KEY, or pass --key-env / --key)
+# Enable several providers at once and test each (--yes suppresses prompts;
+# each key is read from its env var, e.g. $OPENAI_API_KEY, or pass --key-env / --key)
+node scripts/ai-setup-wizard.mjs --providers openai,anthropic,xai,deepseek --mode concurrent --yes --test
+
+# Single provider
 node scripts/ai-setup-wizard.mjs --provider anthropic --model claude-opus-5-5 --yes --test
 
 # Show the exact request the connectivity test would send, without sending it
@@ -73,6 +78,8 @@ Windows, macOS, Linux (including Raspberry Pi OS), ChromeOS and the web, with th
 | [docs/AI-WIZARD.md](docs/AI-WIZARD.md) | The provider setup wizard: flow, config format, adding providers |
 | [docs/AI.md](docs/AI.md) | How AI is used for analysis, and the guardrails on it |
 | [docs/OWNERSHIP-VERIFICATION.md](docs/OWNERSHIP-VERIFICATION.md) | The prove-you-own-it file-upload challenge that gates every scan |
+| [docs/STAGING-MIRROR.md](docs/STAGING-MIRROR.md) | Testing a copy of your own verified site, and concurrent AI review |
+| [docs/PROTOCOLS.md](docs/PROTOCOLS.md) | FTP, mail, DNS, TLS checks beyond HTTP — detection only |
 | [docs/FIXES.md](docs/FIXES.md) | How findings become remediations and applyable fixes |
 | [docs/CHECKS.md](docs/CHECKS.md) | Planned vulnerability-check inventory by category |
 | [docs/ARCHITECTURE-PLAN.md](docs/ARCHITECTURE-PLAN.md) | Shell, crawler, check engine, findings model, AI layer, report, builds |

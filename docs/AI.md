@@ -24,7 +24,14 @@ The analysis layer sends the model: the finding records (check id, location, sev
 
 ## Several-AI mode
 
-You may configure more than one provider and have QuillTest ask two or three models the same triage question, then compare. Divergence is a useful signal: findings all models agree are real get surfaced first; ones they disagree on are flagged for human review. This is also how QuillTest reasons about "what another AI might find" — by actually asking several.
+You may enable any number of providers in the setup wizard and have QuillTest consult each of them over the same findings. Two consultation modes:
+
+- **Sequential** (default) — consult each enabled provider one after another, in the order you selected them. Gentle on rate limits, and a later model can see earlier models' notes. Default for scans against live production.
+- **Concurrent** — consult all enabled providers at once. Faster, and the natural pairing for the staging-mirror scan mode ([STAGING-MIRROR.md](STAGING-MIRROR.md)), where there is a stable snapshot for several reviewers to look at simultaneously.
+
+In both modes the models receive the **same** input — QuillTest's findings and the observed responses — and return their analysis. None of them runs the scan, and none is asked to produce attack payloads; the mode only changes the order and parallelism of the reviews.
+
+Divergence across providers is a useful signal: findings all enabled models agree are real get surfaced first; ones they disagree on are flagged for human review. This is also how QuillTest reasons about "what another AI might notice" — by actually asking several and comparing. Adding a provider is one entry in the registry and one checkbox in the wizard, so the set of reviewers is open-ended.
 
 ## Provider setup
 

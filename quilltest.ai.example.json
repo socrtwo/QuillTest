@@ -1,5 +1,7 @@
 {
-  "version": 1,
+  "version": 2,
+  "analysisMode": "concurrent",
+  "activeProviders": ["anthropic", "openai", "xai"],
   "active": "anthropic",
   "providers": {
     "anthropic": {
@@ -14,6 +16,13 @@
       "base": "https://api.openai.com/v1",
       "model": "gpt-5.4-mini",
       "apiKeyEnv": "OPENAI_API_KEY",
+      "apiKey": null
+    },
+    "xai": {
+      "providerId": "xai",
+      "base": "https://api.x.ai/v1",
+      "model": "grok-4.6",
+      "apiKeyEnv": "XAI_API_KEY",
       "apiKey": null
     }
   }

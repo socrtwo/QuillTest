@@ -35,6 +35,10 @@ All detection is non-destructive: QuillTest confirms a flaw exists, it does not 
 
 Each finding gets a severity (informational → critical) and a confidence (tentative/firm/confirmed). Confidence reflects how directly the evidence proves the flaw. The AI layer, when enabled, re-scores confidence and flags likely false positives, but the deterministic engine assigns the baseline.
 
+## Beyond HTTP
+
+A host usually exposes more than its web app. QuillTest also checks FTP, mail, DNS, and TLS on hosts you have verified you own — detection only, no credential guessing or exploitation. Those checks and their guardrails are specified in [PROTOCOLS.md](PROTOCOLS.md).
+
 ## Standards alignment
 
 Findings map to OWASP Top 10 (2021), OWASP ASVS, and CWE identifiers, so reports slot into existing workflows and the remediations reference recognized guidance.

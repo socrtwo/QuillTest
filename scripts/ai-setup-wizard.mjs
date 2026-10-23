@@ -3,13 +3,19 @@
  * QuillTest — AI setup wizard (CLI)
  * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
- * Configures which AI provider/model QuillTest's optional analysis layer talks
- * to, runs a connectivity test, and writes quilltest.ai.json (git-ignored).
+ * Configures which AI provider(s) QuillTest's optional analysis layer consults,
+ * tests each one, and writes quilltest.ai.json (git-ignored).
  *
- * No third-party dependencies. Node 18+ (uses global fetch, readline/promises).
+ * Several providers can be enabled at once. The analysis layer then consults
+ * them either one after another ("sequential") or all at once ("concurrent").
+ * In both modes the providers analyze QuillTest's own findings and observed
+ * responses; they do not run the scan and never emit attack payloads.
  *
- *   node scripts/ai-setup-wizard.mjs                 # interactive
- *   node scripts/ai-setup-wizard.mjs --list          # list providers
+ * No third-party dependencies. Node 18+ (global fetch, readline/promises).
+ *
+ *   node scripts/ai-setup-wizard.mjs                                   # interactive
+ *   node scripts/ai-setup-wizard.mjs --list                            # list providers
+ *   node scripts/ai-setup-wizard.mjs --providers openai,anthropic,xai --mode concurrent --yes --test
  *   node scripts/ai-setup-wizard.mjs --provider anthropic --model claude-opus-5-5 --yes --test
  *   node scripts/ai-setup-wizard.mjs --config quilltest.ai.json --test-only
  *
@@ -29,6 +35,9 @@ import {
   buildListModelsRequest,
   extractModelIds,
   extractText,
+  buildMultiConfig,
+  normalizeConfig,
+  ANALYSIS_MODES,
 } from '../src/ai/providers.mjs';
 
 const DEFAULT_OUT = resolve(process.cwd(), 'quilltest.ai.json');
@@ -43,12 +52,8 @@ function parseArgs(args) {
     if (a.startsWith('--')) {
       const key = a.slice(2);
       const next = args[i + 1];
-      if (next === undefined || next.startsWith('--')) {
-        out[key] = true;
-      } else {
-        out[key] = next;
-        i++;
-      }
+      if (next === undefined || next.startsWith('--')) out[key] = true;
+      else { out[key] = next; i++; }
     } else {
       out._.push(a);
     }
@@ -73,25 +78,29 @@ function printHelp() {
 Usage:
   node scripts/ai-setup-wizard.mjs [options]
 
-Options:
-  --provider <id>     Provider id (see --list). Skips the provider prompt.
-  --model <id>        Model id. Skips the model prompt.
-  --base <url>        Override the endpoint base URL.
-  --key <value>       API key value (prefer --key-env to avoid shell history).
+Selection:
+  --providers <ids>   Comma-separated provider ids to enable (e.g. openai,anthropic,xai).
+  --provider <id>     Single provider (alias for --providers with one id).
+  --mode <mode>       Analysis mode: ${ANALYSIS_MODES.join(' | ')} (default sequential).
+  --model <id>        Model id (applied to the single selected provider).
+  --base <url>        Endpoint base override (single selected provider).
+  --key <value>       API key (single provider; prefer --key-env to avoid shell history).
   --key-env <VAR>     Name of the env var holding the key (stored as a reference).
-  --test              Run a connectivity test before saving.
-  --test-only         Test the existing --config (or default) and exit; no save.
-  --config <path>     Config file to read for --test-only (default quilltest.ai.json).
+
+Actions:
+  --test              Test connectivity for every selected provider before saving.
+  --test-only         Test the providers in --config (or default) and exit; no save.
+  --config <path>     Config to read for --test-only (default quilltest.ai.json).
   --out <path>        Where to write config (default quilltest.ai.json).
-  --save-key          Write the literal key into the config file (NOT recommended).
-  --no-save           Run through the wizard/test but do not write a file.
+  --save-key          Write literal keys into the config file (NOT recommended).
+  --no-save           Run the wizard/test but do not write a file.
   --list              List supported providers and exit.
   --yes               Accept defaults without prompting where possible.
-  --dry-run           Show the test request that would be sent, without sending.
+  --dry-run           Show the test request(s) that would be sent, without sending.
   --help              This help.
 
 Providers out of the box: ${PROVIDERS.map((p) => p.id).join(', ')}
-See docs/AI-WIZARD.md for details.`);
+Network requests time out after ${REQUEST_TIMEOUT_MS / 1000}s. See docs/AI-WIZARD.md for details.`);
 }
 
 function listProviders() {
@@ -105,101 +114,108 @@ function listProviders() {
   }
 }
 
-// ----- interactive prompts ---------------------------------------------------
+// ----- interactive flow ------------------------------------------------------
+
+function resolveSelection(input) {
+  if (!input) return [];
+  if (input.trim().toLowerCase() === 'all') return PROVIDERS.slice();
+  const out = [];
+  for (const tok of input.split(',').map((s) => s.trim()).filter(Boolean)) {
+    const n = Number.parseInt(tok, 10);
+    const p = Number.isInteger(n) ? PROVIDERS[n - 1] : getProvider(tok);
+    if (p && !out.includes(p)) out.push(p);
+  }
+  return out;
+}
 
 async function runInteractive(rl, preset) {
-  // 1. provider
-  let provider = preset.provider ? getProvider(preset.provider) : null;
-  if (!provider) {
-    console.log(c.bold('\nChoose an AI provider:\n'));
+  // 1. provider multi-select
+  let chosen = [];
+  if (preset.providerIds.length) {
+    chosen = preset.providerIds.map(getProvider).filter(Boolean);
+  } else {
+    console.log(c.bold('\nSelect AI providers (QuillTest can consult several):\n'));
     PROVIDERS.forEach((p, i) => {
       console.log(`  ${String(i + 1).padStart(2)}. ${p.label} ${c.dim('(' + p.id + ')')}`);
     });
-    const ans = (await rl.question(`\nProvider [1-${PROVIDERS.length}]: `)).trim();
-    const idx = Number.parseInt(ans, 10) - 1;
-    provider = PROVIDERS[idx] || getProvider(ans);
-    if (!provider) {
-      console.error(c.red('Unknown provider.'));
-      exit(2);
+    console.log(c.dim('\n  Enter numbers or ids, comma-separated (e.g. 1,2,4 or openai,anthropic).'));
+    console.log(c.dim('  "all" selects every provider.'));
+    const ans = (await rl.question('\nProviders: ')).trim();
+    chosen = resolveSelection(ans);
+    if (!chosen.length) { console.error(c.red('No valid providers selected.')); exit(2); }
+  }
+  console.log(`\n${c.green('→')} selected: ${chosen.map((p) => p.label).join(', ')}`);
+
+  // 2. per-provider base / key / model
+  const selections = [];
+  for (const provider of chosen) {
+    console.log(c.bold(`\n── ${provider.label} ──`));
+    if (provider.notes) console.log(c.dim('  ' + provider.notes));
+
+    let base = provider.defaultBase;
+    if (preset.single && preset.base) base = preset.base;
+    if (provider.baseEditable && !(preset.single && preset.base)) {
+      const def = provider.defaultBase ? ` [${provider.defaultBase}]` : ' (required)';
+      const a = (await rl.question(`  Endpoint base URL${def}: `)).trim();
+      if (a) base = a;
     }
-  }
-  console.log(`\n${c.green('→')} ${provider.label}  ${c.dim('[' + provider.apiStyle + ']')}`);
-  if (provider.notes) console.log(c.dim('  ' + provider.notes));
+    if (!base) { console.error(c.red(`  ${provider.label} requires a base URL.`)); exit(2); }
+    base = base.replace(/\/+$/, '');
 
-  // 2. base
-  let base = preset.base || provider.defaultBase;
-  if (!preset.base && provider.baseEditable) {
-    const def = provider.defaultBase ? ` [${provider.defaultBase}]` : ' (required)';
-    const ans = (await rl.question(`\nEndpoint base URL${def}: `)).trim();
-    if (ans) base = ans;
-  }
-  if (!base) {
-    console.error(c.red('This provider requires an endpoint base URL.'));
-    exit(2);
-  }
-  base = base.replace(/\/+$/, '');
-
-  // 3. key
-  let apiKey = preset.key || null;
-  let apiKeyEnv = preset.keyEnv || provider.keyEnv;
-  if (!apiKey) {
-    const envHas = apiKeyEnv && env[apiKeyEnv];
-    const hint = envHas ? ` [found in $${apiKeyEnv}]` : (apiKeyEnv ? ` [will reference $${apiKeyEnv}]` : '');
-    const ans = await promptHidden(rl, `\nAPI key${hint} (leave blank to use env var): `);
-    if (ans.trim()) apiKey = ans.trim();
-  }
-  if (!apiKey && apiKeyEnv && env[apiKeyEnv]) apiKey = env[apiKeyEnv];
-  if (!apiKey && !keyOptional(provider.id)) {
-    console.log(c.yellow(`\nNo key provided. Will store a reference to $${apiKeyEnv}; set it before scanning.`));
-  }
-
-  // 4. model
-  let model = preset.model || null;
-  if (!model) {
-    if (provider.models.length) {
-      console.log(c.bold('\nSuggested models:'));
-      provider.models.forEach((m, i) => console.log(`  ${i + 1}. ${m}`));
-      console.log(c.dim('  (or type any model id the provider accepts)'));
+    const apiKeyEnv = (preset.single && preset.keyEnv) || provider.keyEnv;
+    let apiKey = (preset.single && preset.key) || null;
+    if (!apiKey) {
+      const envHas = apiKeyEnv && env[apiKeyEnv];
+      const hint = envHas ? ` [found in $${apiKeyEnv}]` : (apiKeyEnv ? ` [will reference $${apiKeyEnv}]` : '');
+      const a = await promptHidden(rl, `  API key${hint} (blank = use env var): `);
+      if (a.trim()) apiKey = a.trim();
     }
-    if (provider.listModelsPath && apiKey) {
-      const fetchAns = (await rl.question('\nFetch the live model list from the provider? [y/N]: ')).trim().toLowerCase();
-      if (fetchAns === 'y' || fetchAns === 'yes') {
-        const live = await fetchModels(provider, base, apiKey).catch((e) => {
-          console.log(c.yellow('  Could not fetch models: ' + e.message));
-          return null;
-        });
-        if (live && live.length) {
-          console.log(c.bold('\nLive models:'));
-          live.slice(0, 40).forEach((m) => console.log('  - ' + m));
+    if (!apiKey && apiKeyEnv && env[apiKeyEnv]) apiKey = env[apiKeyEnv];
+    if (!apiKey && !keyOptional(provider.id)) {
+      console.log(c.yellow(`  No key yet — will store a reference to $${apiKeyEnv}; set it before scanning.`));
+    }
+
+    let model = (preset.single && preset.model) || null;
+    if (!model) {
+      if (provider.models.length) console.log('  Suggested models: ' + provider.models.join(', '));
+      if (provider.listModelsPath && apiKey) {
+        const fetchAns = (await rl.question('  Fetch the live model list? [y/N]: ')).trim().toLowerCase();
+        if (fetchAns === 'y' || fetchAns === 'yes') {
+          const live = await fetchModels(provider, base, apiKey).catch((e) => {
+            console.log(c.yellow('  Could not fetch models: ' + e.message));
+            return null;
+          });
+          if (live && live.length) { console.log('  Live: ' + live.slice(0, 40).join(', ')); }
         }
       }
+      const a = (await rl.question(`  Model [${provider.models[0] || 'type an id'}]: `)).trim();
+      model = a || provider.models[0];
     }
-    const ans = (await rl.question(`\nModel [${provider.models[0] || 'type an id'}]: `)).trim();
-    model = ans || provider.models[0];
-  }
-  if (!model) {
-    console.error(c.red('A model id is required.'));
-    exit(2);
+    if (!model) { console.error(c.red(`  ${provider.label} needs a model id.`)); exit(2); }
+
+    selections.push({ providerId: provider.id, base, apiKey, apiKeyEnv, model });
   }
 
-  return { provider, base, apiKey, apiKeyEnv, model };
+  // 3. analysis mode (only meaningful with >1 provider)
+  let mode = preset.mode || 'sequential';
+  if (!preset.mode && selections.length > 1) {
+    console.log(c.bold('\nAnalysis mode:'));
+    console.log('  1. sequential — consult each provider one after another (default)');
+    console.log('  2. concurrent — consult all providers at once (used with staging-mirror mode)');
+    const a = (await rl.question('\nMode [1]: ')).trim();
+    mode = a === '2' || a.toLowerCase() === 'concurrent' ? 'concurrent' : 'sequential';
+  }
+
+  return { selections, mode };
 }
 
 // readline has no native hidden input; mute stdout echo during the question.
 async function promptHidden(rl, query) {
-  const onData = () => {
-    // Move cursor back and clear, so typed key chars are not shown.
-    stdout.write('\x1b[2K\r' + query);
-  };
+  const onData = () => { stdout.write('\x1b[2K\r' + query); };
   stdout.write(query);
   stdin.on('data', onData);
-  try {
-    const answer = await rl.question('');
-    return answer;
-  } finally {
-    stdin.removeListener('data', onData);
-    stdout.write('\n');
-  }
+  try { return await rl.question(''); }
+  finally { stdin.removeListener('data', onData); stdout.write('\n'); }
 }
 
 // ----- provider calls --------------------------------------------------------
@@ -212,35 +228,32 @@ async function fetchModels(provider, base, apiKey) {
   return extractModelIds(await res.json());
 }
 
-async function runTest(cfg, { dryRun } = {}) {
-  const provider = getProvider(cfg.providerId);
-  const effectiveKey = cfg.apiKey || (cfg.apiKeyEnv ? env[cfg.apiKeyEnv] : '') || '';
+async function runTest(entry, { dryRun } = {}) {
+  const provider = getProvider(entry.providerId);
+  const effectiveKey = entry.apiKey || (entry.apiKeyEnv ? env[entry.apiKeyEnv] : '') || '';
   const { url, init } = buildTestRequest(
-    { providerId: cfg.providerId, base: cfg.base, apiKey: effectiveKey, model: cfg.model },
+    { providerId: entry.providerId, base: entry.base, apiKey: effectiveKey, model: entry.model },
     'Reply with the single word: OK',
   );
 
   if (dryRun) {
     const redacted = { ...init, headers: redactHeaders(init.headers) };
-    console.log(c.bold('\n[dry-run] Request that would be sent:'));
+    console.log(c.bold(`\n[dry-run] ${provider.label}:`));
     console.log('  ' + c.cyan(init.method) + ' ' + url);
     console.log('  headers: ' + JSON.stringify(redacted.headers));
     console.log('  body:    ' + redacted.body);
     return { ok: true, dryRun: true };
   }
-
   if (!effectiveKey && !keyOptional(provider.id)) {
-    return { ok: false, error: `No API key available (set $${cfg.apiKeyEnv} or pass --key).` };
+    return { ok: false, error: `No API key available (set $${entry.apiKeyEnv} or pass --key).` };
   }
 
-  process.stdout.write('\nTesting connectivity… ');
   const t0 = Date.now();
   try {
     const res = await fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
     const ms = Date.now() - t0;
     const text = await res.text();
-    let json;
-    try { json = JSON.parse(text); } catch { json = null; }
+    let json; try { json = JSON.parse(text); } catch { json = null; }
     if (!res.ok) {
       const msg = json?.error?.message || json?.message || text.slice(0, 200);
       return { ok: false, error: `HTTP ${res.status} (${ms}ms): ${msg}` };
@@ -255,52 +268,58 @@ async function runTest(cfg, { dryRun } = {}) {
 
 function redactHeaders(h) {
   const out = {};
-  for (const [k, v] of Object.entries(h || {})) {
-    out[k] = /authorization|api-key|key/i.test(k) ? 'REDACTED' : v;
-  }
+  for (const [k, v] of Object.entries(h || {})) out[k] = /authorization|api-key|key/i.test(k) ? 'REDACTED' : v;
   return out;
+}
+
+function reportTest(label, r) {
+  if (r.dryRun) return;
+  if (r.ok) console.log(`${label}: ` + c.green('OK') + c.dim(`  (${r.ms}ms, replied ${JSON.stringify(r.reply)})`));
+  else console.log(`${label}: ` + c.red('FAILED') + '\n  ' + c.red(r.error));
+}
+
+/** Test every entry. Honors mode: concurrent fires them in parallel. */
+async function testAll(entries, { dryRun, mode }) {
+  if (dryRun) { for (const e of entries) await runTest(e, { dryRun: true }); return true; }
+  const labelOf = (e) => getProvider(e.providerId).label;
+  let results;
+  if (mode === 'concurrent') {
+    console.log(c.dim(`\nTesting ${entries.length} provider(s) concurrently…`));
+    results = await Promise.all(entries.map((e) => runTest(e)));
+  } else {
+    results = [];
+    for (const e of entries) { process.stdout.write(`\nTesting ${labelOf(e)}…`); results.push(await runTest(e)); }
+  }
+  let allOk = true;
+  entries.forEach((e, i) => { reportTest(labelOf(e), results[i]); if (!results[i].ok) allOk = false; });
+  return allOk;
 }
 
 // ----- config io -------------------------------------------------------------
 
-function buildConfig(choice, { saveKey }) {
-  return {
-    version: 1,
-    active: choice.provider.id,
-    providers: {
-      [choice.provider.id]: {
-        providerId: choice.provider.id,
-        base: choice.base,
-        model: choice.model,
-        apiKeyEnv: choice.apiKeyEnv || null,
-        apiKey: saveKey ? (choice.apiKey || null) : null,
-      },
-    },
-  };
-}
-
-function mergeIntoExisting(outPath, newConfig) {
-  if (!existsSync(outPath)) return newConfig;
+/**
+ * Merge a freshly built multi-provider config into an existing file, preserving
+ * other providers' stored entries (including keys saved with --save-key).
+ */
+function mergeIntoExisting(outPath, fresh) {
+  if (!existsSync(outPath)) return fresh;
   try {
     const existing = JSON.parse(readFileSync(outPath, 'utf8'));
-    existing.version = 1;
-    existing.providers = { ...(existing.providers || {}), ...newConfig.providers };
-    existing.active = newConfig.active;
-    return existing;
+    const providers = { ...(existing.providers || {}), ...fresh.providers };
+    return {
+      version: fresh.version,
+      analysisMode: fresh.analysisMode,
+      activeProviders: fresh.activeProviders,
+      active: fresh.active,
+      providers,
+    };
   } catch {
-    return newConfig;
+    return fresh;
   }
 }
 
-function writeConfig(outPath, config, { saveKey, providerId }) {
-  // Guard: never let a literal key be written for the provider just configured
-  // unless explicitly opted in. Keys other providers already stored in this file
-  // (from an earlier --save-key run) are left as they are.
-  if (!saveKey && config.providers?.[providerId]) {
-    config.providers[providerId].apiKey = null;
-  }
+function writeConfig(outPath, config) {
   writeFileSync(outPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
-  // `mode` only applies when the file is created; tighten an existing file too.
   try { chmodSync(outPath, 0o600); } catch { /* best effort (e.g. Windows) */ }
 }
 
@@ -308,103 +327,75 @@ function writeConfig(outPath, config, { saveKey, providerId }) {
 
 async function main() {
   const args = parseArgs(argv.slice(2));
-
   if (args.help) { printHelp(); return; }
   if (args.list) { listProviders(); return; }
 
-  // --test-only path: load config, test active provider, exit.
   if (args['test-only']) {
     const cfgPath = resolve(process.cwd(), args.config || DEFAULT_OUT);
-    if (!existsSync(cfgPath)) {
-      console.error(c.red(`No config at ${cfgPath}`));
-      exit(1);
-    }
-    const cfg = JSON.parse(readFileSync(cfgPath, 'utf8'));
-    const active = cfg.providers[cfg.active];
-    if (!active) { console.error(c.red('Config has no active provider.')); exit(1); }
-    const r = await runTest(active, { dryRun: args['dry-run'] });
-    reportTest(r);
-    exit(r.ok ? 0 : 1);
+    if (!existsSync(cfgPath)) { console.error(c.red(`No config at ${cfgPath}`)); exit(1); }
+    const norm = normalizeConfig(JSON.parse(readFileSync(cfgPath, 'utf8')));
+    if (!norm.activeProviders.length) { console.error(c.red('Config has no active providers.')); exit(1); }
+    console.log(c.dim(`mode: ${norm.analysisMode}  providers: ${norm.activeProviders.join(', ')}`));
+    const entries = norm.activeProviders.map((id) => norm.providers[id]);
+    const ok = await testAll(entries, { dryRun: args['dry-run'], mode: norm.analysisMode });
+    exit(ok ? 0 : 1);
   }
 
-  const noPrompt = args.yes && args.provider;
+  const providerIds = typeof args.providers === 'string'
+    ? args.providers.split(',').map((s) => s.trim()).filter(Boolean)
+    : (typeof args.provider === 'string' ? [args.provider] : []);
   const preset = {
-    provider: typeof args.provider === 'string' ? args.provider : null,
+    providerIds,
+    single: providerIds.length === 1,
     base: typeof args.base === 'string' ? args.base : null,
     model: typeof args.model === 'string' ? args.model : null,
     key: typeof args.key === 'string' ? args.key : null,
     keyEnv: typeof args['key-env'] === 'string' ? args['key-env'] : null,
+    mode: ANALYSIS_MODES.includes(args.mode) ? args.mode : null,
   };
 
-  let choice;
-  if (noPrompt) {
-    const provider = getProvider(preset.provider);
-    if (!provider) { console.error(c.red('Unknown --provider.')); exit(2); }
-    const apiKeyEnv = preset.keyEnv || provider.keyEnv;
-    choice = {
-      provider,
-      base: (preset.base || provider.defaultBase || '').replace(/\/+$/, ''),
-      apiKey: preset.key || (apiKeyEnv ? env[apiKeyEnv] : null) || null,
-      apiKeyEnv,
-      model: preset.model || provider.models[0],
-    };
-    if (!choice.base) { console.error(c.red('This provider needs --base.')); exit(2); }
-    if (!choice.model) { console.error(c.red('This provider needs --model.')); exit(2); }
+  let selections, mode;
+  const nonInteractive = args.yes && providerIds.length;
+  if (nonInteractive) {
+    selections = providerIds.map((id) => {
+      const provider = getProvider(id);
+      if (!provider) { console.error(c.red(`Unknown provider: ${id}`)); exit(2); }
+      const apiKeyEnv = (preset.single && preset.keyEnv) || provider.keyEnv;
+      const base = ((preset.single && preset.base) ? preset.base : provider.defaultBase || '').replace(/\/+$/, '');
+      if (!base) { console.error(c.red(`${provider.label} needs --base.`)); exit(2); }
+      const model = (preset.single && preset.model) || provider.models[0];
+      if (!model) { console.error(c.red(`${provider.label} needs --model.`)); exit(2); }
+      const apiKey = (preset.single && preset.key) || (apiKeyEnv ? env[apiKeyEnv] : null) || null;
+      return { providerId: provider.id, base, apiKey, apiKeyEnv, model };
+    });
+    mode = preset.mode || 'sequential';
   } else {
     const rl = createInterface({ input: stdin, output: stdout });
-    try {
-      choice = await runInteractive(rl, preset);
-    } finally {
-      rl.close();
-    }
+    try { ({ selections, mode } = await runInteractive(rl, preset)); }
+    finally { rl.close(); }
   }
-
-  const cfgForProvider = {
-    providerId: choice.provider.id,
-    base: choice.base,
-    model: choice.model,
-    apiKey: choice.apiKey,
-    apiKeyEnv: choice.apiKeyEnv,
-  };
 
   if (args.test || args['dry-run']) {
-    const r = await runTest(cfgForProvider, { dryRun: args['dry-run'] });
-    reportTest(r);
-    if (!r.ok && !args['dry-run']) {
-      console.log(c.yellow('\nTest failed — not saving. Re-run after fixing, or use --no-save to skip tests.'));
-      if (!args['no-save']) exit(1);
+    const ok = await testAll(selections, { dryRun: args['dry-run'], mode });
+    if (!ok && !args['dry-run'] && !args['no-save']) {
+      console.log(c.yellow('\nOne or more tests failed — not saving. Fix and re-run, or use --no-save.'));
+      exit(1);
     }
   }
 
-  if (args['no-save']) {
-    console.log(c.dim('\n--no-save set; configuration not written.'));
-    return;
-  }
+  if (args['no-save']) { console.log(c.dim('\n--no-save set; configuration not written.')); return; }
 
   const saveKey = Boolean(args['save-key']);
   const outPath = resolve(process.cwd(), typeof args.out === 'string' ? args.out : DEFAULT_OUT);
-  const built = buildConfig(choice, { saveKey });
-  const merged = mergeIntoExisting(outPath, built);
-  writeConfig(outPath, merged, { saveKey, providerId: choice.provider.id });
+  const fresh = buildMultiConfig(selections.map((s) => ({ ...s, saveKey })), { mode });
+  const merged = mergeIntoExisting(outPath, fresh);
+  writeConfig(outPath, merged);
 
   console.log(c.green(`\n✓ Wrote ${outPath}`));
-  console.log(`  active provider: ${c.bold(choice.provider.id)}  model: ${c.bold(choice.model)}`);
-  if (!saveKey) {
-    console.log(c.dim(`  key stored as a reference to $${choice.apiKeyEnv || '(none)'} — not written to the file.`));
-  } else {
-    console.log(c.yellow('  WARNING: API key written into the config file. Keep it out of version control.'));
-  }
+  console.log(`  mode: ${c.bold(merged.analysisMode)}  providers: ${c.bold(merged.activeProviders.join(', '))}`);
+  if (!saveKey) console.log(c.dim('  keys stored as env-var references — not written to the file.'));
+  else console.log(c.yellow('  WARNING: API keys written into the config file. Keep it out of version control.'));
   console.log(c.dim('  quilltest.ai.json is git-ignored by default.'));
-}
-
-function reportTest(r) {
-  if (r.dryRun) return;
-  if (r.ok) {
-    console.log(c.green('OK') + c.dim(`  (${r.ms}ms, model replied: ${JSON.stringify(r.reply)})`));
-  } else {
-    console.log(c.red('FAILED'));
-    console.log('  ' + c.red(r.error));
-  }
 }
 
 main().catch((e) => {

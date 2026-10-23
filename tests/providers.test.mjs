@@ -17,6 +17,9 @@ import {
   buildListModelsRequest,
   extractModelIds,
   extractText,
+  buildMultiConfig,
+  normalizeConfig,
+  CONFIG_VERSION,
 } from '../src/ai/providers.mjs';
 import { HTML_PATH, extractBlock, renderBlock } from '../scripts/sync-browser-registry.mjs';
 
@@ -151,4 +154,48 @@ test('browser wizard carries an up-to-date copy of the registry', () => {
   // JSON round-trip both sides: objects created inside the vm context have a foreign Object prototype.
   assert.deepEqual(JSON.parse(JSON.stringify(ctx.result.PROVIDERS)), JSON.parse(JSON.stringify(PROVIDERS)));
   assert.equal(ctx.result.TEST_MAX_TOKENS, TEST_MAX_TOKENS);
+});
+
+// ----- multi-provider config -----
+
+test('buildMultiConfig builds a v2 config with ordered providers', () => {
+  const cfg = buildMultiConfig(
+    [{ providerId: 'openai' }, { providerId: 'anthropic' }, { providerId: 'xai' }],
+    { mode: 'concurrent' },
+  );
+  assert.equal(cfg.version, CONFIG_VERSION);
+  assert.equal(cfg.analysisMode, 'concurrent');
+  assert.deepEqual(cfg.activeProviders, ['openai', 'anthropic', 'xai']);
+  assert.equal(cfg.active, 'openai'); // back-compat pointer
+  assert.equal(cfg.providers.anthropic.model, getProvider('anthropic').models[0]);
+});
+
+test('buildMultiConfig de-dupes and defaults an unknown mode to sequential', () => {
+  const cfg = buildMultiConfig([{ providerId: 'openai' }, { providerId: 'openai' }], { mode: 'bogus' });
+  assert.deepEqual(cfg.activeProviders, ['openai']);
+  assert.equal(cfg.analysisMode, 'sequential');
+});
+
+test('buildMultiConfig omits keys unless saveKey is set', () => {
+  const withKey = buildMultiConfig([{ providerId: 'openai', apiKey: 'sk-x', saveKey: true }], {});
+  const noKey = buildMultiConfig([{ providerId: 'openai', apiKey: 'sk-x' }], {});
+  assert.equal(withKey.providers.openai.apiKey, 'sk-x');
+  assert.equal(noKey.providers.openai.apiKey, null);
+});
+
+test('buildMultiConfig throws on an unknown provider', () => {
+  assert.throws(() => buildMultiConfig([{ providerId: 'nope' }], {}), /Unknown provider/);
+});
+
+test('normalizeConfig upgrades a v1 single-provider config', () => {
+  const v1 = { version: 1, active: 'mistral', providers: { mistral: { providerId: 'mistral', base: 'https://api.mistral.ai/v1', model: 'mistral-large-latest' } } };
+  const n = normalizeConfig(v1);
+  assert.deepEqual(n.activeProviders, ['mistral']);
+  assert.equal(n.analysisMode, 'sequential');
+});
+
+test('normalizeConfig drops active ids that have no provider entry', () => {
+  const n = normalizeConfig({ version: 2, analysisMode: 'concurrent', activeProviders: ['openai', 'ghost'], providers: { openai: { providerId: 'openai' } } });
+  assert.deepEqual(n.activeProviders, ['openai']);
+  assert.equal(n.analysisMode, 'concurrent');
 });
