@@ -56,7 +56,7 @@ What the passive profile sends: the crawl itself, one TLS handshake, two GETs wi
 
 ### Active scanning (detection-only, built)
 
-The Standard profile adds detection-only active checks: reflected XSS (GET and POST), SQL-error, template-eval, CRLF and host-header injection, open redirect, CSRF-token, forced browsing and unsafe-HTTP-method exposure. Each confirms a flaw class with the least intrusive benign signal — a safe canary, an error signature, a benign arithmetic marker — and never sends a working exploit, extracts data, or changes state. Active checks run only on a verified, authorized target, test one parameter at a time, and are capped by a per-scan request budget.
+The Standard profile adds detection-only active checks: reflected XSS (GET and POST), SQL-error, template-eval, CRLF and host-header injection, open redirect, CSRF-token, forced browsing and unsafe-HTTP-method exposure, plus read-only SSRF and IDOR candidate surfacing for manual review. Each confirms a flaw class with the least intrusive benign signal — a safe canary, an error signature, a benign arithmetic marker — and never sends a working exploit, extracts data, or changes state. Active checks run only on a verified, authorized target, test one parameter at a time, and are capped by a per-scan request budget.
 
 ```bash
 node scripts/quilltest.mjs scan active        # Standard profile: passive + detection-only active checks

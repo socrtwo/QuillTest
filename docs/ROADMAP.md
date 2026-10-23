@@ -30,7 +30,8 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 - [x] Active-check framework: injection-point model from the crawl (`src/scan/params.mjs`), active phase and request budget in the orchestrator, `active()` hook in the check registry
 - [x] Detection-only active checks (`src/checks/active/`): reflected XSS (safe canary, GET and POST), SQL-error, template-eval and CRLF injection, open redirect, host-header injection, CSRF-token, forced browsing, unsafe HTTP methods
 - [x] Scan profiles and intrusiveness caps (Standard/Thorough now run the active set; Passive/Quick skip it)
-- [ ] SSRF (out-of-band callback), XXE, deserialization, stored/DOM XSS, IDOR with supplied accounts
+- [x] SSRF and IDOR manual-review candidate surfacing (read-only, `src/checks/active/candidates.mjs`)
+- [ ] SSRF out-of-band callback probe, XXE, deserialization, stored/DOM XSS, account-based IDOR testing
 - [ ] Boolean/time-based SQLi detection
 
 ## M4 — Fix layer

@@ -69,6 +69,8 @@ export const CWE = {
   1336: 'Improper Neutralization of Special Elements Used in a Template Engine (Template Injection)',
   644: 'Improper Neutralization of HTTP Headers for Scripting Syntax',
   650: 'Trusting HTTP Permission Methods on the Server Side',
+  918: 'Server-Side Request Forgery (SSRF)',
+  639: 'Authorization Bypass Through User-Controlled Key (IDOR)',
 };
 
 export function severityRank(s) {

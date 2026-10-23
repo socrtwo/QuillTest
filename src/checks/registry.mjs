@@ -37,6 +37,7 @@ export const CATEGORIES = {
   csrf: 'Cross-site request forgery',
   redirects: 'Open redirects',
   access: 'Access control',
+  ssrf: 'Server-side request forgery',
   methods: 'HTTP methods',
 };
 

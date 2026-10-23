@@ -100,7 +100,7 @@ test('active scan of the vulnerable app detects every planted flaw, each detecti
   assert.deepEqual(rec.checks.errors, []);
   assert.ok(rec.crawl.injectionPoints >= 6 && rec.crawl.active > 0);
   const ids = new Set(rec.findings.map((f) => f.checkId));
-  for (const id of ['redirects.open', 'xss.reflected', 'injection.sqlError', 'injection.templateEval', 'injection.crlf', 'csrf.formToken', 'access.forcedBrowsing', 'injection.hostHeader', 'methods.enabled']) {
+  for (const id of ['redirects.open', 'xss.reflected', 'injection.sqlError', 'injection.templateEval', 'injection.crlf', 'csrf.formToken', 'access.forcedBrowsing', 'injection.hostHeader', 'methods.enabled', 'ssrf.candidate', 'access.idorCandidate']) {
     assert.ok(ids.has(id), `expected a ${id} finding`);
   }
   // Regression: a POST form field is reflected — proving the crawler forwards the request body.
@@ -123,12 +123,38 @@ test('active scan of the vulnerable app detects every planted flaw, each detecti
   assert.ok(rec.requestLog.some((r) => r.kind === 'active'));
 });
 
-test('active scan of the safely-written app reports no active-category findings', async () => {
+test('active scan of the safely-written app reports no confirmed active findings', async () => {
   const ctx = readyContext(safe.origin);
   const rec = await exec(ctx, 'scan.active');
-  const active = rec.findings.filter((f) => ['redirects', 'xss', 'injection', 'csrf', 'access'].includes(f.checkId.split('.')[0]));
-  assert.deepEqual(active.map((f) => f.checkId), [], 'a correctly-built app triggers no active detector');
+  // Real active detectors must stay silent; informational manual-review candidates
+  // (ssrf.candidate / access.idorCandidate) legitimately fire on any app with URL/id
+  // parameters and are not vulnerability assertions.
+  const confirmed = rec.findings.filter((f) => ['redirects', 'xss', 'injection', 'csrf', 'access', 'ssrf', 'methods'].includes(f.checkId.split('.')[0]) && f.severity !== 'informational');
+  assert.deepEqual(confirmed.map((f) => f.checkId), [], 'a correctly-built app triggers no active detector');
   assert.deepEqual(rec.checks.errors, []);
+});
+
+test('SSRF and IDOR candidates are surfaced for review, send no requests, and never assert a vulnerability', async () => {
+  const ssrf = getCheck('ssrf.candidate');
+  const idor = getCheck('access.idorCandidate');
+  for (const c of [ssrf, idor]) {
+    assert.equal(c.active, undefined, `${c.id} must not send active requests`);
+    assert.equal(typeof c.finalize, 'function');
+    assert.equal(c.severity, 'informational');
+    assert.equal(c.confidence, 'tentative');
+  }
+  assert.ok(ssrf.cwe.includes(918) && idor.cwe.includes(639));
+  // Fire on both fixtures (shape-based, not vulnerability-based); the requests they add is zero.
+  for (const site of [vuln, safe]) {
+    const ctx = readyContext(site.origin);
+    const before = await exec(ctx, 'scan.passive');          // passive profile excludes active-category checks
+    assert.ok(!before.findings.some((f) => ['ssrf.candidate', 'access.idorCandidate'].includes(f.checkId)), 'candidates do not run on the passive profile');
+    const rec = await exec(ctx, 'scan.active');
+    const cand = rec.findings.filter((f) => ['ssrf.candidate', 'access.idorCandidate'].includes(f.checkId));
+    assert.ok(cand.some((f) => f.checkId === 'ssrf.candidate' && f.key === 'url'), `${site.origin}: url param surfaced as SSRF candidate`);
+    assert.ok(cand.some((f) => f.checkId === 'access.idorCandidate'), `${site.origin}: an identifier surfaced as IDOR candidate`);
+    assert.ok(cand.every((f) => f.severity === 'informational' && f.confidence === 'tentative'));
+  }
 });
 
 test('the passive profile sends no active requests and skips active checks', async () => {

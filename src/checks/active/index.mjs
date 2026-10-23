@@ -10,3 +10,4 @@ import './xss.mjs';
 import './injection.mjs';
 import './access.mjs';
 import './requests.mjs';
+import './candidates.mjs';
