@@ -500,18 +500,48 @@ export async function runPassiveScan(originInput, opts = {}) {
     const pageObs = { url: page.url, status: page.status, headers: page.headers, body: page.body, error: null };
     raw.push(...runChecks(pageChecks, { origin, isHttps, root: pageObs, pageUrl: page.url, page, cors, httpVariant, probes }));
   }
-  const findings = aggregateFindings(raw);
-
   const { fingerprint, describeStack } = await import('./fingerprint.mjs');
   const fp = fingerprint([root, ...pages.filter((p) => p.isHtml).slice(0, 10)]);
+
+  // Component versions: offline EOL/advisory table, plus optional OSV.dev lookup.
+  const { assessVersions, enrichWithOsv, osvFindings } = await import('./versions.mjs');
+  const componentChecks = {
+    eol: { id: 'components.eol', scope: 'origin', title: 'End-of-life component', severity: 'high', confidence: 'firm', cwe: 'CWE-1104', owasp: 'A06:2021 Vulnerable and Outdated Components', remediation: 'Upgrade.' },
+    vuln: { id: 'components.known-vulnerable', scope: 'origin', title: 'Component with known vulnerabilities', severity: 'medium', confidence: 'firm', cwe: 'CWE-1395', owasp: 'A06:2021 Vulnerable and Outdated Components', remediation: 'Upgrade.' },
+    osv: { id: 'components.osv', scope: 'origin', title: 'Component with advisories in OSV', severity: 'medium', confidence: 'firm', cwe: 'CWE-1395', owasp: 'A06:2021 Vulnerable and Outdated Components', remediation: 'Upgrade.' },
+  };
+  for (const p of assessVersions(fp, { location: origin + '/' })) {
+    raw.push(materialize(/end-of-life/.test(p.title) ? componentChecks.eol : componentChecks.vuln, p));
+  }
+  let osv = null;
+  if (opts.onlineCve) {
+    osv = await enrichWithOsv(fp, { fetchImpl, timeoutMs });
+    for (const p of osvFindings(osv, { location: origin + '/' })) raw.push(materialize(componentChecks.osv, p));
+  }
+  const findings = aggregateFindings(raw);
+
+  // Asset inventory across pages (origins only), used to derive a CSP in the fix layer.
+  const originOf = (u) => { try { return new URL(u).origin; } catch { return null; } };
+  const assets = { scriptOrigins: new Set(), styleOrigins: new Set(), frameOrigins: new Set(), inlineScripts: false, inlineStyles: false, eventHandlers: false, scriptsWithoutSri: 0 };
+  for (const page of pages) {
+    for (const s of page.scripts || []) { const o = originOf(s.src); if (o && o !== origin) { assets.scriptOrigins.add(o); if (!s.integrity) assets.scriptsWithoutSri++; } }
+    for (const s of page.styles || []) { const o = originOf(s.href); if (o && o !== origin) assets.styleOrigins.add(o); }
+    for (const f of page.frames || []) { const o = originOf(f); if (o && o !== origin) assets.frameOrigins.add(o); }
+    const body = page.body || '';
+    if (/<script\b(?![^>]*\bsrc\s*=)[^>]*>[\s\S]*?\S[\s\S]*?<\/script>/i.test(body)) assets.inlineScripts = true;
+    if (/<style\b|\sstyle\s*=\s*["']/i.test(body)) assets.inlineStyles = true;
+    if (/\son[a-z]+\s*=\s*["']/i.test(body)) assets.eventHandlers = true;
+  }
+  const assetReport = { ...assets, scriptOrigins: [...assets.scriptOrigins].sort(), styleOrigins: [...assets.styleOrigins].sort(), frameOrigins: [...assets.frameOrigins].sort() };
 
   // Strip bodies from stored observations; keep status/headers/url for the report.
   const slim = (r) => (r ? { url: r.url, requestedUrl: r.requestedUrl, status: r.status ?? null, error: r.error ?? null, crossOriginRedirectTo: r.crossOriginRedirectTo ?? null, headers: r.headers ? pick(r.headers, Object.keys(r.headers)) : null } : null);
   return {
     origin, startedAt, finishedAt: new Date().toISOString(), requests,
-    stack: { summary: describeStack(fp), ...fp },
+    stack: { summary: describeStack(fp), ...fp, osv: osv ? osv.map((r) => ({ component: r.component, version: r.version, ecosystem: r.ecosystem, name: r.name, vulns: r.vulns.length, error: r.error || null })) : null },
     crawl: crawlResult ? { pages: crawlResult.pages.length, skipped: crawlResult.skipped, external: crawlResult.external, robots: crawlResult.robots } : { pages: 1, skipped: null, external: [], robots: null },
     pages: pages.map((p) => ({ url: p.url, depth: p.depth, status: p.status, error: p.error, isHtml: p.isHtml, forms: p.forms.length, scripts: p.scripts.length })),
+    assets: assetReport,
     findings,
     observations: { root: slim(root), cors: slim(cors), httpVariant: slim(httpVariant), probes: probes.map((p) => ({ path: p.probe.path, status: p.status ?? null, error: p.error ?? null })) },
   };

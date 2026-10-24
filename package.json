@@ -17,7 +17,8 @@
   "bin": {
     "quilltest-ai-setup": "scripts/ai-setup-wizard.mjs",
     "quilltest-ai-analyze": "scripts/ai-analyze.mjs",
-    "quilltest": "scripts/scan.mjs"
+    "quilltest": "scripts/scan.mjs",
+    "quilltest-fix": "scripts/fix.mjs"
   },
   "scripts": {
     "ai:setup": "node scripts/ai-setup-wizard.mjs",
@@ -25,7 +26,8 @@
     "ai:sync-browser": "node scripts/sync-browser-registry.mjs",
     "test": "node --test",
     "ai:analyze": "node scripts/ai-analyze.mjs",
-    "scan": "node scripts/scan.mjs"
+    "scan": "node scripts/scan.mjs",
+    "fix": "node scripts/fix.mjs"
   },
   "keywords": [
     "security",

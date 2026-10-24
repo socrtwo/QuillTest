@@ -25,13 +25,17 @@ jobs:
       - name: Browser registry is in sync with src/ai/providers.mjs
         run: node scripts/sync-browser-registry.mjs --check
       - name: Syntax-check every module
-        run: for f in src/ai/*.mjs src/verify/*.mjs src/scan/*.mjs scripts/*.mjs; do node --check "$f"; done
+        run: for f in src/ai/*.mjs src/verify/*.mjs src/scan/*.mjs src/fix/*.mjs scripts/*.mjs; do node --check "$f"; done
       - name: Unit tests (offline)
         run: npm test
       - name: Analysis dry-run against the sample findings needs no keys
         run: |
           cp quilltest.ai.example.json quilltest.ai.json
           node scripts/ai-analyze.mjs --findings examples/findings.sample.json --dry-run
+      - name: Fix generator runs on a synthetic report
+        run: |
+          node -e "require('fs').writeFileSync('/tmp/r.json', JSON.stringify({origin:'https://x.test',stack:{server:{name:'nginx'},framework:[],cms:[]},assets:{scriptOrigins:['https://cdn.test'],styleOrigins:[],frameOrigins:[],inlineScripts:false,inlineStyles:false,eventHandlers:false},findings:[{id:'F-001',checkId:'headers.csp',title:'t',remediation:'r'}]}))"
+          node scripts/fix.mjs --report /tmp/r.json --all --out /tmp/fixes | grep -q 'quilltest-security-headers.nginx.conf'
       - name: Scan gate refuses an unverified origin (exit 3)
         run: |
           set +e

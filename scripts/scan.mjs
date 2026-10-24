@@ -22,6 +22,7 @@ import { issueChallenge, verifyChallenge, isOriginVerified, normalizeOrigin } fr
 import { createStore } from '../src/verify/store.mjs';
 import { runPassiveScan, sortFindings } from '../src/scan/passive.mjs';
 import { analyzeFindings } from '../src/ai/analyze.mjs';
+import { generateFixes, TARGETS } from '../src/fix/artifacts.mjs';
 import { ANALYSIS_MODES } from '../src/ai/providers.mjs';
 
 const c = {
@@ -56,6 +57,9 @@ function usage(code = 0) {
       --max-depth <n>     Crawl link depth (default 3).
       --ignore-robots     Do not honor robots.txt Disallow rules (it is your site; default honors them).
       --delay-ms <n>      Pause between requests (default 0).
+      --online-cve        Also query OSV.dev for advisories on fingerprinted libraries (off by default; offline otherwise).
+      --fixes             Generate ready-to-review fix files (server header block, derived CSP, cookie settings).
+      --target <t>        Force the fix target: nginx | apache | caddy | iis | express | netlify | generic.
       --store <dir>       Verification store directory (default scans/verify).
       --ttl-hours <n>     Challenge lifetime for 'verify issue' (default 24).
 
@@ -136,6 +140,7 @@ async function cmdScan() {
   const report = await runPassiveScan(origin, {
     probeSensitiveFiles: !args['no-file-probes'],
     crawl: maxPages > 1 ? { maxPages, maxDepth, respectRobots: !args['ignore-robots'], delayMs: Number.isFinite(delayMs) ? delayMs : 0 } : false,
+    onlineCve: Boolean(args['online-cve']),
   });
   report.verification = { method: gate.record.method, verifiedAt: gate.record.verifiedAt, expires: gate.record.expires };
   report.findings = sortFindings(report.findings);
@@ -149,6 +154,17 @@ async function cmdScan() {
     console.log(`${col(f.severity.padEnd(8))} ${f.id}  ${f.title}`);
     console.log(c.dim(`         ${f.location}${f.evidence?.affectedPages ? `  (+${f.evidence.affectedPages - 1} more page${f.evidence.affectedPages > 2 ? 's' : ''})` : ''}`));
     console.log(c.dim(`         fix: ${f.remediation.split('\n')[0]}`));
+  }
+
+  if (args.fixes) {
+    if (args.target && !TARGETS.includes(args.target)) { console.error(c.red(`--target must be one of: ${TARGETS.join(', ')}`)); exit(2); }
+    const fx = generateFixes(report, { target: typeof args.target === 'string' ? args.target : undefined });
+    report.fixes = fx;
+    console.log(c.bold(`\nFix artifacts`) + c.dim(` — target: ${fx.target}`));
+    for (const f of fx.files) console.log(`  • ${f.filename}  ${c.dim('[' + f.kind + (f.target !== fx.target ? ' · ' + f.target : '') + ']')}`);
+    if (!fx.files.length) console.log(c.dim('  (no header/cookie findings → nothing to generate)'));
+    for (const n of fx.notes) console.log(c.dim('  - ' + n));
+    if (fx.coverage.manual.length) console.log(c.dim(`  ${fx.coverage.manual.length} finding(s) need a manual change; see their remediation text above.`));
   }
 
   if (args.analyze) {
@@ -184,6 +200,12 @@ async function cmdScan() {
   mkdirSync(resolve(outPath, '..'), { recursive: true });
   writeFileSync(outPath, JSON.stringify(report, null, 2) + '\n', { mode: 0o600 });
   console.log(c.dim(`\nReport written to ${outPath}`));
+  if (report.fixes?.files?.length) {
+    const fixDir = outPath.replace(/\.json$/, '') + '-fixes';
+    mkdirSync(fixDir, { recursive: true });
+    for (const f of report.fixes.files) writeFileSync(resolve(fixDir, f.filename), f.contents, { mode: 0o600 });
+    console.log(c.dim(`Fix files written to ${fixDir}/`));
+  }
 }
 
 try {

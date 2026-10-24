@@ -25,7 +25,7 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 - [x] Passive checks (transport, headers, cookies, CORS, disclosure, mixed content, exposed files) — `src/scan/passive.mjs`
 - [x] Findings model with CWE/OWASP mapping, severity + confidence, per-finding remediation
 - [x] Stack fingerprinting (server / framework / CMS / libraries, with evidence) — `src/scan/fingerprint.mjs`
-- [ ] Match fingerprinted versions against known-CVE ranges
+- [x] Match fingerprinted versions against EOL lines and known-CVE ranges (offline table) + optional OSV.dev lookup — `src/scan/versions.mjs`
 
 ## M3 — Active engine
 

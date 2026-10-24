@@ -29,4 +29,13 @@ With a provider configured, the AI layer drafts and tailors remediation prose, a
 
 ## Status
 
-Planning. The remediation registry and artifact generators are specified here and not yet implemented.
+Levels 1 and 2 are implemented.
+
+- **Guidance (level 1):** every check in `src/scan/passive.mjs` carries a concrete remediation string, and component findings name the fixed version.
+- **Generated artifacts (level 2):** `src/fix/artifacts.mjs`, run with `scripts/scan.mjs scan <origin> --fixes` or `scripts/fix.mjs --report <scan.json>`. From a report it emits:
+  - a **security-header block for the detected server** — nginx `add_header … always`, Apache `<IfModule mod_headers.c>` (plus `ServerTokens Prod`, `Options -Indexes`), Caddy `header { }`, IIS `web.config` `customHeaders`, Express/helmet options, Netlify `_headers`, or a generic header list; `--target` overrides the choice and `--all` emits every variant;
+  - a **Content-Security-Policy derived from what the crawler observed** — the `script-src`/`style-src`/`frame-src` allow-lists are exactly the third-party origins seen on crawled pages, `upgrade-insecure-requests` is added when mixed content was found, and every `'unsafe-inline'` concession is explained so it can be removed. It is emitted as `Content-Security-Policy-Report-Only` with the enforced twin alongside, because a CSP deployed blind breaks sites;
+  - **cookie-attribute settings for the detected framework** (PHP ini, express-session, Django, Rails, Laravel, ASP.NET, Flask, WordPress).
+
+  Only headers that a finding calls for are emitted, each tagged with the finding it addresses; the result lists which findings were covered and which still need a manual change.
+- **Applyable patch (level 3):** not yet implemented. Files are written under `scans/<host>/<timestamp>-fixes/` for review; nothing is applied to any server.
