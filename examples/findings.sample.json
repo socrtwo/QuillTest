@@ -1,0 +1,74 @@
+[
+  {
+    "id": "F-001",
+    "checkId": "headers.csp.missing",
+    "title": "Content-Security-Policy header missing",
+    "severity": "medium",
+    "confidence": "confirmed",
+    "cwe": "CWE-693",
+    "owasp": "A05:2021 Security Misconfiguration",
+    "location": "https://staging.example.test/",
+    "evidence": {
+      "responseHeaders": {
+        "server": "nginx/1.24.0",
+        "content-type": "text/html; charset=utf-8",
+        "set-cookie": "session=abc123; Path=/",
+        "x-frame-options": "SAMEORIGIN"
+      },
+      "snippet": "No Content-Security-Policy or Content-Security-Policy-Report-Only header on any of 14 crawled pages."
+    }
+  },
+  {
+    "id": "F-002",
+    "checkId": "cookies.flags",
+    "title": "Session cookie set without Secure and HttpOnly",
+    "severity": "high",
+    "confidence": "confirmed",
+    "cwe": "CWE-614",
+    "owasp": "A05:2021 Security Misconfiguration",
+    "location": "https://staging.example.test/login",
+    "evidence": {
+      "responseHeaders": { "set-cookie": "session=abc123; Path=/" },
+      "snippet": "Cookie 'session' lacks Secure, HttpOnly and SameSite attributes."
+    }
+  },
+  {
+    "id": "F-003",
+    "checkId": "disclosure.server-banner",
+    "title": "Server version disclosed",
+    "severity": "low",
+    "confidence": "firm",
+    "cwe": "CWE-200",
+    "owasp": "A05:2021 Security Misconfiguration",
+    "location": "https://staging.example.test/",
+    "evidence": { "responseHeaders": { "server": "nginx/1.24.0" } }
+  },
+  {
+    "id": "F-004",
+    "checkId": "ftp.plaintext",
+    "title": "FTP service accepts plaintext logins; FTPS not enforced",
+    "severity": "high",
+    "confidence": "firm",
+    "cwe": "CWE-319",
+    "owasp": null,
+    "location": "ftp://staging.example.test:21",
+    "evidence": {
+      "snippet": "Banner: 220 (vsFTPd 3.0.3). AUTH TLS not advertised in FEAT response. Anonymous login: refused."
+    }
+  },
+  {
+    "id": "F-005",
+    "checkId": "redirect.open",
+    "title": "Possible open redirect via 'next' parameter",
+    "severity": "medium",
+    "confidence": "tentative",
+    "cwe": "CWE-601",
+    "owasp": "A01:2021 Broken Access Control",
+    "location": "https://staging.example.test/login?next=/account&token=SHOULD_BE_REDACTED",
+    "evidence": {
+      "request": "GET /login?next=https%3A%2F%2Fexample.org&session=SHOULD_BE_REDACTED HTTP/1.1",
+      "responseHeaders": { "location": "https://example.org", "authorization": "Bearer SHOULD_BE_REDACTED" },
+      "snippet": "302 to the external host supplied in 'next'. Could be an allow-listed partner domain; needs review."
+    }
+  }
+]

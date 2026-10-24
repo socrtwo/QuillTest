@@ -38,12 +38,14 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 
 ## M5 — AI analysis
 
-- [ ] Analysis layer: triage, prioritize, explain, draft remediations, flag false positives
-- [ ] Secret-scrubbing + `--dry-run`
-- [ ] Several-AI corroboration mode
+- [x] Analysis layer (`src/ai/analyze.mjs`): triage, prioritize, explain, draft remediations, flag false positives
+- [x] Secret-scrubbing, size caps, output filter, `--dry-run`
+- [x] Several-AI corroboration: sequential/concurrent consultation + per-finding consensus
+- [ ] Wire the analysis layer to the scanner's findings output once the engine exists
 
 ## M6 — Report and release
 
 - [ ] Report/export, review packages, findings diff
 - [ ] Cross-platform builds and release workflow (parity with QuillStage)
-- [ ] SECURITY.md and responsible-disclosure policy
+- [x] SECURITY.md and responsible-disclosure policy
+- [x] CI (GitHub Actions): registry-sync check, syntax, offline tests, keyless dry-run, secret scan

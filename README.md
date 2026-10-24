@@ -48,6 +48,18 @@ node scripts/ai-setup-wizard.mjs --provider anthropic --model claude-opus-5-5 --
 node scripts/ai-setup-wizard.mjs --provider openai --yes --dry-run --no-save
 ```
 
+With providers configured, the **analysis layer** can be run today over a findings file (the scanner that will produce findings is not built yet; a sample is included):
+
+```bash
+# See exactly what would be sent to each provider — scrubbed, capped, no keys needed
+node scripts/ai-analyze.mjs --findings examples/findings.sample.json --dry-run
+
+# Consult every enabled provider and print the cross-provider consensus
+node scripts/ai-analyze.mjs --findings examples/findings.sample.json --mode concurrent --out analysis.json
+```
+
+Guardrails are in code, not just policy: secrets are scrubbed from findings before they leave the machine, payloads are capped, the model is confined to analysis and remediation, and payload-shaped lines in a reply are filtered out and flagged. See [docs/AI.md](docs/AI.md).
+
 A browser version of the same wizard lives at `public/ai-wizard.html` (open it directly; it runs entirely client-side and stores config in `localStorage`). Both are driven by the single provider registry in [`src/ai/providers.mjs`](src/ai/providers.mjs). The browser page is a static file and cannot import that module, so it carries a generated copy: after editing the registry run `npm run ai:sync-browser` (the test suite fails if the copy is stale).
 
 Supported providers out of the box:

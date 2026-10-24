@@ -15,13 +15,15 @@
     "node": ">=18"
   },
   "bin": {
-    "quilltest-ai-setup": "scripts/ai-setup-wizard.mjs"
+    "quilltest-ai-setup": "scripts/ai-setup-wizard.mjs",
+    "quilltest-ai-analyze": "scripts/ai-analyze.mjs"
   },
   "scripts": {
     "ai:setup": "node scripts/ai-setup-wizard.mjs",
     "ai:list": "node scripts/ai-setup-wizard.mjs --list",
     "ai:sync-browser": "node scripts/sync-browser-registry.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "ai:analyze": "node scripts/ai-analyze.mjs"
   },
   "keywords": [
     "security",

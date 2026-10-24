@@ -20,6 +20,10 @@ import {
   buildMultiConfig,
   normalizeConfig,
   CONFIG_VERSION,
+  buildChatRequest,
+  validateBase,
+  isLoopbackHost,
+  scrubSecrets,
 } from '../src/ai/providers.mjs';
 import { HTML_PATH, extractBlock, renderBlock } from '../scripts/sync-browser-registry.mjs';
 
@@ -198,4 +202,74 @@ test('normalizeConfig drops active ids that have no provider entry', () => {
   const n = normalizeConfig({ version: 2, analysisMode: 'concurrent', activeProviders: ['openai', 'ghost'], providers: { openai: { providerId: 'openai' } } });
   assert.deepEqual(n.activeProviders, ['openai']);
   assert.equal(n.analysisMode, 'concurrent');
+});
+
+// ----- hardening: base validation, secret scrubbing, chat requests -----
+
+test('validateBase accepts https and loopback http, rejects everything risky', () => {
+  assert.equal(validateBase('https://api.openai.com/v1').ok, true);
+  assert.equal(validateBase('http://localhost:11434/v1').ok, true);
+  assert.equal(validateBase('http://127.0.0.1:8080').ok, true);
+  assert.equal(validateBase('http://[::1]:1234/v1').ok, true);
+  assert.equal(validateBase('http://api.example.com/v1').ok, false, 'plaintext to a remote host must be refused');
+  assert.match(validateBase('http://api.example.com/v1').error, /cleartext/);
+  assert.equal(validateBase('ftp://x.example').ok, false);
+  assert.equal(validateBase('javascript:alert(1)').ok, false);
+  assert.equal(validateBase('https://user:pw@x.example').ok, false, 'credentials in URL must be refused');
+  assert.equal(validateBase('').ok, false);
+  assert.equal(validateBase('not a url').ok, false);
+  const allowed = validateBase('http://gw.lan/v1', { allowInsecure: true });
+  assert.equal(allowed.ok, true);
+  assert.match(allowed.warning, /cleartext/);
+});
+
+test('isLoopbackHost covers the local forms and nothing else', () => {
+  for (const h of ['localhost', 'LOCALHOST', '127.0.0.1', '127.9.9.9', '::1', '[::1]', 'dev.localhost', '0.0.0.0']) assert.equal(isLoopbackHost(h), true, h);
+  for (const h of ['localhost.evil.com', '128.0.0.1', '10.0.0.5', 'example.com', '']) assert.equal(isLoopbackHost(h), false, h);
+});
+
+test('buildMultiConfig refuses a plaintext remote base unless allowInsecure', () => {
+  assert.throws(() => buildMultiConfig([{ providerId: 'custom', base: 'http://gw.example.com/v1' }]), /cleartext/);
+  const cfg = buildMultiConfig([{ providerId: 'custom', base: 'http://gw.example.com/v1', model: 'm' }], { allowInsecure: true });
+  assert.equal(cfg.providers.custom.base, 'http://gw.example.com/v1');
+});
+
+test('scrubSecrets removes exact keys and well-known key shapes', () => {
+  const out = scrubSecrets('err: Bearer abcdefghij1234 bad sk-abcdefghijklmnopq key=MYEXACTSECRET x AIza' + 'A'.repeat(32), ['MYEXACTSECRET']);
+  assert.ok(!out.includes('abcdefghij1234'));
+  assert.ok(!out.includes('sk-abcdefghijklmnopq'));
+  assert.ok(!out.includes('MYEXACTSECRET'));
+  assert.ok(!out.includes('AIza' + 'A'.repeat(32)));
+  assert.ok(out.includes('[REDACTED]'));
+  assert.equal(scrubSecrets('plain', ['short']), 'plain', 'secrets under 6 chars are ignored to avoid shredding normal text');
+  assert.equal(scrubSecrets(null), '');
+});
+
+test('buildChatRequest maps system + multi-turn messages per API style', () => {
+  const chat = { system: 'SYS', messages: [{ role: 'user', content: 'U' }, { role: 'assistant', content: 'A' }], maxTokens: 123 };
+  const o = JSON.parse(buildChatRequest({ providerId: 'openai', apiKey: 'k', model: 'm' }, chat).init.body);
+  assert.deepEqual(o.messages.map((m) => m.role), ['system', 'user', 'assistant']);
+  assert.equal(o.max_completion_tokens, 123);
+  const a = JSON.parse(buildChatRequest({ providerId: 'anthropic', apiKey: 'k', model: 'm' }, chat).init.body);
+  assert.equal(a.system, 'SYS');
+  assert.deepEqual(a.messages.map((m) => m.role), ['user', 'assistant']);
+  assert.equal(a.max_tokens, 123);
+  const g = JSON.parse(buildChatRequest({ providerId: 'google', apiKey: 'k', model: 'm' }, chat).init.body);
+  assert.equal(g.systemInstruction.parts[0].text, 'SYS');
+  assert.deepEqual(g.contents.map((c) => c.role), ['user', 'model']);
+  assert.equal(g.generationConfig.maxOutputTokens, 123);
+  assert.throws(() => buildChatRequest({ providerId: 'openai', apiKey: 'k', model: 'm' }, { messages: [] }), /At least one message/);
+});
+
+test('buildTestRequest is buildChatRequest with one user message and the test cap (no system field)', () => {
+  const o = JSON.parse(buildTestRequest({ providerId: 'openai', apiKey: 'k', model: 'm' }).init.body);
+  assert.equal(o.messages.length, 1);
+  assert.equal(o.messages[0].role, 'user');
+  const a = JSON.parse(buildTestRequest({ providerId: 'anthropic', apiKey: 'k', model: 'm' }).init.body);
+  assert.equal(a.system, undefined);
+});
+
+test('Gemini extractText skips thought parts from thinking models', () => {
+  const json = { candidates: [{ content: { parts: [{ thought: true, text: 'reasoning…' }, { text: 'OK' }] } }] };
+  assert.equal(extractText(API_STYLES.GEMINI, json), 'OK');
 });

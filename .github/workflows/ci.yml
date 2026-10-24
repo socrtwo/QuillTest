@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      # No dependencies to install: the project is dependency-free by design.
+      - name: Browser registry is in sync with src/ai/providers.mjs
+        run: node scripts/sync-browser-registry.mjs --check
+      - name: Syntax-check every module
+        run: for f in src/ai/*.mjs scripts/*.mjs; do node --check "$f"; done
+      - name: Unit tests (offline)
+        run: npm test
+      - name: Analysis dry-run against the sample findings needs no keys
+        run: |
+          cp quilltest.ai.example.json quilltest.ai.json
+          node scripts/ai-analyze.mjs --findings examples/findings.sample.json --dry-run
+      - name: No literal secrets committed
+        run: |
+          # The example config and sample findings must never carry real-looking keys.
+          ! grep -rEn '"apiKey": *"[^"n]' quilltest.ai.example.json
+          ! git grep -En 'sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{30,}' -- . ':!tests/' ':!SECURITY.md' || (echo "key-shaped string committed" && exit 1)

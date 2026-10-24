@@ -20,7 +20,37 @@ AI is an **optional analysis layer**, not the scanner. QuillTest's checks find t
 
 ## How target data reaches the model
 
-The analysis layer sends the model: the finding records (check id, location, severity, evidence snippet), the observed response headers and relevant response fragments, and the detected stack fingerprint. Request/response fragments are size-capped and secret-scrubbed (auth headers, cookies, tokens redacted) before they leave the machine. You can run `--dry-run` to see exactly what would be sent.
+The analysis layer (`src/ai/analyze.mjs`) sends the model: the finding records (check id, location, severity, evidence), the observed response headers and relevant response fragments, and the detected stack fingerprint. Before anything leaves the machine:
+
+- **Secret scrubbing.** `Authorization`, `Cookie`/`Set-Cookie`, `X-API-Key`, and any header whose name contains *token*, *secret*, *session*, *password*, or *credential* is redacted; so are `token=`, `key=`, `session=`, `password=` and similar query/body parameters; so are key-shaped strings (`sk-…`, `AIza…`, `Bearer …`). You can pass extra exact strings that must never be sent (the ownership token, say).
+- **Size caps.** Each evidence field is capped at 2,000 characters and the whole payload at 60,000; trailing findings are dropped rather than sending truncated JSON.
+- **Prompt injection defense.** The system prompt tells the model that everything inside the findings is untrusted target data, never instructions.
+- **Output filter.** A reply containing payload-shaped lines (`<script>`, `UNION SELECT`, `' OR 1=1`, path traversal, shell paths, JNDI, …) has those lines removed and the result is flagged `filtered`, so a misbehaving model cannot turn QuillTest into a relay for attack strings.
+
+Run `node scripts/ai-analyze.mjs --findings <file> --dry-run` to see the exact, redacted requests that would be sent; it needs no API keys.
+
+### Finding record shape
+
+```json
+{
+  "id": "F-002",
+  "checkId": "cookies.flags",
+  "title": "Session cookie set without Secure and HttpOnly",
+  "severity": "high",
+  "confidence": "confirmed",
+  "cwe": "CWE-614",
+  "owasp": "A05:2021 Security Misconfiguration",
+  "location": "https://staging.example.test/login",
+  "evidence": {
+    "request": "GET /login HTTP/1.1",
+    "requestHeaders": { "accept": "text/html" },
+    "responseHeaders": { "set-cookie": "session=…; Path=/" },
+    "snippet": "Cookie 'session' lacks Secure, HttpOnly and SameSite attributes."
+  }
+}
+```
+
+See `examples/findings.sample.json`. The model returns, per finding: `falsePositive`, `confidence`, `severity`, `cwe`, `owasp`, `attackerPriority` (1 = what an attacker would go after first), `rootCauseGroup`, `rationale`, `remediation`; plus an executive `summary` and a `worthChecking` list of adjacent weaknesses (described, never with payloads).
 
 ## Several-AI mode
 
@@ -33,10 +63,12 @@ In both modes the models receive the **same** input — QuillTest's findings and
 
 Divergence across providers is a useful signal: findings all enabled models agree are real get surfaced first; ones they disagree on are flagged for human review. This is also how QuillTest reasons about "what another AI might notice" — by actually asking several and comparing. Adding a provider is one entry in the registry and one checkbox in the wizard, so the set of reviewers is open-ended.
 
+The analysis layer computes a per-finding **consensus** from the replies: `real` (every reviewer says it is not a false positive), `false-positive` (every reviewer says it is), `split` (they disagree — review by hand), or `unreviewed` (no reviewer returned a verdict), along with the mean `attackerPriority` across reviewers so the fix list can be ordered by what an attacker would reach first.
+
 ## Provider setup
 
 See [AI-WIZARD.md](AI-WIZARD.md). Providers and models are configured through the wizard and stored in `quilltest.ai.json`.
 
 ## Status
 
-Planning. The analysis layer (`src/ai/analyze.mjs`) is specified here; only the provider registry and setup wizard are implemented so far.
+Implemented: the provider registry, the setup wizard, and the analysis layer (`src/ai/analyze.mjs`, runnable via `scripts/ai-analyze.mjs`) with scrubbing, size caps, output filtering, sequential/concurrent consultation, and consensus — all covered by offline tests. Not yet implemented: the scanner that produces the findings; until then, feed the analysis layer findings from `examples/findings.sample.json` or your own records in that shape.

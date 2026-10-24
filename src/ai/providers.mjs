@@ -207,66 +207,127 @@ function normalizeBase(cfg, provider) {
   return (cfg.base || provider.defaultBase).replace(/\/+$/, '');
 }
 
+/** Hosts that stay on this machine, where plaintext HTTP cannot leak a key onto the network. */
+export function isLoopbackHost(hostname) {
+  const h = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
+  return h === 'localhost' || h === '::1' || h === '0.0.0.0' || h.endsWith('.localhost')
+    || /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h);
+}
+
 /**
- * Build the connectivity-test request (URL + fetch init) for a chosen config,
- * without sending it. Keeps request-shaping in one place for both wizards and,
- * later, the analysis layer.
+ * Validate an endpoint base URL before any key is sent to it.
+ *
+ * Rejects anything that is not http(s), and rejects plaintext http to a
+ * non-loopback host — an API key sent that way travels in cleartext. Pass
+ * `allowInsecure: true` to downgrade that rejection to a warning (for a
+ * trusted LAN gateway, say).
+ *
+ * @param {string} base
+ * @param {{allowInsecure?: boolean}} [opts]
+ * @returns {{ok: boolean, error?: string, warning?: string, url?: URL}}
+ */
+export function validateBase(base, opts = {}) {
+  if (typeof base !== 'string' || !base.trim()) return { ok: false, error: 'Endpoint base URL is required.' };
+  let url;
+  try { url = new URL(base.trim()); } catch { return { ok: false, error: `Not a valid URL: ${base}` }; }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return { ok: false, error: `Endpoint must use http(s), got ${url.protocol.replace(/:$/, '')}://` };
+  }
+  if (url.username || url.password) return { ok: false, error: 'Do not embed credentials in the endpoint URL; use the API key field.' };
+  if (url.protocol === 'http:' && !isLoopbackHost(url.hostname)) {
+    const msg = `Plaintext http:// to ${url.hostname} would send your API key in cleartext. Use https://.`;
+    return opts.allowInsecure ? { ok: true, warning: msg, url } : { ok: false, error: msg };
+  }
+  return { ok: true, url };
+}
+
+/**
+ * Replace secrets in free text before it is logged or displayed. Takes the
+ * exact key values in play plus a few well-known key shapes, so a provider
+ * error that echoes a request never prints a credential.
+ * @param {string} text
+ * @param {Array<string|null|undefined>} [secrets]
+ */
+export function scrubSecrets(text, secrets = []) {
+  let out = String(text ?? '');
+  for (const s of secrets) {
+    if (typeof s === 'string' && s.length >= 6) out = out.split(s).join('[REDACTED]');
+  }
+  return out
+    .replace(/\b(Bearer)\s+[A-Za-z0-9._~+/=-]{8,}/g, '$1 [REDACTED]')
+    .replace(/\bsk-[A-Za-z0-9_-]{8,}/g, '[REDACTED]')
+    .replace(/\bAIza[0-9A-Za-z_-]{30,}/g, '[REDACTED]')
+    .replace(/\bxai-[A-Za-z0-9]{16,}/g, '[REDACTED]');
+}
+
+/**
+ * Build a chat request (URL + fetch init) for a chosen config, without sending
+ * it. This is the single place request shaping lives, shared by the wizards'
+ * connectivity test and the analysis layer.
+ *
+ * Messages use a provider-neutral shape: { role: 'user' | 'assistant', content }.
+ * An optional `system` string is mapped to each provider's own mechanism.
  *
  * @param {{providerId:string, base?:string, apiKey?:string, model?:string}} cfg
- * @param {string} userMessage
+ * @param {{system?:string, messages:Array<{role:string, content:string}>, maxTokens?:number}} chat
  * @returns {{url:string, init:RequestInit}}
  */
-export function buildTestRequest(cfg, userMessage = 'Reply with the single word: OK') {
+export function buildChatRequest(cfg, chat) {
   const provider = getProvider(cfg.providerId);
   if (!provider) throw new Error(`Unknown provider: ${cfg.providerId}`);
   const base = normalizeBase(cfg, provider);
   const model = cfg.model || provider.models[0];
   if (!model) throw new Error(`A model id is required for provider ${provider.id}`);
   const headers = { 'content-type': 'application/json', ...authHeaders(provider, cfg.apiKey) };
+  const maxTokens = Number.isInteger(chat.maxTokens) && chat.maxTokens > 0 ? chat.maxTokens : TEST_MAX_TOKENS;
+  const messages = Array.isArray(chat.messages) ? chat.messages : [];
+  if (!messages.length) throw new Error('At least one message is required');
 
   switch (provider.apiStyle) {
-    case API_STYLES.ANTHROPIC:
-      return {
-        url: `${base}/messages`,
-        init: {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            model,
-            max_tokens: TEST_MAX_TOKENS,
-            messages: [{ role: 'user', content: userMessage }],
-          }),
-        },
+    case API_STYLES.ANTHROPIC: {
+      const body = {
+        model,
+        max_tokens: maxTokens,
+        messages: messages.map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
       };
+      if (chat.system) body.system = chat.system;
+      return { url: `${base}/messages`, init: { method: 'POST', headers, body: JSON.stringify(body) } };
+    }
 
-    case API_STYLES.GEMINI:
+    case API_STYLES.GEMINI: {
+      const body = {
+        contents: messages.map((m) => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] })),
+        generationConfig: { maxOutputTokens: maxTokens },
+      };
+      if (chat.system) body.systemInstruction = { parts: [{ text: chat.system }] };
       return {
         url: `${base}/models/${encodeURIComponent(model)}:generateContent`,
-        init: {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-            generationConfig: { maxOutputTokens: TEST_MAX_TOKENS },
-          }),
-        },
+        init: { method: 'POST', headers, body: JSON.stringify(body) },
       };
+    }
 
     case API_STYLES.OPENAI:
-    default:
-      return {
-        url: `${base}/chat/completions`,
-        init: {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            model,
-            [provider.maxTokensParam || 'max_tokens']: TEST_MAX_TOKENS,
-            messages: [{ role: 'user', content: userMessage }],
-          }),
-        },
+    default: {
+      const body = {
+        model,
+        [provider.maxTokensParam || 'max_tokens']: maxTokens,
+        messages: [
+          ...(chat.system ? [{ role: 'system', content: chat.system }] : []),
+          ...messages.map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
+        ],
       };
+      return { url: `${base}/chat/completions`, init: { method: 'POST', headers, body: JSON.stringify(body) } };
+    }
   }
+}
+
+/**
+ * Build the connectivity-test request: one short user message, small output cap.
+ * @param {{providerId:string, base?:string, apiKey?:string, model?:string}} cfg
+ * @param {string} userMessage
+ */
+export function buildTestRequest(cfg, userMessage = 'Reply with the single word: OK') {
+  return buildChatRequest(cfg, { messages: [{ role: 'user', content: userMessage }], maxTokens: TEST_MAX_TOKENS });
 }
 
 /**
@@ -302,7 +363,8 @@ export function extractText(apiStyle, json) {
       case API_STYLES.ANTHROPIC:
         return (json.content || []).filter((b) => b.type === 'text').map((b) => b.text || '').join('').trim();
       case API_STYLES.GEMINI:
-        return (json.candidates?.[0]?.content?.parts || []).map((p) => p.text || '').join('').trim();
+        // Thinking models return reasoning parts flagged `thought: true`; skip them.
+        return (json.candidates?.[0]?.content?.parts || []).filter((p) => !p.thought).map((p) => p.text || '').join('').trim();
       case API_STYLES.OPENAI:
       default:
         return (json.choices?.[0]?.message?.content || '').trim();
@@ -342,9 +404,12 @@ export function buildMultiConfig(selections, opts = {}) {
     const provider = getProvider(sel.providerId);
     if (!provider) throw new Error(`Unknown provider: ${sel.providerId}`);
     if (providers[provider.id]) continue; // de-dupe, keep first occurrence
+    const base = (sel.base || provider.defaultBase || '').replace(/\/+$/, '');
+    const v = validateBase(base, { allowInsecure: Boolean(opts.allowInsecure) });
+    if (!v.ok) throw new Error(`${provider.label}: ${v.error}`);
     providers[provider.id] = {
       providerId: provider.id,
-      base: (sel.base || provider.defaultBase || '').replace(/\/+$/, ''),
+      base,
       model: sel.model || provider.models[0] || '',
       apiKeyEnv: sel.apiKeyEnv || provider.keyEnv || null,
       apiKey: sel.saveKey ? (sel.apiKey || null) : null,

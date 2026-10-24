@@ -37,6 +37,8 @@ import {
   extractText,
   buildMultiConfig,
   normalizeConfig,
+  validateBase,
+  scrubSecrets,
   ANALYSIS_MODES,
 } from '../src/ai/providers.mjs';
 
@@ -93,6 +95,8 @@ Actions:
   --config <path>     Config to read for --test-only (default quilltest.ai.json).
   --out <path>        Where to write config (default quilltest.ai.json).
   --save-key          Write literal keys into the config file (NOT recommended).
+  --allow-insecure-base  Permit a plaintext http:// endpoint on a non-loopback host
+                      (your key would travel in cleartext; only for a trusted LAN gateway).
   --no-save           Run the wizard/test but do not write a file.
   --list              List supported providers and exit.
   --yes               Accept defaults without prompting where possible.
@@ -156,10 +160,19 @@ async function runInteractive(rl, preset) {
     if (preset.single && preset.base) base = preset.base;
     if (provider.baseEditable && !(preset.single && preset.base)) {
       const def = provider.defaultBase ? ` [${provider.defaultBase}]` : ' (required)';
-      const a = (await rl.question(`  Endpoint base URL${def}: `)).trim();
-      if (a) base = a;
+      // Re-ask until the URL is acceptable, so a typo or plaintext endpoint is caught here.
+      for (;;) {
+        const a = (await rl.question(`  Endpoint base URL${def}: `)).trim();
+        const candidate = a || provider.defaultBase;
+        const v = validateBase(candidate, { allowInsecure: preset.allowInsecure });
+        if (v.ok) { base = candidate; if (v.warning) console.log(c.yellow('  ' + v.warning)); break; }
+        console.log(c.red('  ' + v.error));
+      }
+    } else {
+      const v = validateBase(base, { allowInsecure: preset.allowInsecure });
+      if (!v.ok) { console.error(c.red(`  ${provider.label}: ${v.error}`)); exit(2); }
+      if (v.warning) console.log(c.yellow('  ' + v.warning));
     }
-    if (!base) { console.error(c.red(`  ${provider.label} requires a base URL.`)); exit(2); }
     base = base.replace(/\/+$/, '');
 
     const apiKeyEnv = (preset.single && preset.keyEnv) || provider.keyEnv;
@@ -209,13 +222,21 @@ async function runInteractive(rl, preset) {
   return { selections, mode };
 }
 
-// readline has no native hidden input; mute stdout echo during the question.
+// readline has no native hidden input. Mute readline's own echo for the
+// duration of the question (the documented approach: override _writeToOutput),
+// which avoids racing readline's echo against a clear-line escape.
 async function promptHidden(rl, query) {
-  const onData = () => { stdout.write('\x1b[2K\r' + query); };
+  const original = rl._writeToOutput;
+  let muted = false;
+  rl._writeToOutput = function (s) {
+    if (!muted) return original.call(this, s);
+    // Keep the prompt visible; swallow the typed characters.
+    if (s.includes(query)) return original.call(this, query);
+  };
   stdout.write(query);
-  stdin.on('data', onData);
+  muted = true;
   try { return await rl.question(''); }
-  finally { stdin.removeListener('data', onData); stdout.write('\n'); }
+  finally { muted = false; rl._writeToOutput = original; stdout.write('\n'); }
 }
 
 // ----- provider calls --------------------------------------------------------
@@ -256,13 +277,14 @@ async function runTest(entry, { dryRun } = {}) {
     let json; try { json = JSON.parse(text); } catch { json = null; }
     if (!res.ok) {
       const msg = json?.error?.message || json?.message || text.slice(0, 200);
-      return { ok: false, error: `HTTP ${res.status} (${ms}ms): ${msg}` };
+      // Never let a provider error that echoes the request print the key.
+      return { ok: false, error: scrubSecrets(`HTTP ${res.status} (${ms}ms): ${msg}`, [effectiveKey]) };
     }
     const reply = json ? extractText(provider.apiStyle, json) : '';
-    return { ok: true, ms, reply: reply || '(empty)' };
+    return { ok: true, ms, reply: scrubSecrets(reply || '(empty)', [effectiveKey]) };
   } catch (e) {
     const msg = e?.name === 'TimeoutError' ? `No response within ${REQUEST_TIMEOUT_MS / 1000}s` : (e?.cause?.message || e.message);
-    return { ok: false, error: msg };
+    return { ok: false, error: scrubSecrets(msg, [effectiveKey]) };
   }
 }
 
@@ -344,6 +366,10 @@ async function main() {
   const providerIds = typeof args.providers === 'string'
     ? args.providers.split(',').map((s) => s.trim()).filter(Boolean)
     : (typeof args.provider === 'string' ? [args.provider] : []);
+  if (args.mode !== undefined && !ANALYSIS_MODES.includes(args.mode)) {
+    console.error(c.red(`--mode must be one of: ${ANALYSIS_MODES.join(', ')} (got ${JSON.stringify(args.mode)})`));
+    exit(2);
+  }
   const preset = {
     providerIds,
     single: providerIds.length === 1,
@@ -351,7 +377,8 @@ async function main() {
     model: typeof args.model === 'string' ? args.model : null,
     key: typeof args.key === 'string' ? args.key : null,
     keyEnv: typeof args['key-env'] === 'string' ? args['key-env'] : null,
-    mode: ANALYSIS_MODES.includes(args.mode) ? args.mode : null,
+    mode: typeof args.mode === 'string' ? args.mode : null,
+    allowInsecure: Boolean(args['allow-insecure-base']),
   };
 
   let selections, mode;
@@ -363,6 +390,9 @@ async function main() {
       const apiKeyEnv = (preset.single && preset.keyEnv) || provider.keyEnv;
       const base = ((preset.single && preset.base) ? preset.base : provider.defaultBase || '').replace(/\/+$/, '');
       if (!base) { console.error(c.red(`${provider.label} needs --base.`)); exit(2); }
+      const v = validateBase(base, { allowInsecure: preset.allowInsecure });
+      if (!v.ok) { console.error(c.red(`${provider.label}: ${v.error}`)); exit(2); }
+      if (v.warning) console.log(c.yellow(`${provider.label}: ${v.warning}`));
       const model = (preset.single && preset.model) || provider.models[0];
       if (!model) { console.error(c.red(`${provider.label} needs --model.`)); exit(2); }
       const apiKey = (preset.single && preset.key) || (apiKeyEnv ? env[apiKeyEnv] : null) || null;
@@ -387,7 +417,7 @@ async function main() {
 
   const saveKey = Boolean(args['save-key']);
   const outPath = resolve(process.cwd(), typeof args.out === 'string' ? args.out : DEFAULT_OUT);
-  const fresh = buildMultiConfig(selections.map((s) => ({ ...s, saveKey })), { mode });
+  const fresh = buildMultiConfig(selections.map((s) => ({ ...s, saveKey })), { mode, allowInsecure: preset.allowInsecure });
   const merged = mergeIntoExisting(outPath, fresh);
   writeConfig(outPath, merged);
 

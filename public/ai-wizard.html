@@ -329,40 +329,80 @@ function extractText(style, json) {
   } catch { return ''; }
 }
 
+// Mirror of validateBase() in src/ai/providers.mjs: never send a key over
+// plaintext http to a non-loopback host, and only accept http(s) at all.
+function isLoopbackHost(hostname) {
+  const h = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
+  return h === 'localhost' || h === '::1' || h === '0.0.0.0' || h.endsWith('.localhost') || /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h);
+}
+function validateBase(base) {
+  if (!base || !base.trim()) return { ok: false, error: 'Endpoint base URL is required.' };
+  let url; try { url = new URL(base.trim()); } catch { return { ok: false, error: 'Not a valid URL.' }; }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return { ok: false, error: `Endpoint must use http(s), got ${url.protocol}//` };
+  if (url.username || url.password) return { ok: false, error: 'Do not embed credentials in the URL; use the API key field.' };
+  if (url.protocol === 'http:' && !isLoopbackHost(url.hostname)) return { ok: false, error: `Plaintext http:// to ${url.hostname} would send your key in cleartext. Use https://.` };
+  return { ok: true };
+}
+
 // ----- UI wiring (multi-provider) -----
 const $ = (id) => document.getElementById(id);
 const STORAGE_KEY = 'quilltest.ai';
 const container = $('providers');
 
+// Small DOM helper: build elements without innerHTML so registry strings are
+// always treated as text, never markup.
+function h(tag, attrs = {}, children = []) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'class') el.className = v;
+    else if (k === 'text') el.textContent = v;
+    else if (k.startsWith('data-')) el.dataset[k.slice(5)] = v;
+    else el.setAttribute(k, v);
+  }
+  for (const c of children) el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  return el;
+}
+
 for (const p of PROVIDERS) {
-  const el = document.createElement('div');
-  el.className = 'prov'; el.dataset.id = p.id;
-  const keyLink = /^https?:/.test(p.keysUrl.split(/\s+/)[0])
-    ? `· <a href="${p.keysUrl.split(/\s+/)[0]}" target="_blank" rel="noopener">get a key</a>`
-    : '· ' + p.keysUrl;
-  el.innerHTML = `
-    <div class="prov-head">
-      <input type="checkbox" class="enable" id="en-${p.id}">
-      <label class="name" for="en-${p.id}" style="margin:0;color:var(--fg)">${p.label}</label>
-      <span class="pill">${p.apiStyle}</span>
-    </div>
-    <div class="prov-body">
-      <p class="prov-note">${p.notes} ${keyLink}</p>
-      <div class="row">
-        <div><label>Endpoint base</label><input type="text" class="base" spellcheck="false" autocomplete="off"></div>
-        <div><label>Model</label><input type="text" class="model" list="dl-${p.id}" spellcheck="false" autocomplete="off"><datalist id="dl-${p.id}">${p.models.map(m=>`<option value="${m}">`).join('')}</datalist></div>
-      </div>
-      <label>API key</label>
-      <input type="password" class="key" autocomplete="off" placeholder="Paste key (kept in this browser only)">
-      <div class="prov-result" id="pr-${p.id}"></div>
-    </div>`;
+  const firstTok = p.keysUrl.split(/\s+/)[0];
+  const noteChildren = [p.notes + ' · '];
+  if (/^https?:/.test(firstTok)) noteChildren.push(h('a', { href: firstTok, target: '_blank', rel: 'noopener', text: 'get a key' }));
+  else noteChildren.push(p.keysUrl);
+
+  const datalist = h('datalist', { id: `dl-${p.id}` }, p.models.map((m) => h('option', { value: m })));
+  const baseInput = h('input', { type: 'text', class: 'base', spellcheck: 'false', autocomplete: 'off' });
+  const modelInput = h('input', { type: 'text', class: 'model', list: `dl-${p.id}`, spellcheck: 'false', autocomplete: 'off' });
+  const keyInput = h('input', { type: 'password', class: 'key', autocomplete: 'off', placeholder: 'Paste key (kept in this browser only)' });
+  const baseWarn = h('div', { class: 'warn base-warn' });
+  const cb = h('input', { type: 'checkbox', class: 'enable', id: `en-${p.id}` });
+
+  const el = h('div', { class: 'prov', 'data-id': p.id }, [
+    h('div', { class: 'prov-head' }, [
+      cb,
+      h('label', { class: 'name', for: `en-${p.id}`, style: 'margin:0;color:var(--fg)', text: p.label }),
+      h('span', { class: 'pill', text: p.apiStyle }),
+    ]),
+    h('div', { class: 'prov-body' }, [
+      h('p', { class: 'prov-note' }, noteChildren),
+      h('div', { class: 'row' }, [
+        h('div', {}, [h('label', { text: 'Endpoint base' }), baseInput, baseWarn]),
+        h('div', {}, [h('label', { text: 'Model' }), modelInput, datalist]),
+      ]),
+      h('label', { text: 'API key' }),
+      keyInput,
+      h('div', { class: 'prov-result', id: `pr-${p.id}` }),
+    ]),
+  ]);
   container.appendChild(el);
-  el.querySelector('.base').value = p.defaultBase;
-  el.querySelector('.base').placeholder = p.requiresBase ? 'required' : p.defaultBase;
-  el.querySelector('.model').value = p.models[0] || '';
-  const cb = el.querySelector('.enable');
+
+  baseInput.value = p.defaultBase;
+  baseInput.placeholder = p.requiresBase ? 'required' : p.defaultBase;
+  modelInput.value = p.models[0] || '';
+  const checkBase = () => { const v = validateBase(baseInput.value || p.defaultBase); baseWarn.textContent = v.ok ? '' : v.error; };
+  checkBase();
   cb.addEventListener('change', () => { el.classList.toggle('on', cb.checked); renderPreview(); });
-  el.querySelectorAll('.base,.model,.key').forEach(i => i.addEventListener('input', renderPreview));
+  baseInput.addEventListener('input', () => { checkBase(); renderPreview(); });
+  [modelInput, keyInput].forEach((i) => i.addEventListener('input', renderPreview));
 }
 
 function mode() { return document.querySelector('input[name="mode"]:checked').value; }
@@ -402,6 +442,8 @@ function renderPreview() { $('preview').textContent = JSON.stringify(buildConfig
 async function testOne(entry) {
   const prEl = $('pr-' + entry.providerId);
   const p = PROVIDERS.find(x => x.id === entry.providerId);
+  const bv = validateBase(entry.base);
+  if (!bv.ok) { prEl.className='prov-result err'; prEl.textContent = bv.error; return false; }
   if (!entry.apiKey && !keyOptional(entry.providerId)) { prEl.className='prov-result err'; prEl.textContent='Enter a key first.'; return false; }
   prEl.className='prov-result'; prEl.textContent='Testing…';
   const { url, init } = buildTestRequest(entry);

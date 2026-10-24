@@ -87,6 +87,8 @@ Add one object to the `PROVIDERS` array in `src/ai/providers.mjs`: `id`, `label`
 
 ## Security notes
 
+- **Plaintext endpoints are refused.** An endpoint base must be `http(s)`; `http://` is accepted only for loopback hosts (`localhost`, `127.x`, `::1`), because a key sent over plaintext to a remote host travels in cleartext. Both wizards enforce this before any request. For a trusted LAN gateway you can override with `--allow-insecure-base` (CLI), which downgrades the refusal to a warning. URLs with embedded `user:pass@` are refused outright.
+- **Keys never appear in output.** Provider error messages and test replies are scrubbed of the key value and of well-known key shapes before they are printed, so a provider that echoes the request cannot leak a credential into your terminal.
 - Keys default to env-var references, never written to the repo.
 - The connectivity test sends a trivial prompt ("reply OK") with a 64-token output cap; it does not send any target data. A model that spends the cap on reasoning returns an empty reply, which the wizard still reports as a successful connection.
 - The wizard never transmits your key anywhere except to the provider endpoint you configured, to run the test you requested.
