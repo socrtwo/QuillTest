@@ -4,7 +4,7 @@
 
 **Quill Test** (repository `QuillTest`) is an original, open-source web application security **testing and fixing** tool for Windows, macOS, Linux, ChromeOS and the web. It tests a target website for known classes of security flaws and uses AI, through the major provider APIs, to reason about the vulnerabilities an attacker — including an AI-assisted one — would look for, then helps you **fix** them with concrete, mapped remediations. It does not exploit anything. Its goal is the same as the rest of the Quill suite: **no missing commands**. It provides the familiar office-suite workflow plus the best ideas from current and former web security scanners.
 
-> **Status: early, runnable.** Implemented today: the ownership-verification gate, a same-origin crawler, a site-wide passive scan engine (headers, transport, cookies, CORS, disclosure, mixed content, forms, SRI, exposed files — each finding with a concrete fix), stack fingerprinting, the multi-provider AI setup wizard, and the AI analysis layer with cross-provider consensus. Not yet implemented: active checks, the broader protocol checks, CVE matching, the fix-artifact generators, and the desktop/mobile shell. The pipeline below runs end-to-end from the command line.
+> **Status: early, runnable.** Implemented today: the ownership-verification gate, a same-origin crawler, a site-wide passive scan engine (headers, transport, cookies, CORS, disclosure, mixed content, forms, SRI, exposed files — each finding with a concrete fix), stack fingerprinting with EOL/CVE assessment, fix-artifact generation (server header blocks, a crawl-derived CSP, cookie settings), the multi-provider AI setup wizard, and the AI analysis layer with cross-provider consensus. Not yet implemented: active checks, the broader protocol checks, applyable patches, and the desktop/mobile shell. The pipeline below runs end-to-end from the command line.
 
 ## Scope and ethics — read first
 
@@ -43,6 +43,8 @@ node scripts/scan.mjs verify check https://staging.example.com
 # 3. Scan. Add --analyze to have every configured AI provider review the findings.
 node scripts/scan.mjs scan https://staging.example.com --analyze --mode concurrent
 ```
+
+Add `--fixes` to get ready-to-review config files: a security-header block for the server QuillTest detected (nginx, Apache, Caddy, IIS, Express, Netlify), a Content-Security-Policy whose allow-list is exactly the third-party origins the crawler saw on your pages (emitted report-only first, with the enforced version alongside), and cookie settings for your framework. `scripts/fix.mjs --report <scan.json> --target apache` regenerates from a saved report. Add `--online-cve` to also check fingerprinted libraries against OSV.dev (off by default; the scan is otherwise fully offline apart from the target itself).
 
 Scanning an origin without a valid verification exits with code 3; there is no override flag. By default the scan crawls up to 25 same-origin pages (honoring `robots.txt`, never following logout/delete-style links) and runs the header, cookie, content and form checks on every one, collapsing site-wide gaps into single findings with page counts. It also fingerprints the stack (server, framework, CMS) so fixes are phrased for what you actually run. Reports are written under `scans/<host>/` (git-ignored) with cookie values masked. Each origin — scheme, host, *and* port — needs its own verification.
 

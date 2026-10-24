@@ -35,7 +35,8 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 
 ## M4 — Fix layer
 
-- [ ] Remediation registry + artifact generators (nginx/Apache/Caddy/IIS headers, CSP, cookies, CORS, dependency bumps)
+- [x] Artifact generators: server header blocks (nginx/Apache/Caddy/IIS/Express/Netlify), crawl-derived CSP, framework cookie settings — `src/fix/artifacts.mjs`, `scripts/fix.mjs`, `scan --fixes`
+- [ ] Dependency-bump artifacts (package manifests) for fingerprinted libraries
 - [ ] Applyable patch/diff generation for provided or verified artifacts
 
 ## M5 — AI analysis
