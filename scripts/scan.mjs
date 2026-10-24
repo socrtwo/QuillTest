@@ -52,6 +52,10 @@ function usage(code = 0) {
       --analyze           Also run the configured AI providers over the findings (quilltest.ai.json).
       --mode <m>          Override analysis mode: ${ANALYSIS_MODES.join(' | ')}.
       --no-file-probes    Skip the exposed-file probes (.git/HEAD, .env, …).
+      --max-pages <n>     Crawl up to n same-origin pages (default 25; 1 = root page only).
+      --max-depth <n>     Crawl link depth (default 3).
+      --ignore-robots     Do not honor robots.txt Disallow rules (it is your site; default honors them).
+      --delay-ms <n>      Pause between requests (default 0).
       --store <dir>       Verification store directory (default scans/verify).
       --ttl-hours <n>     Challenge lifetime for 'verify issue' (default 24).
 
@@ -125,16 +129,25 @@ async function cmdScan() {
 
   console.log(c.bold(`\nQuillTest passive scan — ${origin}`));
   console.log(c.dim(`ownership verified via ${gate.record.method} on ${gate.record.verifiedAt}`));
-  const report = await runPassiveScan(origin, { probeSensitiveFiles: !args['no-file-probes'] });
+  const maxPages = args['max-pages'] !== undefined ? Number.parseInt(args['max-pages'], 10) : 25;
+  const maxDepth = args['max-depth'] !== undefined ? Number.parseInt(args['max-depth'], 10) : 3;
+  if (!Number.isInteger(maxPages) || maxPages < 1 || !Number.isInteger(maxDepth) || maxDepth < 0) { console.error(c.red('--max-pages must be ≥ 1 and --max-depth ≥ 0')); exit(2); }
+  const delayMs = args['delay-ms'] !== undefined ? Number.parseInt(args['delay-ms'], 10) : 0;
+  const report = await runPassiveScan(origin, {
+    probeSensitiveFiles: !args['no-file-probes'],
+    crawl: maxPages > 1 ? { maxPages, maxDepth, respectRobots: !args['ignore-robots'], delayMs: Number.isFinite(delayMs) ? delayMs : 0 } : false,
+  });
   report.verification = { method: gate.record.method, verifiedAt: gate.record.verifiedAt, expires: gate.record.expires };
   report.findings = sortFindings(report.findings);
 
-  console.log(c.dim(`${report.requests} requests, ${report.findings.length} finding(s)\n`));
+  console.log(c.dim(`stack: ${report.stack.summary}`));
+  const cr = report.crawl;
+  console.log(c.dim(`${report.requests} requests · ${cr.pages} page(s) crawled${cr.skipped ? ` (skipped: ${cr.skipped.robots} robots, ${cr.skipped.external} external, ${cr.skipped.cap} over cap)` : ''} · ${report.findings.length} finding(s)\n`));
   if (report.observations.root?.error) console.log(c.red(`Root fetch failed: ${report.observations.root.error}\n`));
   for (const f of report.findings) {
     const col = SEV_COLOR[f.severity] || ((s) => s);
     console.log(`${col(f.severity.padEnd(8))} ${f.id}  ${f.title}`);
-    console.log(c.dim(`         ${f.location}`));
+    console.log(c.dim(`         ${f.location}${f.evidence?.affectedPages ? `  (+${f.evidence.affectedPages - 1} more page${f.evidence.affectedPages > 2 ? 's' : ''})` : ''}`));
     console.log(c.dim(`         fix: ${f.remediation.split('\n')[0]}`));
   }
 
@@ -147,7 +160,7 @@ async function cmdScan() {
       console.log(c.bold('\nAI analysis'));
       const analysis = await analyzeFindings(report.findings, config, {
         mode: typeof args.mode === 'string' ? args.mode : undefined,
-        stack: { server: report.observations.root?.headers?.server || null, poweredBy: report.observations.root?.headers?.['x-powered-by'] || null },
+        stack: { summary: report.stack.summary, server: report.stack.server, framework: report.stack.framework, cms: report.stack.cms },
       });
       report.analysis = analysis;
       if (analysis.error) console.log(c.red(analysis.error));

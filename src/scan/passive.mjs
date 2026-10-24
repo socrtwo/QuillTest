@@ -162,25 +162,25 @@ function snippet(s, n = SNIPPET_CHARS) {
  */
 export const PASSIVE_CHECKS = [
   {
-    id: 'scan.root-redirects-off-origin', title: 'Root redirects to a different origin', severity: 'info', confidence: 'confirmed',
+    id: 'scan.root-redirects-off-origin', scope: 'origin', title: 'Root redirects to a different origin', severity: 'info', confidence: 'confirmed',
     cwe: null, owasp: null,
     remediation: 'This origin hands visitors to another origin. Verify ownership of the destination and scan it; the checks below describe only what this origin itself serves.',
     run: ({ origin, root }) => (root?.crossOriginRedirectTo ? [{ location: origin + '/', evidence: { responseHeaders: pick(root.headers, ['location']), snippet: `HTTP ${root.status} → ${root.crossOriginRedirectTo} (not followed: outside the verified origin).` } }] : []),
   },
   {
-    id: 'transport.plaintext', title: 'Site served over plaintext HTTP', severity: 'high', confidence: 'confirmed',
+    id: 'transport.plaintext', scope: 'origin', title: 'Site served over plaintext HTTP', severity: 'high', confidence: 'confirmed',
     cwe: 'CWE-319', owasp: 'A02:2021 Cryptographic Failures',
     remediation: 'Serve the site over HTTPS only. Obtain a certificate (e.g. Let\'s Encrypt), listen on 443, and 301-redirect every http:// request to https://.',
     run: ({ origin, isHttps, root }) => (!isHttps && root && !root.error ? [{ location: origin + '/', evidence: { responseHeaders: pick(root.headers, ['server', 'location']), snippet: 'Origin uses http://; credentials, cookies and content travel in cleartext.' } }] : []),
   },
   {
-    id: 'transport.tls-error', title: 'TLS certificate problem on the origin', severity: 'critical', confidence: 'confirmed',
+    id: 'transport.tls-error', scope: 'origin', title: 'TLS certificate problem on the origin', severity: 'critical', confidence: 'confirmed',
     cwe: 'CWE-295', owasp: 'A02:2021 Cryptographic Failures',
     remediation: 'Install a valid certificate for this hostname (correct name, trusted chain, not expired) and serve the full chain.',
     run: ({ origin, root }) => (root?.error && /CERT|TLS|SSL|ALTNAME|self.signed|certificate/i.test(root.error) ? [{ location: origin + '/', evidence: { snippet: root.error } }] : []),
   },
   {
-    id: 'transport.http-not-redirected', title: 'HTTP is not redirected to HTTPS', severity: 'medium', confidence: 'firm',
+    id: 'transport.http-not-redirected', scope: 'origin', title: 'HTTP is not redirected to HTTPS', severity: 'medium', confidence: 'firm',
     cwe: 'CWE-319', owasp: 'A02:2021 Cryptographic Failures',
     remediation: 'Redirect all http:// requests to https:// with a 301 (nginx: `return 301 https://$host$request_uri;`). Then add HSTS.',
     run: ({ origin, isHttps, httpVariant }) => {
@@ -190,27 +190,27 @@ export const PASSIVE_CHECKS = [
     },
   },
   {
-    id: 'transport.hsts', title: 'Strict-Transport-Security missing or weak', severity: 'medium', confidence: 'confirmed',
+    id: 'transport.hsts', scope: 'page', title: 'Strict-Transport-Security missing or weak', severity: 'medium', confidence: 'confirmed',
     cwe: 'CWE-319', owasp: 'A05:2021 Security Misconfiguration',
     remediation: 'Send `Strict-Transport-Security: max-age=31536000; includeSubDomains` on every https response (add `preload` once you are ready to submit to the preload list).',
-    run: ({ origin, isHttps, root }) => {
+    run: ({ origin, pageUrl, isHttps, root }) => {
       if (!isHttps || !root || root.error) return [];
       const h = parseHsts(root.headers['strict-transport-security']);
-      if (!h) return [{ location: origin + '/', evidence: { responseHeaders: pick(root.headers, ['strict-transport-security']), snippet: 'No Strict-Transport-Security header.' } }];
-      if (!Number.isFinite(h.maxAge) || h.maxAge < HSTS_MIN_MAX_AGE) return [{ location: origin + '/', severity: 'low', evidence: { responseHeaders: pick(root.headers, ['strict-transport-security']), snippet: `HSTS max-age=${h.maxAge} is below ${HSTS_MIN_MAX_AGE} (180 days).` } }];
+      if (!h) return [{ location: pageUrl, evidence: { responseHeaders: pick(root.headers, ['strict-transport-security']), snippet: 'No Strict-Transport-Security header.' } }];
+      if (!Number.isFinite(h.maxAge) || h.maxAge < HSTS_MIN_MAX_AGE) return [{ location: pageUrl, severity: 'low', evidence: { responseHeaders: pick(root.headers, ['strict-transport-security']), snippet: `HSTS max-age=${h.maxAge} is below ${HSTS_MIN_MAX_AGE} (180 days).` } }];
       return [];
     },
   },
   {
-    id: 'headers.csp', title: 'Content-Security-Policy missing', severity: 'medium', confidence: 'confirmed',
+    id: 'headers.csp', scope: 'page', title: 'Content-Security-Policy missing', severity: 'medium', confidence: 'confirmed',
     cwe: 'CWE-693', owasp: 'A05:2021 Security Misconfiguration',
     remediation: 'Add a Content-Security-Policy. Start in report-only, e.g. `Content-Security-Policy-Report-Only: default-src \'self\'; script-src \'self\'; object-src \'none\'; base-uri \'self\'; frame-ancestors \'self\'`, fix violations, then enforce.',
-    run: ({ origin, root }) => {
+    run: ({ origin, pageUrl, root }) => {
       if (!root || root.error) return [];
       const csp = root.headers['content-security-policy'];
       const ro = root.headers['content-security-policy-report-only'];
-      if (!csp && !ro) return [{ location: origin + '/', evidence: { snippet: 'No Content-Security-Policy or Content-Security-Policy-Report-Only header on the root page.' } }];
-      if (!csp && ro) return [{ location: origin + '/', severity: 'low', title: 'Content-Security-Policy is report-only', evidence: { responseHeaders: pick(root.headers, ['content-security-policy-report-only']), snippet: 'Only a report-only policy is set; nothing is enforced.' } }];
+      if (!csp && !ro) return [{ location: pageUrl, evidence: { snippet: 'No Content-Security-Policy or Content-Security-Policy-Report-Only header on the root page.' } }];
+      if (!csp && ro) return [{ location: pageUrl, severity: 'low', title: 'Content-Security-Policy is report-only', evidence: { responseHeaders: pick(root.headers, ['content-security-policy-report-only']), snippet: 'Only a report-only policy is set; nothing is enforced.' } }];
       const d = parseCsp(csp);
       const script = d['script-src'] || d['default-src'] || [];
       const weak = [];
@@ -218,43 +218,43 @@ export const PASSIVE_CHECKS = [
       if (script.includes("'unsafe-eval'")) weak.push("'unsafe-eval' in script-src");
       if (script.includes('*')) weak.push("wildcard '*' in script-src");
       if (!d['object-src'] && !d['default-src']) weak.push('no object-src or default-src');
-      return weak.length ? [{ location: origin + '/', severity: 'low', title: 'Content-Security-Policy is weak', evidence: { responseHeaders: pick(root.headers, ['content-security-policy']), snippet: weak.join('; ') } }] : [];
+      return weak.length ? [{ location: pageUrl, severity: 'low', title: 'Content-Security-Policy is weak', evidence: { responseHeaders: pick(root.headers, ['content-security-policy']), snippet: weak.join('; ') } }] : [];
     },
   },
   {
-    id: 'headers.x-content-type-options', title: 'X-Content-Type-Options: nosniff missing', severity: 'low', confidence: 'confirmed',
+    id: 'headers.x-content-type-options', scope: 'page', title: 'X-Content-Type-Options: nosniff missing', severity: 'low', confidence: 'confirmed',
     cwe: 'CWE-16', owasp: 'A05:2021 Security Misconfiguration',
     remediation: 'Send `X-Content-Type-Options: nosniff` on all responses.',
-    run: ({ origin, root }) => (root && !root.error && (root.headers['x-content-type-options'] || '').toLowerCase() !== 'nosniff' ? [{ location: origin + '/', evidence: { responseHeaders: pick(root.headers, ['x-content-type-options', 'content-type']) } }] : []),
+    run: ({ origin, pageUrl, root }) => (root && !root.error && (root.headers['x-content-type-options'] || '').toLowerCase() !== 'nosniff' ? [{ location: pageUrl, evidence: { responseHeaders: pick(root.headers, ['x-content-type-options', 'content-type']) } }] : []),
   },
   {
-    id: 'headers.frame', title: 'No clickjacking protection (X-Frame-Options / frame-ancestors)', severity: 'medium', confidence: 'confirmed',
+    id: 'headers.frame', scope: 'page', title: 'No clickjacking protection (X-Frame-Options / frame-ancestors)', severity: 'medium', confidence: 'confirmed',
     cwe: 'CWE-1021', owasp: 'A05:2021 Security Misconfiguration',
     remediation: 'Send `Content-Security-Policy: frame-ancestors \'self\'` (preferred) and/or `X-Frame-Options: SAMEORIGIN`.',
-    run: ({ origin, root }) => {
+    run: ({ origin, pageUrl, root }) => {
       if (!root || root.error) return [];
       const xfo = root.headers['x-frame-options'];
       const fa = parseCsp(root.headers['content-security-policy'])['frame-ancestors'];
-      return xfo || fa ? [] : [{ location: origin + '/', evidence: { responseHeaders: pick(root.headers, ['x-frame-options', 'content-security-policy']) } }];
+      return xfo || fa ? [] : [{ location: pageUrl, evidence: { responseHeaders: pick(root.headers, ['x-frame-options', 'content-security-policy']) } }];
     },
   },
   {
-    id: 'headers.referrer-policy', title: 'Referrer-Policy missing', severity: 'low', confidence: 'confirmed',
+    id: 'headers.referrer-policy', scope: 'page', title: 'Referrer-Policy missing', severity: 'low', confidence: 'confirmed',
     cwe: 'CWE-200', owasp: 'A05:2021 Security Misconfiguration',
     remediation: 'Send `Referrer-Policy: strict-origin-when-cross-origin` (or stricter).',
-    run: ({ origin, root }) => (root && !root.error && !root.headers['referrer-policy'] ? [{ location: origin + '/', evidence: { snippet: 'No Referrer-Policy header; full URLs may leak to third parties.' } }] : []),
+    run: ({ origin, pageUrl, root }) => (root && !root.error && !root.headers['referrer-policy'] ? [{ location: pageUrl, evidence: { snippet: 'No Referrer-Policy header; full URLs may leak to third parties.' } }] : []),
   },
   {
-    id: 'headers.permissions-policy', title: 'Permissions-Policy missing', severity: 'info', confidence: 'confirmed',
+    id: 'headers.permissions-policy', scope: 'page', title: 'Permissions-Policy missing', severity: 'info', confidence: 'confirmed',
     cwe: 'CWE-16', owasp: 'A05:2021 Security Misconfiguration',
     remediation: 'Send a Permissions-Policy that disables features you do not use, e.g. `Permissions-Policy: camera=(), microphone=(), geolocation=()`.',
-    run: ({ origin, root }) => (root && !root.error && !root.headers['permissions-policy'] ? [{ location: origin + '/', evidence: { snippet: 'No Permissions-Policy header.' } }] : []),
+    run: ({ origin, pageUrl, root }) => (root && !root.error && !root.headers['permissions-policy'] ? [{ location: pageUrl, evidence: { snippet: 'No Permissions-Policy header.' } }] : []),
   },
   {
-    id: 'cookies.flags', title: 'Cookie set without recommended security attributes', severity: 'medium', confidence: 'confirmed',
+    id: 'cookies.flags', scope: 'page', title: 'Cookie set without recommended security attributes', severity: 'medium', confidence: 'confirmed',
     cwe: 'CWE-614', owasp: 'A05:2021 Security Misconfiguration',
     remediation: 'Set cookies with `Secure; HttpOnly; SameSite=Lax` (or Strict). Session cookies must have all three; use the `__Host-` prefix where possible.',
-    run: ({ origin, isHttps, root }) => {
+    run: ({ origin, pageUrl, isHttps, root }) => {
       if (!root || root.error) return [];
       const out = [];
       for (const sc of root.headers['set-cookie'] || []) {
@@ -266,7 +266,7 @@ export const PASSIVE_CHECKS = [
         if (!missing.length) continue;
         const sessionLike = SESSION_COOKIE_RE.test(c.name);
         out.push({
-          location: origin + '/',
+          location: pageUrl,
           severity: sessionLike ? 'high' : 'medium',
           title: `${sessionLike ? 'Session cookie' : 'Cookie'} '${c.name}' missing ${missing.join(', ')}`,
           evidence: { responseHeaders: { 'set-cookie': maskCookie(sc) }, snippet: `Missing: ${missing.join(', ')}.` },
@@ -276,7 +276,7 @@ export const PASSIVE_CHECKS = [
     },
   },
   {
-    id: 'cors.misconfig', title: 'CORS misconfiguration', severity: 'medium', confidence: 'firm',
+    id: 'cors.misconfig', scope: 'origin', title: 'CORS misconfiguration', severity: 'medium', confidence: 'firm',
     cwe: 'CWE-942', owasp: 'A05:2021 Security Misconfiguration',
     remediation: 'Only echo Access-Control-Allow-Origin for an explicit allow-list of trusted origins; never reflect arbitrary origins, and never combine a wildcard or reflected origin with Access-Control-Allow-Credentials: true.',
     run: ({ origin, root, cors }) => {
@@ -298,54 +298,74 @@ export const PASSIVE_CHECKS = [
     },
   },
   {
-    id: 'disclosure.server-banner', title: 'Server software version disclosed', severity: 'low', confidence: 'confirmed',
+    id: 'disclosure.server-banner', scope: 'page', title: 'Server software version disclosed', severity: 'low', confidence: 'confirmed',
     cwe: 'CWE-200', owasp: 'A05:2021 Security Misconfiguration',
     remediation: 'Suppress version strings (nginx: `server_tokens off;`; Apache: `ServerTokens Prod` + `ServerSignature Off`; Express: `app.disable(\'x-powered-by\')`; ASP.NET: remove X-AspNet-Version/X-Powered-By in web.config).',
-    run: ({ origin, root }) => {
+    run: ({ origin, pageUrl, root }) => {
       if (!root || root.error) return [];
       const keys = ['server', 'x-powered-by', 'x-aspnet-version', 'x-aspnetmvc-version', 'x-generator'];
       const leaking = keys.filter((k) => root.headers[k] && VERSION_RE.test(root.headers[k]));
-      return leaking.length ? [{ location: origin + '/', evidence: { responseHeaders: pick(root.headers, leaking), snippet: `Version numbers in: ${leaking.join(', ')}.` } }] : [];
+      return leaking.length ? [{ location: pageUrl, evidence: { responseHeaders: pick(root.headers, leaking), snippet: `Version numbers in: ${leaking.join(', ')}.` } }] : [];
     },
   },
   {
-    id: 'content.mixed', title: 'Mixed content on an HTTPS page', severity: 'medium', confidence: 'firm',
+    id: 'content.mixed', scope: 'page', title: 'Mixed content on an HTTPS page', severity: 'medium', confidence: 'firm',
     cwe: 'CWE-311', owasp: 'A02:2021 Cryptographic Failures',
     remediation: 'Load all scripts, styles, frames and images over https:// (or protocol-relative/absolute https URLs). Add `Content-Security-Policy: upgrade-insecure-requests` as a backstop.',
-    run: ({ origin, isHttps, root }) => {
+    run: ({ origin, pageUrl, isHttps, root }) => {
       if (!isHttps || !root || root.error || !root.body) return [];
       const active = [...root.body.matchAll(/<(script|iframe|link)\b[^>]*\b(?:src|href)\s*=\s*["']http:\/\/[^"']+/gi)].map((m) => m[0]);
       const passive = [...root.body.matchAll(/<(img|video|audio|source)\b[^>]*\bsrc\s*=\s*["']http:\/\/[^"']+/gi)].map((m) => m[0]);
       const out = [];
-      if (active.length) out.push({ location: origin + '/', severity: 'high', title: 'Active mixed content (script/iframe/stylesheet over http://)', evidence: { snippet: snippet(active.slice(0, 5).join('\n')) } });
-      if (passive.length) out.push({ location: origin + '/', severity: 'low', title: 'Passive mixed content (media over http://)', evidence: { snippet: snippet(passive.slice(0, 5).join('\n')) } });
+      if (active.length) out.push({ location: pageUrl, severity: 'high', title: 'Active mixed content (script/iframe/stylesheet over http://)', evidence: { snippet: snippet(active.slice(0, 5).join('\n')) } });
+      if (passive.length) out.push({ location: pageUrl, severity: 'low', title: 'Passive mixed content (media over http://)', evidence: { snippet: snippet(passive.slice(0, 5).join('\n')) } });
       return out;
     },
   },
   {
-    id: 'content.form-insecure', title: 'Form submits over plaintext HTTP', severity: 'high', confidence: 'firm',
+    id: 'content.form-insecure', scope: 'page', title: 'Form submits over plaintext HTTP', severity: 'high', confidence: 'firm',
     cwe: 'CWE-319', owasp: 'A02:2021 Cryptographic Failures',
     remediation: 'Point every form action at an https:// URL (or a relative path on the https origin).',
-    run: ({ origin, root }) => {
+    run: ({ origin, pageUrl, root }) => {
       if (!root || root.error || !root.body) return [];
       const forms = [...root.body.matchAll(/<form\b[^>]*\baction\s*=\s*["']http:\/\/[^"']+["'][^>]*>/gi)].map((m) => m[0]);
-      return forms.length ? [{ location: origin + '/', evidence: { snippet: snippet(forms.slice(0, 3).join('\n')) } }] : [];
+      return forms.length ? [{ location: pageUrl, evidence: { snippet: snippet(forms.slice(0, 3).join('\n')) } }] : [];
     },
   },
   {
-    id: 'content.directory-listing', title: 'Directory listing enabled', severity: 'medium', confidence: 'confirmed',
+    id: 'content.directory-listing', scope: 'page', title: 'Directory listing enabled', severity: 'medium', confidence: 'confirmed',
     cwe: 'CWE-548', owasp: 'A05:2021 Security Misconfiguration',
     remediation: 'Disable autoindex (nginx: `autoindex off;`; Apache: `Options -Indexes`) and add an index document.',
-    run: ({ root, probes }) => {
-      const out = [];
-      for (const r of [root, ...probes]) {
-        if (r && !r.error && r.status === 200 && /<title>\s*Index of \//i.test(r.body || '')) out.push({ location: r.url, evidence: { snippet: snippet((r.body.match(/<title>[^<]*<\/title>/i) || [''])[0]) } });
-      }
-      return out;
+    run: ({ pageUrl, root }) => (root && !root.error && root.status === 200 && /<title>\s*Index of \//i.test(root.body || '')
+      ? [{ location: pageUrl, evidence: { snippet: snippet((root.body.match(/<title>[^<]*<\/title>/i) || [''])[0]) } }] : []),
+  },
+  {
+    id: 'content.sri-missing', scope: 'page', title: 'Third-party script loaded without Subresource Integrity', severity: 'low', confidence: 'confirmed',
+    cwe: 'CWE-353', owasp: 'A08:2021 Software and Data Integrity Failures',
+    remediation: 'Add `integrity="sha384-…"` and `crossorigin="anonymous"` to scripts loaded from other origins (or self-host them), so a compromised CDN cannot change what runs on your page.',
+    run: ({ origin, pageUrl, page }) => {
+      const scripts = (page?.scripts || []).filter((s) => { try { return new URL(s.src).origin !== origin && !s.integrity; } catch { return false; } });
+      return scripts.length ? [{ location: pageUrl, evidence: { snippet: scripts.slice(0, 5).map((s) => s.src).join('\n') } }] : [];
     },
   },
   {
-    id: 'disclosure.sensitive-files', title: 'Sensitive file exposed', severity: 'high', confidence: 'confirmed',
+    id: 'forms.login-no-csrf', scope: 'page', title: 'Login form without an anti-CSRF token', severity: 'medium', confidence: 'tentative',
+    cwe: 'CWE-352', owasp: 'A01:2021 Broken Access Control',
+    remediation: 'Include a per-session anti-CSRF token as a hidden field (or use your framework\'s CSRF middleware) and set the session cookie to SameSite=Lax or Strict. If the token travels in a header or a cookie instead, mark this finding as a false positive.',
+    run: ({ pageUrl, page }) => (page?.forms || [])
+      .filter((f) => f.hasPassword && f.method === 'POST' && !f.hasCsrfLike)
+      .map((f) => ({ location: pageUrl, evidence: { snippet: `POST ${f.action} — ${f.inputs.length} field(s), no hidden csrf/token/nonce field found.` } })),
+  },
+  {
+    id: 'forms.password-via-get', scope: 'page', title: 'Password submitted with GET (credentials end up in URLs and logs)', severity: 'high', confidence: 'confirmed',
+    cwe: 'CWE-598', owasp: 'A04:2021 Insecure Design',
+    remediation: 'Change the form method to POST. GET places the password in the query string, browser history, referrers, and server logs.',
+    run: ({ pageUrl, page }) => (page?.forms || [])
+      .filter((f) => f.hasPassword && f.method === 'GET')
+      .map((f) => ({ location: pageUrl, evidence: { snippet: `GET ${f.action}` } })),
+  },
+  {
+    id: 'disclosure.sensitive-files', scope: 'origin', title: 'Sensitive file exposed', severity: 'high', confidence: 'confirmed',
     cwe: 'CWE-538', owasp: 'A05:2021 Security Misconfiguration',
     remediation: 'Remove the file from the web root or deny access to it at the server.',
     run: ({ probes }) => {
@@ -371,11 +391,69 @@ function pick(headers, keys) {
 // Orchestration
 // ---------------------------------------------------------------------------
 
+function materialize(check, p) {
+  return {
+    checkId: check.id,
+    title: p.title || check.title,
+    severity: p.severity || check.severity,
+    confidence: p.confidence || check.confidence,
+    cwe: p.cwe || check.cwe,
+    owasp: p.owasp !== undefined ? p.owasp : check.owasp,
+    location: p.location,
+    evidence: p.evidence || {},
+    remediation: p.remediation || check.remediation,
+  };
+}
+
+function runChecks(checks, ctx) {
+  const out = [];
+  for (const check of checks) {
+    let partials = [];
+    try { partials = check.run(ctx) || []; } catch { partials = []; }
+    for (const p of partials) out.push(materialize(check, p));
+  }
+  return out;
+}
+
+/**
+ * Collapse identical findings seen on many pages into one, keeping the first
+ * location and recording how many pages were affected (with a sample list).
+ * Identity = checkId + title, which already encodes the specifics (cookie
+ * name, probe file, mixed-content kind) that make two findings different.
+ */
+export function aggregateFindings(findings) {
+  const groups = new Map();
+  for (const f of findings) {
+    const key = `${f.checkId}|${f.title}`;
+    const g = groups.get(key);
+    if (!g) { groups.set(key, { ...f, evidence: { ...f.evidence }, _pages: [f.location] }); continue; }
+    if (!g._pages.includes(f.location)) g._pages.push(f.location);
+  }
+  const out = [];
+  let n = 0;
+  for (const g of groups.values()) {
+    n++;
+    const { _pages, ...rest } = g;
+    if (_pages.length > 1) rest.evidence = { ...rest.evidence, affectedPages: _pages.length, pages: _pages.slice(0, 5) };
+    out.push({ id: `F-${String(n).padStart(3, '0')}`, ...rest });
+  }
+  return out;
+}
+
 /**
  * Run the passive scan against a verified origin.
+ *
+ * Origin-scoped checks (transport, CORS, exposed files) run once. Page-scoped
+ * checks (headers, cookies, content, forms) run on every crawled HTML page
+ * when `crawl` is enabled, then identical findings are aggregated.
+ *
  * @param {string} originInput
- * @param {{fetchImpl?:Function, timeoutMs?:number, probeSensitiveFiles?:boolean, now?:Date}} [opts]
- * @returns {Promise<{origin:string, startedAt:string, finishedAt:string, requests:number, findings:object[], observations:object}>}
+ * @param {object} [opts]
+ * @param {Function} [opts.fetchImpl]
+ * @param {number}   [opts.timeoutMs]
+ * @param {boolean}  [opts.probeSensitiveFiles=true]
+ * @param {boolean|object} [opts.crawl=false]  false = root page only; true or {maxPages,maxDepth,respectRobots,delayMs}
+ * @param {Date}     [opts.now]
  */
 export async function runPassiveScan(originInput, opts = {}) {
   const origin = normalizeOrigin(originInput);
@@ -398,33 +476,42 @@ export async function runPassiveScan(originInput, opts = {}) {
     }
   }
 
-  const ctx = { origin, isHttps, root, cors, httpVariant, probes };
-  const findings = [];
-  let n = 0;
-  for (const check of PASSIVE_CHECKS) {
-    let partials = [];
-    try { partials = check.run(ctx) || []; } catch (e) { partials = []; }
-    for (const p of partials) {
-      n++;
-      findings.push({
-        id: `F-${String(n).padStart(3, '0')}`,
-        checkId: check.id,
-        title: p.title || check.title,
-        severity: p.severity || check.severity,
-        confidence: p.confidence || check.confidence,
-        cwe: p.cwe || check.cwe,
-        owasp: p.owasp !== undefined ? p.owasp : check.owasp,
-        location: p.location,
-        evidence: p.evidence || {},
-        remediation: p.remediation || check.remediation,
-      });
-    }
+  // Pages: either the root alone, or a bounded crawl seeded with the root we already fetched.
+  let crawlResult = null;
+  let pages;
+  if (opts.crawl && !root.error && !root.crossOriginRedirectTo) {
+    const { crawl } = await import('./crawl.mjs');
+    const copts = typeof opts.crawl === 'object' ? opts.crawl : {};
+    crawlResult = await crawl(origin, { fetchImpl, timeoutMs, rootObservation: root, ...copts });
+    requests += crawlResult.requests;
+    pages = crawlResult.pages;
+  } else {
+    const { extractForms, extractAssets } = await import('./crawl.mjs');
+    const body = root.body || '';
+    pages = [{ url: root.url || origin + '/', requestedUrl: origin + '/', depth: 0, status: root.status ?? null, error: root.error ?? null, headers: root.headers || {}, body, isHtml: Boolean(body), forms: body ? extractForms(body, root.url || origin + '/') : [], ...(body ? extractAssets(body, root.url || origin + '/') : { scripts: [], styles: [], frames: [] }) }];
   }
+
+  const originChecks = PASSIVE_CHECKS.filter((c) => c.scope === 'origin');
+  const pageChecks = PASSIVE_CHECKS.filter((c) => c.scope === 'page');
+
+  const raw = runChecks(originChecks, { origin, isHttps, root, cors, httpVariant, probes, pageUrl: origin + '/' });
+  for (const page of pages) {
+    if (page.error || !page.status) continue;
+    const pageObs = { url: page.url, status: page.status, headers: page.headers, body: page.body, error: null };
+    raw.push(...runChecks(pageChecks, { origin, isHttps, root: pageObs, pageUrl: page.url, page, cors, httpVariant, probes }));
+  }
+  const findings = aggregateFindings(raw);
+
+  const { fingerprint, describeStack } = await import('./fingerprint.mjs');
+  const fp = fingerprint([root, ...pages.filter((p) => p.isHtml).slice(0, 10)]);
 
   // Strip bodies from stored observations; keep status/headers/url for the report.
   const slim = (r) => (r ? { url: r.url, requestedUrl: r.requestedUrl, status: r.status ?? null, error: r.error ?? null, crossOriginRedirectTo: r.crossOriginRedirectTo ?? null, headers: r.headers ? pick(r.headers, Object.keys(r.headers)) : null } : null);
   return {
     origin, startedAt, finishedAt: new Date().toISOString(), requests,
+    stack: { summary: describeStack(fp), ...fp },
+    crawl: crawlResult ? { pages: crawlResult.pages.length, skipped: crawlResult.skipped, external: crawlResult.external, robots: crawlResult.robots } : { pages: 1, skipped: null, external: [], robots: null },
+    pages: pages.map((p) => ({ url: p.url, depth: p.depth, status: p.status, error: p.error, isHtml: p.isHtml, forms: p.forms.length, scripts: p.scripts.length })),
     findings,
     observations: { root: slim(root), cors: slim(cors), httpVariant: slim(httpVariant), probes: probes.map((p) => ({ path: p.probe.path, status: p.status ?? null, error: p.error ?? null })) },
   };

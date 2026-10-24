@@ -21,10 +21,11 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 
 ## M2 — Passive engine
 
-- [ ] Crawler/spider (the passive engine currently observes the root page plus fixed probes)
+- [x] Crawler/spider — `src/scan/crawl.mjs`: same-origin, robots/sitemap-aware, page/depth/query caps, never follows state-changing links; page checks run site-wide with aggregation
 - [x] Passive checks (transport, headers, cookies, CORS, disclosure, mixed content, exposed files) — `src/scan/passive.mjs`
 - [x] Findings model with CWE/OWASP mapping, severity + confidence, per-finding remediation
-- [ ] Component fingerprinting against known-CVE version ranges
+- [x] Stack fingerprinting (server / framework / CMS / libraries, with evidence) — `src/scan/fingerprint.mjs`
+- [ ] Match fingerprinted versions against known-CVE ranges
 
 ## M3 — Active engine
 

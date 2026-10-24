@@ -4,7 +4,7 @@
 
 **Quill Test** (repository `QuillTest`) is an original, open-source web application security **testing and fixing** tool for Windows, macOS, Linux, ChromeOS and the web. It tests a target website for known classes of security flaws and uses AI, through the major provider APIs, to reason about the vulnerabilities an attacker — including an AI-assisted one — would look for, then helps you **fix** them with concrete, mapped remediations. It does not exploit anything. Its goal is the same as the rest of the Quill suite: **no missing commands**. It provides the familiar office-suite workflow plus the best ideas from current and former web security scanners.
 
-> **Status: early, runnable.** Implemented today: the ownership-verification gate, a passive scan engine (headers, transport, cookies, CORS, disclosure, mixed content, exposed files — each finding with a concrete fix), the multi-provider AI setup wizard, and the AI analysis layer with cross-provider consensus. Not yet implemented: active checks, the crawler, the broader protocol checks, the fix-artifact generators, and the desktop/mobile shell. The pipeline below runs end-to-end from the command line.
+> **Status: early, runnable.** Implemented today: the ownership-verification gate, a same-origin crawler, a site-wide passive scan engine (headers, transport, cookies, CORS, disclosure, mixed content, forms, SRI, exposed files — each finding with a concrete fix), stack fingerprinting, the multi-provider AI setup wizard, and the AI analysis layer with cross-provider consensus. Not yet implemented: active checks, the broader protocol checks, CVE matching, the fix-artifact generators, and the desktop/mobile shell. The pipeline below runs end-to-end from the command line.
 
 ## Scope and ethics — read first
 
@@ -44,7 +44,7 @@ node scripts/scan.mjs verify check https://staging.example.com
 node scripts/scan.mjs scan https://staging.example.com --analyze --mode concurrent
 ```
 
-Scanning an origin without a valid verification exits with code 3; there is no override flag. Reports are written under `scans/<host>/` (git-ignored) with cookie values masked. Each origin — scheme, host, *and* port — needs its own verification.
+Scanning an origin without a valid verification exits with code 3; there is no override flag. By default the scan crawls up to 25 same-origin pages (honoring `robots.txt`, never following logout/delete-style links) and runs the header, cookie, content and form checks on every one, collapsing site-wide gaps into single findings with page counts. It also fingerprints the stack (server, framework, CMS) so fixes are phrased for what you actually run. Reports are written under `scans/<host>/` (git-ignored) with cookie values masked. Each origin — scheme, host, *and* port — needs its own verification.
 
 ## The AI setup wizard
 
