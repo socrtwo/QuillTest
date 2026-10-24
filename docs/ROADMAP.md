@@ -14,16 +14,17 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 
 ## M1 — Ownership and shell
 
-- [ ] Ownership verification module (file-upload + DNS TXT), the scan gate
+- [x] Ownership verification module (file-upload + DNS TXT), the scan gate (`src/verify/`, `scripts/scan.mjs verify`)
 - [ ] Command registry + minimal ribbon/QAB shell
 - [ ] Target management
 - [ ] Staging-mirror capture/serve pipeline (own-site snapshot, loopback serve)
 
 ## M2 — Passive engine
 
-- [ ] Crawler/spider
-- [ ] Passive checks (transport, headers, cookies, CORS, disclosure, component fingerprinting)
-- [ ] Findings model with CWE/OWASP mapping, severity + confidence
+- [ ] Crawler/spider (the passive engine currently observes the root page plus fixed probes)
+- [x] Passive checks (transport, headers, cookies, CORS, disclosure, mixed content, exposed files) — `src/scan/passive.mjs`
+- [x] Findings model with CWE/OWASP mapping, severity + confidence, per-finding remediation
+- [ ] Component fingerprinting against known-CVE version ranges
 
 ## M3 — Active engine
 
@@ -41,7 +42,7 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 - [x] Analysis layer (`src/ai/analyze.mjs`): triage, prioritize, explain, draft remediations, flag false positives
 - [x] Secret-scrubbing, size caps, output filter, `--dry-run`
 - [x] Several-AI corroboration: sequential/concurrent consultation + per-finding consensus
-- [ ] Wire the analysis layer to the scanner's findings output once the engine exists
+- [x] Wire the analysis layer to the scanner's findings output (`scripts/scan.mjs scan --analyze`)
 
 ## M6 — Report and release
 

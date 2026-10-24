@@ -4,7 +4,7 @@
 
 **Quill Test** (repository `QuillTest`) is an original, open-source web application security **testing and fixing** tool for Windows, macOS, Linux, ChromeOS and the web. It tests a target website for known classes of security flaws and uses AI, through the major provider APIs, to reason about the vulnerabilities an attacker — including an AI-assisted one — would look for, then helps you **fix** them with concrete, mapped remediations. It does not exploit anything. Its goal is the same as the rest of the Quill suite: **no missing commands**. It provides the familiar office-suite workflow plus the best ideas from current and former web security scanners.
 
-> **Status: planning. There is no scanner engine yet.** This repository holds the plan, the documentation, and a runnable AI-provider setup wizard (`scripts/`, `src/ai/`). The scanning and remediation engine described below is not implemented.
+> **Status: early, runnable.** Implemented today: the ownership-verification gate, a passive scan engine (headers, transport, cookies, CORS, disclosure, mixed content, exposed files — each finding with a concrete fix), the multi-provider AI setup wizard, and the AI analysis layer with cross-provider consensus. Not yet implemented: active checks, the crawler, the broader protocol checks, the fix-artifact generators, and the desktop/mobile shell. The pipeline below runs end-to-end from the command line.
 
 ## Scope and ethics — read first
 
@@ -28,6 +28,23 @@ See [docs/LEGAL.md](docs/LEGAL.md) and [docs/ETHICS.md](docs/ETHICS.md).
 - **Test a copy of your own site.** Point QuillTest at a staging mirror of a site you have verified you own (or let it capture a bounded same-origin snapshot), so production is never stressed and several AI reviewers can work a stable snapshot in parallel. Same non-destructive check set — just run against a disposable copy. See [docs/STAGING-MIRROR.md](docs/STAGING-MIRROR.md).
 - **More than HTTP.** On hosts you have verified you own, QuillTest also checks FTP, mail (SMTP/IMAP/POP3), DNS, and TLS for known weaknesses — plaintext where encryption should be, anonymous access, outdated vulnerable versions, missing SPF/DKIM/DMARC, public zone transfer. Detection only: no credential guessing, no exploitation. See [docs/PROTOCOLS.md](docs/PROTOCOLS.md).
 - **Original ideas.** An attacker's-eye priority queue, a findings diff across scans, a plain-language remediation writer, a false-positive learning loop, scan-as-you-configure preview, and export-ready review packages. See [docs/INNOVATIONS.md](docs/INNOVATIONS.md).
+
+## Running a scan
+
+Three commands. The first two prove you control the origin; the third refuses to run without that proof.
+
+```bash
+# 1. Get a verification file to place on your site (a DNS TXT alternative is printed too)
+node scripts/scan.mjs verify issue https://staging.example.com
+
+# 2. After uploading it to /.well-known/quilltest-verification/<token>.txt, confirm it
+node scripts/scan.mjs verify check https://staging.example.com
+
+# 3. Scan. Add --analyze to have every configured AI provider review the findings.
+node scripts/scan.mjs scan https://staging.example.com --analyze --mode concurrent
+```
+
+Scanning an origin without a valid verification exits with code 3; there is no override flag. Reports are written under `scans/<host>/` (git-ignored) with cookie values masked. Each origin — scheme, host, *and* port — needs its own verification.
 
 ## The AI setup wizard
 

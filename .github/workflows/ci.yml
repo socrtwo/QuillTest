@@ -25,13 +25,20 @@ jobs:
       - name: Browser registry is in sync with src/ai/providers.mjs
         run: node scripts/sync-browser-registry.mjs --check
       - name: Syntax-check every module
-        run: for f in src/ai/*.mjs scripts/*.mjs; do node --check "$f"; done
+        run: for f in src/ai/*.mjs src/verify/*.mjs src/scan/*.mjs scripts/*.mjs; do node --check "$f"; done
       - name: Unit tests (offline)
         run: npm test
       - name: Analysis dry-run against the sample findings needs no keys
         run: |
           cp quilltest.ai.example.json quilltest.ai.json
           node scripts/ai-analyze.mjs --findings examples/findings.sample.json --dry-run
+      - name: Scan gate refuses an unverified origin (exit 3)
+        run: |
+          set +e
+          node scripts/scan.mjs scan https://example.com --store /tmp/qt-empty-store
+          code=$?
+          set -e
+          test "$code" -eq 3
       - name: No literal secrets committed
         run: |
           # The example config and sample findings must never carry real-looking keys.

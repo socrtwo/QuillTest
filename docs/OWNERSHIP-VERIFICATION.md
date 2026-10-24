@@ -59,4 +59,4 @@ Normalized origin = lowercase scheme + host + explicit port only when non-defaul
 
 ## Status
 
-Planning. The verification module (`src/verify/`) is specified here but not yet implemented. The token format and the gate behavior above are the contract the implementation will follow.
+Implemented in `src/verify/ownership.mjs` (challenge issuance, HTTP and DNS verification, expiry, the `isOriginVerified` gate) and `src/verify/store.mjs` (0600-mode JSON store; records hold a token *hash*, never the token). Driven by `scripts/scan.mjs verify issue|check|list`. Covered by offline tests in `tests/verify.test.mjs`, including cross-origin-redirect refusal, size cap, tampered checksum, and expiry.

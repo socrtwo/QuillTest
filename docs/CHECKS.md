@@ -45,4 +45,4 @@ Findings map to OWASP Top 10 (2021), OWASP ASVS, and CWE identifiers, so reports
 
 ## Status
 
-Planning. This is the target inventory; no checks are implemented yet.
+The **passive** set is implemented in `src/scan/passive.mjs` (checks are data in `PASSIVE_CHECKS`): transport (plaintext origin, TLS errors, missing http→https redirect, HSTS), security headers (CSP missing/report-only/weak, nosniff, clickjacking, Referrer-Policy, Permissions-Policy), cookie flags with session-cookie escalation, CORS (reflected origin, wildcard+credentials, null), version banners, active/passive mixed content, insecure form actions, directory listing, and signature-matched exposed-file probes (`.git/HEAD`, `.env`, `.DS_Store`, `server-status`, `phpinfo.php`, `.svn/entries`). Each finding ships with a concrete remediation. Run via `scripts/scan.mjs scan <origin>` after ownership verification. Active checks and the broader protocol set remain planned.
