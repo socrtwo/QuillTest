@@ -24,6 +24,8 @@ jobs:
       # No dependencies to install: the project is dependency-free by design.
       - name: Browser registry is in sync with src/ai/providers.mjs
         run: node scripts/sync-browser-registry.mjs --check
+      - name: Shipped example config passes schema validation
+        run: node scripts/ai-setup-wizard.mjs --validate --config quilltest.ai.example.json
       - name: Syntax-check every module
         run: for f in src/ai/*.mjs src/verify/*.mjs src/scan/*.mjs src/fix/*.mjs src/report/*.mjs scripts/*.mjs; do node --check "$f"; done
       - name: Unit tests (offline)

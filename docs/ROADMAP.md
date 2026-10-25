@@ -9,7 +9,7 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 - [x] AI setup wizard — CLI (`scripts/ai-setup-wizard.mjs`), multi-provider + mode
 - [x] AI setup wizard — browser (`public/ai-wizard.html`), multi-provider + mode
 - [x] Multi-provider config (v2: `activeProviders`, `analysisMode`) + v1 normalization
-- [ ] Config module + schema validation for `quilltest.ai.json`
+- [x] Config module + schema validation for `quilltest.ai.json` — `src/ai/config-schema.mjs`, `ai-setup-wizard.mjs --validate`, enforced before every analysis run
 - [ ] Project scaffold matching QuillStage stack (Vite, Capacitor, Electron, CI)
 
 ## M1 — Ownership and shell

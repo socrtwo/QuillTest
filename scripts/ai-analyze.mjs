@@ -17,6 +17,7 @@ import { resolve } from 'node:path';
 import { argv, exit } from 'node:process';
 import { analyzeFindings } from '../src/ai/analyze.mjs';
 import { ANALYSIS_MODES } from '../src/ai/providers.mjs';
+import { validateConfig, formatValidation } from '../src/ai/config-schema.mjs';
 
 function parseArgs(args) {
   const out = {};
@@ -46,6 +47,14 @@ if (!existsSync(configPath)) { console.error(`No config at ${configPath} — run
 
 const findings = JSON.parse(readFileSync(findingsPath, 'utf8'));
 const config = JSON.parse(readFileSync(configPath, 'utf8'));
+const cfgCheck = validateConfig(config);
+if (!cfgCheck.ok) {
+  console.error(`Config ${configPath} is not valid:`);
+  console.error(formatValidation(cfgCheck));
+  console.error('Fix it (or re-run scripts/ai-setup-wizard.mjs) before analyzing.');
+  exit(1);
+}
+if (cfgCheck.warnings.length && !args['dry-run']) for (const w of cfgCheck.warnings) console.error(`config warning: ${w}`);
 let stack; if (typeof args.stack === 'string') { try { stack = JSON.parse(args.stack); } catch { console.error('--stack must be JSON'); exit(2); } }
 
 const result = await analyzeFindings(findings, config, {

@@ -41,6 +41,7 @@ import {
   scrubSecrets,
   ANALYSIS_MODES,
 } from '../src/ai/providers.mjs';
+import { validateConfig, formatValidation } from '../src/ai/config-schema.mjs';
 
 const DEFAULT_OUT = resolve(process.cwd(), 'quilltest.ai.json');
 const REQUEST_TIMEOUT_MS = 30_000;
@@ -92,6 +93,7 @@ Selection:
 Actions:
   --test              Test connectivity for every selected provider before saving.
   --test-only         Test the providers in --config (or default) and exit; no save.
+  --validate          Check --config (or default) against the schema and exit; no network.
   --config <path>     Config to read for --test-only (default quilltest.ai.json).
   --out <path>        Where to write config (default quilltest.ai.json).
   --save-key          Write literal keys into the config file (NOT recommended).
@@ -352,6 +354,20 @@ async function main() {
   if (args.help) { printHelp(); return; }
   if (args.list) { listProviders(); return; }
 
+  if (args.validate) {
+    const cfgPath = resolve(process.cwd(), args.config || DEFAULT_OUT);
+    if (!existsSync(cfgPath)) { console.error(c.red(`No config at ${cfgPath}`)); exit(1); }
+    let parsed;
+    try { parsed = JSON.parse(readFileSync(cfgPath, 'utf8')); }
+    catch (e) { console.error(c.red(`${cfgPath} is not valid JSON: ${e.message}`)); exit(1); }
+    const res = validateConfig(parsed, { allowInsecureBase: Boolean(args['allow-insecure-base']) });
+    const report = formatValidation(res);
+    if (report) console.log(report);
+    if (res.ok) console.log(c.green(`\n${cfgPath} is valid${res.warnings.length ? ` (${res.warnings.length} warning(s))` : ''}.`));
+    else console.log(c.red(`\n${cfgPath} is not valid: ${res.errors.length} error(s)${res.warnings.length ? `, ${res.warnings.length} warning(s)` : ''}.`));
+    exit(res.ok ? 0 : 1);
+  }
+
   if (args['test-only']) {
     const cfgPath = resolve(process.cwd(), args.config || DEFAULT_OUT);
     if (!existsSync(cfgPath)) { console.error(c.red(`No config at ${cfgPath}`)); exit(1); }
@@ -420,6 +436,10 @@ async function main() {
   const fresh = buildMultiConfig(selections.map((s) => ({ ...s, saveKey })), { mode, allowInsecure: preset.allowInsecure });
   const merged = mergeIntoExisting(outPath, fresh);
   writeConfig(outPath, merged);
+
+  const check = validateConfig(merged, { allowInsecureBase: preset.allowInsecure });
+  if (!check.ok) { console.log(c.red('\nWrote a config that does not validate:')); console.log(formatValidation(check)); }
+  else if (check.warnings.length) { console.log(c.yellow('\nConfig written with warnings:')); console.log(formatValidation(check)); }
 
   console.log(c.green(`\n✓ Wrote ${outPath}`));
   console.log(`  mode: ${c.bold(merged.analysisMode)}  providers: ${c.bold(merged.activeProviders.join(', '))}`);

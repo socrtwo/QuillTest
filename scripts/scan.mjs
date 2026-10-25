@@ -25,6 +25,7 @@ import { runProtocolScan } from '../src/scan/protocols.mjs';
 import { analyzeFindings } from '../src/ai/analyze.mjs';
 import { generateFixes, TARGETS } from '../src/fix/artifacts.mjs';
 import { renderHtml, renderMarkdown, renderCsv } from '../src/report/render.mjs';
+import { validateConfig, formatValidation } from '../src/ai/config-schema.mjs';
 import { ANALYSIS_MODES } from '../src/ai/providers.mjs';
 
 const c = {
@@ -194,6 +195,13 @@ async function cmdScan() {
       console.log(c.yellow('\n--analyze requested but quilltest.ai.json not found; run scripts/ai-setup-wizard.mjs first. Skipping analysis.'));
     } else {
       const config = JSON.parse(readFileSync(cfgPath, 'utf8'));
+      const cfgCheck = validateConfig(config);
+      if (!cfgCheck.ok) {
+        console.log(c.yellow('\n--analyze requested but quilltest.ai.json is not valid; skipping analysis:'));
+        console.log(formatValidation(cfgCheck));
+        report.analysis = { error: 'config invalid', errors: cfgCheck.errors };
+      } else {
+      for (const w of cfgCheck.warnings) console.log(c.dim(`config warning: ${w}`));
       console.log(c.bold('\nAI analysis'));
       const analysis = await analyzeFindings(report.findings, config, {
         mode: typeof args.mode === 'string' ? args.mode : undefined,
@@ -210,6 +218,7 @@ async function cmdScan() {
       if (cons.length) {
         console.log('  consensus:');
         for (const [id, v] of cons) console.log(`    ${id}: ${v.verdict} (${v.reviewers})${v.meanAttackerPriority != null ? `  attacker-priority≈${v.meanAttackerPriority.toFixed(1)}` : ''}`);
+      }
       }
     }
   }
