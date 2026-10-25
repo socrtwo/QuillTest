@@ -27,7 +27,8 @@
     "test": "node --test",
     "ai:analyze": "node scripts/ai-analyze.mjs",
     "scan": "node scripts/scan.mjs",
-    "fix": "node scripts/fix.mjs"
+    "fix": "node scripts/fix.mjs",
+    "protocols": "node scripts/scan.mjs protocols"
   },
   "keywords": [
     "security",

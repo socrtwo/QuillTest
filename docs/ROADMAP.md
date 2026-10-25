@@ -30,7 +30,7 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 ## M3 — Active engine
 
 - [ ] Active checks (injection, XSS, CSRF, SSRF, XXE, access control, redirects) — detection only, gated on verification
-- [ ] Protocol checks beyond HTTP (FTP, mail, DNS, TLS) — detection only, per-host ownership-gated
+- [x] Protocol checks beyond HTTP (TLS, FTP, mail, DNS) — observation-only, per-host ownership-gated — `src/scan/protocols.mjs`, `scripts/scan.mjs protocols`
 - [ ] Scan profiles and intrusiveness caps
 
 ## M4 — Fix layer

@@ -18,9 +18,10 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { argv, exit } from 'node:process';
-import { issueChallenge, verifyChallenge, isOriginVerified, normalizeOrigin } from '../src/verify/ownership.mjs';
+import { issueChallenge, verifyChallenge, isOriginVerified, isHostVerified, normalizeOrigin } from '../src/verify/ownership.mjs';
 import { createStore } from '../src/verify/store.mjs';
 import { runPassiveScan, sortFindings } from '../src/scan/passive.mjs';
+import { runProtocolScan } from '../src/scan/protocols.mjs';
 import { analyzeFindings } from '../src/ai/analyze.mjs';
 import { generateFixes, TARGETS } from '../src/fix/artifacts.mjs';
 import { ANALYSIS_MODES } from '../src/ai/providers.mjs';
@@ -60,8 +61,15 @@ function usage(code = 0) {
       --online-cve        Also query OSV.dev for advisories on fingerprinted libraries (off by default; offline otherwise).
       --fixes             Generate ready-to-review fix files (server header block, derived CSP, cookie settings).
       --target <t>        Force the fix target: nginx | apache | caddy | iis | express | netlify | generic.
+      --protocols         Also run the non-HTTP protocol checks against the host (see below).
       --store <dir>       Verification store directory (default scans/verify).
       --ttl-hours <n>     Challenge lifetime for 'verify issue' (default 24).
+  protocols <host>        Check the host's other services (TLS, FTP, SMTP, IMAP, POP3, DNS) for
+                          misconfigurations. Observation-only: reads banners and capability
+                          handshakes, never attempts a login, relay, or zone transfer. Needs a
+                          verification record for the host (any origin on it).
+      --which <list>      Comma-separated subset: tls,ftp,smtp,imap,pop3,dns (default all).
+      --out <file>        Write the JSON report.
 
 An origin is scheme://host[:port]. Each origin (and each port) needs its own verification.`);
   exit(code);
@@ -143,6 +151,17 @@ async function cmdScan() {
     onlineCve: Boolean(args['online-cve']),
   });
   report.verification = { method: gate.record.method, verifiedAt: gate.record.verifiedAt, expires: gate.record.expires };
+
+  // Optional: fold in the non-HTTP protocol checks for the same host.
+  if (args.protocols) {
+    const host = new URL(origin).hostname;
+    const proto = await runProtocolScan(host);
+    report.protocols = { host, services: proto.services, findings: proto.findings };
+    const n = report.findings.length;
+    proto.findings.forEach((f, i) => report.findings.push({ id: `P-${String(i + 1).padStart(3, '0')}`, ...f }));
+    console.log(c.dim(`protocol checks on ${host}: ${proto.findings.length} finding(s) across ${proto.services.filter((s) => s.present).length} service(s)`));
+  }
+
   report.findings = sortFindings(report.findings);
 
   console.log(c.dim(`stack: ${report.stack.summary}`));
@@ -208,9 +227,45 @@ async function cmdScan() {
   }
 }
 
+async function cmdProtocols() {
+  const hostArg = args._[1];
+  if (!hostArg) usage(2);
+  // Accept a bare host or a URL; reduce a URL to its hostname.
+  let host = hostArg;
+  try { if (/:\/\//.test(hostArg)) host = new URL(hostArg).hostname; } catch { /* use as-is */ }
+
+  const gate = isHostVerified(store.loadVerified(), host);
+  if (!gate.ok) {
+    console.error(c.red('Refusing to check: ') + gate.error);
+    console.error(c.dim('QuillTest only checks hosts you have proven you control. See docs/OWNERSHIP-VERIFICATION.md.'));
+    exit(3);
+  }
+
+  const which = typeof args.which === 'string' ? args.which.split(',').map((s) => s.trim()).filter(Boolean) : undefined;
+  console.log(c.bold(`\nQuillTest protocol checks — ${gate.host}`));
+  console.log(c.dim(`ownership verified via ${gate.record.method} on ${gate.record.verifiedAt}`));
+  const report = await runProtocolScan(gate.host, { which });
+  const present = report.services.filter((s) => s.present);
+  console.log(c.dim(`services present: ${present.map((s) => `${s.service}:${s.port}`).join(', ') || '(none reachable)'} · ${report.findings.length} finding(s)\n`));
+  for (const f of sortFindings(report.findings)) {
+    const col = SEV_COLOR[f.severity] || ((s) => s);
+    console.log(`${col(f.severity.padEnd(8))} ${f.checkId}  ${f.title}`);
+    console.log(c.dim(`         ${f.location}`));
+    console.log(c.dim(`         fix: ${f.remediation.split('\n')[0]}`));
+  }
+
+  const outPath = typeof args.out === 'string'
+    ? resolve(process.cwd(), args.out)
+    : resolve(process.cwd(), 'scans', gate.host.replace(/[^a-z0-9.-]/gi, '_'), `protocols-${report.startedAt.replace(/[:.]/g, '-')}.json`);
+  mkdirSync(resolve(outPath, '..'), { recursive: true });
+  writeFileSync(outPath, JSON.stringify(report, null, 2) + '\n', { mode: 0o600 });
+  console.log(c.dim(`\nReport written to ${outPath}`));
+}
+
 try {
   if (args._[0] === 'verify') await cmdVerify();
   else if (args._[0] === 'scan') await cmdScan();
+  else if (args._[0] === 'protocols') await cmdProtocols();
   else usage(2);
 } catch (e) {
   console.error(c.red('Error: ' + (e?.message || e)));

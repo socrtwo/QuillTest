@@ -33,4 +33,16 @@ Each protocol finding carries a mapped fix the same way web findings do (see [FI
 
 ## Status
 
-Planning. The web transport and header checks are the first to be implemented; the broader protocol set is specified here and not yet built.
+Implemented in `src/scan/protocols.mjs`, run with `scripts/scan.mjs protocols <host>` (or `scan <origin> --protocols`). It is **observation-only**: it opens each service on its standard port and reads what the service advertises — the TLS certificate and protocol, and the capability handshakes every ordinary client issues (`FEAT`, `EHLO`, `CAPABILITY`, `CAPA`), each followed by a clean `QUIT`/`LOGOUT`. It never sends credentials, never attempts a login, never issues `MAIL`/`RCPT`/`DATA`, never requests a zone transfer, and never writes anything. A verified end-to-end test confirms the only bytes that reach a real FTP/SMTP server are those capability verbs.
+
+Checks:
+
+- **TLS** (on 443/465/993/995/990): expired or soon-to-expire certificate, self-signed or untrusted chain, hostname mismatch, legacy protocol (TLS 1.0/1.1) still accepted, weak key.
+- **FTP** (21): no `AUTH TLS` advertised → plaintext credentials (`ftp.plaintext`); version banner disclosure. Anonymous access is surfaced as a **manual verification item** (`ftp.anonymous-manual`), not tested.
+- **SMTP** (25, 587): no STARTTLS (`smtp.no-starttls`); AUTH offered on a cleartext connection (`smtp.auth-before-tls`). Open-relay status is a **manual verification item** (`smtp.open-relay-manual`), not probed.
+- **IMAP** (143) / **POP3** (110): STARTTLS/STLS not offered; plaintext login not disabled before TLS.
+- **DNS** (resolver lookups only): missing or `+all` SPF, missing or `p=none` DMARC, missing CAA, missing DNSSEC delegation.
+
+Each finding carries a concrete remediation. Weaknesses that require an action to confirm are reported as manual items rather than performed, by design.
+
+The gate: protocol checks need a verification record for the **host** (`isHostVerified`); proving control of any origin on a host — `https://example.com` — authorizes checking that host's services. An unverified host exits with code 3; there is no override.

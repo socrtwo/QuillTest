@@ -255,3 +255,19 @@ export function isOriginVerified(records, originInput, now = new Date()) {
   if (isExpired(rec, now)) return { ok: false, origin, error: `Ownership verification for ${origin} expired at ${rec.expires}. Issue and verify a new challenge.` };
   return { ok: true, origin, record: rec };
 }
+
+/**
+ * The protocol-scan gate. Protocol checks target a host, not a web origin, so
+ * any unexpired verification record whose origin's hostname equals this host
+ * (http or https, any port) authorizes checking that host's services. Proving
+ * control of https://example.com is proof of control of the host example.com.
+ */
+export function isHostVerified(records, hostInput, now = new Date()) {
+  const host = String(hostInput || '').trim().toLowerCase().replace(/^\[|\]$/g, '');
+  if (!host || /[/\\\s]/.test(host)) return { ok: false, host, error: `Invalid host: ${hostInput}` };
+  const matches = (records || []).filter((r) => { try { return hostOf(r.origin).toLowerCase() === host; } catch { return false; } });
+  if (!matches.length) return { ok: false, host, error: `No ownership verification on file for host ${host}. Run: quilltest verify issue https://${host}` };
+  const valid = matches.find((r) => !isExpired(r, now));
+  if (!valid) return { ok: false, host, error: `Ownership verification for ${host} has expired. Issue and verify a new challenge.` };
+  return { ok: true, host, record: valid };
+}

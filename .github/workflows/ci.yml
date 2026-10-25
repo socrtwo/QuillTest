@@ -43,6 +43,9 @@ jobs:
           code=$?
           set -e
           test "$code" -eq 3
+      - name: Protocols gate refuses an unverified host (exit 3)
+        run: |
+          set +e; node scripts/scan.mjs protocols example.com --store /tmp/qt-empty2 >/dev/null 2>&1; code=$?; set -e; test "$code" -eq 3
       - name: No literal secrets committed
         run: |
           # The example config and sample findings must never carry real-looking keys.

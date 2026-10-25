@@ -4,7 +4,7 @@
 
 **Quill Test** (repository `QuillTest`) is an original, open-source web application security **testing and fixing** tool for Windows, macOS, Linux, ChromeOS and the web. It tests a target website for known classes of security flaws and uses AI, through the major provider APIs, to reason about the vulnerabilities an attacker — including an AI-assisted one — would look for, then helps you **fix** them with concrete, mapped remediations. It does not exploit anything. Its goal is the same as the rest of the Quill suite: **no missing commands**. It provides the familiar office-suite workflow plus the best ideas from current and former web security scanners.
 
-> **Status: early, runnable.** Implemented today: the ownership-verification gate, a same-origin crawler, a site-wide passive scan engine (headers, transport, cookies, CORS, disclosure, mixed content, forms, SRI, exposed files — each finding with a concrete fix), stack fingerprinting with EOL/CVE assessment, fix-artifact generation (server header blocks, a crawl-derived CSP, cookie settings), the multi-provider AI setup wizard, and the AI analysis layer with cross-provider consensus. Not yet implemented: active checks, the broader protocol checks, applyable patches, and the desktop/mobile shell. The pipeline below runs end-to-end from the command line.
+> **Status: early, runnable.** Implemented today: the ownership-verification gate, a same-origin crawler, a site-wide passive scan engine (headers, transport, cookies, CORS, disclosure, mixed content, forms, SRI, exposed files — each finding with a concrete fix), stack fingerprinting with EOL/CVE assessment, fix-artifact generation (server header blocks, a crawl-derived CSP, cookie settings), the multi-provider AI setup wizard, and the AI analysis layer with cross-provider consensus. Not yet implemented: active checks (injection/XSS detection), applyable patches, and the desktop/mobile shell. The pipeline below runs end-to-end from the command line.
 
 ## Scope and ethics — read first
 
@@ -28,6 +28,17 @@ See [docs/LEGAL.md](docs/LEGAL.md) and [docs/ETHICS.md](docs/ETHICS.md).
 - **Test a copy of your own site.** Point QuillTest at a staging mirror of a site you have verified you own (or let it capture a bounded same-origin snapshot), so production is never stressed and several AI reviewers can work a stable snapshot in parallel. Same non-destructive check set — just run against a disposable copy. See [docs/STAGING-MIRROR.md](docs/STAGING-MIRROR.md).
 - **More than HTTP.** On hosts you have verified you own, QuillTest also checks FTP, mail (SMTP/IMAP/POP3), DNS, and TLS for known weaknesses — plaintext where encryption should be, anonymous access, outdated vulnerable versions, missing SPF/DKIM/DMARC, public zone transfer. Detection only: no credential guessing, no exploitation. See [docs/PROTOCOLS.md](docs/PROTOCOLS.md).
 - **Original ideas.** An attacker's-eye priority queue, a findings diff across scans, a plain-language remediation writer, a false-positive learning loop, scan-as-you-configure preview, and export-ready review packages. See [docs/INNOVATIONS.md](docs/INNOVATIONS.md).
+
+## Checking other protocols
+
+A host usually runs more than its web app. After verifying a host you can check its other services — observation-only, and gated the same way:
+
+```bash
+node scripts/scan.mjs protocols example.com            # TLS, FTP, SMTP, IMAP, POP3, DNS
+node scripts/scan.mjs scan https://example.com --protocols   # fold them into a web scan
+```
+
+It reads the TLS certificate and the capability handshakes servers advertise (`FEAT`, `EHLO`, `CAPABILITY`, `CAPA`) to find plaintext FTP/mail, missing STARTTLS, AUTH before TLS, expired or mismatched certificates, weak SPF/DMARC, and missing CAA/DNSSEC. It never sends credentials, attempts a login, relays mail, or requests a zone transfer; anonymous-FTP and open-relay status are flagged as manual checks rather than performed.
 
 ## Running a scan
 
