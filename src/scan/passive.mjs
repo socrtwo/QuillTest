@@ -1,6 +1,6 @@
 /*
- * QuillTest — passive scan engine
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — passive scan engine
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * Observation-only checks over an origin the operator has verified they own
  * (the gate lives in scripts/scan.mjs and src/verify/). The engine:

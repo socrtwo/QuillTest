@@ -1,6 +1,6 @@
 # AI setup wizard
 
-QuillTest uses AI only as an optional analysis layer, and it is bring-your-own-model. The setup wizard configures **which providers** QuillTest consults (one or many), which model and endpoint each uses, how they are consulted (sequential or concurrent), stores the credentials locally, and runs a connectivity test against each. It exists in two forms that share one provider registry.
+Anne's Test uses AI only as an optional analysis layer, and it is bring-your-own-model. The setup wizard configures **which providers** Anne's Test consults (one or many), which model and endpoint each uses, how they are consulted (sequential or concurrent), stores the credentials locally, and runs a connectivity test against each. It exists in two forms that share one provider registry.
 
 ## Running it
 
@@ -76,7 +76,7 @@ Credentials travel as headers in every case: `Authorization: Bearer` (OpenAI-sty
 ```
 
 - `analysisMode` is `sequential` or `concurrent` (see [AI.md](AI.md)).
-- `activeProviders` is the ordered set QuillTest consults; `active` is kept as a backward-compatible pointer to the first one.
+- `activeProviders` is the ordered set Anne's Test consults; `active` is kept as a backward-compatible pointer to the first one.
 - Version 1 configs (single `active` provider, no `activeProviders`/`analysisMode`) are still read: the wizard and the `--test-only` path normalize them to a one-provider, sequential config.
 
 By default the wizard stores a **reference to an environment variable** (`apiKeyEnv`), not the key itself, so secrets never land in the file. Pass `--save-key` (CLI) or tick "store keys in this browser" (browser) only if you accept the keys being written to disk / localStorage. The CLI writes the file with mode `0600`. Re-running the wizard merges into the existing file and leaves other providers' entries, including any key they stored with `--save-key`, untouched. The `.gitignore` excludes `quilltest.ai.json`.

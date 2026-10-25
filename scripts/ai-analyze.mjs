@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /*
- * QuillTest — run the AI analysis layer over a findings file
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — run the AI analysis layer over a findings file
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  *   node scripts/ai-analyze.mjs --findings examples/findings.sample.json --dry-run
  *   node scripts/ai-analyze.mjs --findings scans/last/findings.json --mode concurrent
  *   node scripts/ai-analyze.mjs --findings f.json --config quilltest.ai.json --out analysis.json
  *
- * The findings file is a JSON array of QuillTest finding records (see
+ * The findings file is a JSON array of Anne's Test finding records (see
  * examples/findings.sample.json). Providers come from quilltest.ai.json, as
  * written by scripts/ai-setup-wizard.mjs. --dry-run prints the exact, redacted
  * requests that would be sent and sends nothing; it needs no API keys.

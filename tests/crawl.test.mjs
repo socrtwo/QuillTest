@@ -1,5 +1,5 @@
 /*
- * QuillTest — crawler, fingerprint, and site-wide passive scan tests (offline)
+ * Anne's Test — crawler, fingerprint, and site-wide passive scan tests (offline)
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -59,7 +59,7 @@ test('HTML extraction: links (incl. base href, canonical), forms with CSRF/passw
 });
 
 test('robots.txt: group selection, longest-match precedence, wildcards, sitemap lines', () => {
-  const txt = 'User-agent: *\nDisallow: /private/\nDisallow: /tmp*\nAllow: /private/public\nSitemap: https://s.test/sm.xml\n\nUser-agent: QuillTest\nDisallow: /only-for-us\n';
+  const txt = 'User-agent: *\nDisallow: /private/\nDisallow: /tmp*\nAllow: /private/public\nSitemap: https://s.test/sm.xml\n\nUser-agent: Anne\'s Test\nDisallow: /only-for-us\n';
   const star = parseRobots(txt, 'SomethingElse/1.0');
   assert.equal(robotsAllows(star.rules, '/private/x'), false);
   assert.equal(robotsAllows(star.rules, '/private/public/y'), true, 'longer Allow wins over shorter Disallow');

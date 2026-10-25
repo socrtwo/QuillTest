@@ -2,7 +2,7 @@
 
 Checks are data, registered against ids, same as commands. Each check declares: id, category (OWASP/CWE), severity default, whether it is passive or active, how intrusive it is, and the remediation it maps to (see [FIXES.md](FIXES.md)). Active checks run only after ownership verification ([OWNERSHIP-VERIFICATION.md](OWNERSHIP-VERIFICATION.md)) and never go beyond the least-intrusive probe that proves the finding.
 
-All detection is non-destructive: QuillTest confirms a flaw exists, it does not exploit it, pivot, or alter data.
+All detection is non-destructive: Anne's Test confirms a flaw exists, it does not exploit it, pivot, or alter data.
 
 ## Passive checks (observation only)
 
@@ -37,7 +37,7 @@ Each finding gets a severity (informational → critical) and a confidence (tent
 
 ## Beyond HTTP
 
-A host usually exposes more than its web app. QuillTest also checks FTP, mail, DNS, and TLS on hosts you have verified you own — detection only, no credential guessing or exploitation. Those checks and their guardrails are specified in [PROTOCOLS.md](PROTOCOLS.md).
+A host usually exposes more than its web app. Anne's Test also checks FTP, mail, DNS, and TLS on hosts you have verified you own — detection only, no credential guessing or exploitation. Those checks and their guardrails are specified in [PROTOCOLS.md](PROTOCOLS.md).
 
 ## Standards alignment
 

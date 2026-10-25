@@ -1,13 +1,13 @@
-# AI in QuillTest
+# AI in Anne's Test
 
-AI is an **optional analysis layer**, not the scanner. QuillTest's checks find the evidence; the AI, when configured, helps you make sense of it and fix it faster. Everything works with the AI turned off — you just lose the triage, plain-language explanations, and drafted summaries.
+AI is an **optional analysis layer**, not the scanner. Anne's Test's checks find the evidence; the AI, when configured, helps you make sense of it and fix it faster. Everything works with the AI turned off — you just lose the triage, plain-language explanations, and drafted summaries.
 
 ## What the AI does
 
 - **Triage and dedupe.** Collapse near-duplicate findings, group by root cause.
-- **Prioritize.** Rank findings by likely exploitability and blast radius, so you fix the worst first — an "attacker's-eye" ordering of QuillTest's own results.
+- **Prioritize.** Rank findings by likely exploitability and blast radius, so you fix the worst first — an "attacker's-eye" ordering of Anne's Test's own results.
 - **Explain.** Turn a terse finding into a plain-language description of the flaw, its impact, and the CWE/OWASP mapping.
-- **Draft remediations.** Tailor the fix (see [FIXES.md](FIXES.md)) to the exact server/framework QuillTest fingerprinted.
+- **Draft remediations.** Tailor the fix (see [FIXES.md](FIXES.md)) to the exact server/framework Anne's Test fingerprinted.
 - **Summarize.** Write the executive summary and the per-finding narrative for the report.
 - **Flag false positives.** Judge whether observed evidence really supports a finding and mark low-confidence ones for review.
 
@@ -25,7 +25,7 @@ The analysis layer (`src/ai/analyze.mjs`) sends the model: the finding records (
 - **Secret scrubbing.** `Authorization`, `Cookie`/`Set-Cookie`, `X-API-Key`, and any header whose name contains *token*, *secret*, *session*, *password*, or *credential* is redacted; so are `token=`, `key=`, `session=`, `password=` and similar query/body parameters; so are key-shaped strings (`sk-…`, `AIza…`, `Bearer …`). You can pass extra exact strings that must never be sent (the ownership token, say).
 - **Size caps.** Each evidence field is capped at 2,000 characters and the whole payload at 60,000; trailing findings are dropped rather than sending truncated JSON.
 - **Prompt injection defense.** The system prompt tells the model that everything inside the findings is untrusted target data, never instructions.
-- **Output filter.** A reply containing payload-shaped lines (`<script>`, `UNION SELECT`, `' OR 1=1`, path traversal, shell paths, JNDI, …) has those lines removed and the result is flagged `filtered`, so a misbehaving model cannot turn QuillTest into a relay for attack strings.
+- **Output filter.** A reply containing payload-shaped lines (`<script>`, `UNION SELECT`, `' OR 1=1`, path traversal, shell paths, JNDI, …) has those lines removed and the result is flagged `filtered`, so a misbehaving model cannot turn Anne's Test into a relay for attack strings.
 
 Run `node scripts/ai-analyze.mjs --findings <file> --dry-run` to see the exact, redacted requests that would be sent; it needs no API keys.
 
@@ -54,14 +54,14 @@ See `examples/findings.sample.json`. The model returns, per finding: `falsePosit
 
 ## Several-AI mode
 
-You may enable any number of providers in the setup wizard and have QuillTest consult each of them over the same findings. Two consultation modes:
+You may enable any number of providers in the setup wizard and have Anne's Test consult each of them over the same findings. Two consultation modes:
 
 - **Sequential** (default) — consult each enabled provider one after another, in the order you selected them. Gentle on rate limits, and a later model can see earlier models' notes. Default for scans against live production.
 - **Concurrent** — consult all enabled providers at once. Faster, and the natural pairing for the staging-mirror scan mode ([STAGING-MIRROR.md](STAGING-MIRROR.md)), where there is a stable snapshot for several reviewers to look at simultaneously.
 
-In both modes the models receive the **same** input — QuillTest's findings and the observed responses — and return their analysis. None of them runs the scan, and none is asked to produce attack payloads; the mode only changes the order and parallelism of the reviews.
+In both modes the models receive the **same** input — Anne's Test's findings and the observed responses — and return their analysis. None of them runs the scan, and none is asked to produce attack payloads; the mode only changes the order and parallelism of the reviews.
 
-Divergence across providers is a useful signal: findings all enabled models agree are real get surfaced first; ones they disagree on are flagged for human review. This is also how QuillTest reasons about "what another AI might notice" — by actually asking several and comparing. Adding a provider is one entry in the registry and one checkbox in the wizard, so the set of reviewers is open-ended.
+Divergence across providers is a useful signal: findings all enabled models agree are real get surfaced first; ones they disagree on are flagged for human review. This is also how Anne's Test reasons about "what another AI might notice" — by actually asking several and comparing. Adding a provider is one entry in the registry and one checkbox in the wizard, so the set of reviewers is open-ended.
 
 The analysis layer computes a per-finding **consensus** from the replies: `real` (every reviewer says it is not a false positive), `false-positive` (every reviewer says it is), `split` (they disagree — review by hand), or `unreviewed` (no reviewer returned a verdict), along with the mean `attackerPriority` across reviewers so the fix list can be ordered by what an attacker would reach first.
 

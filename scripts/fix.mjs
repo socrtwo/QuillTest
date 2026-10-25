@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
- * QuillTest — generate fix artifacts from a scan report
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — generate fix artifacts from a scan report
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  *   node scripts/fix.mjs --report scans/<host>/<timestamp>.json
  *   node scripts/fix.mjs --report r.json --target apache          # force a server

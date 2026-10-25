@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /*
- * QuillTest — AI setup wizard (CLI)
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — AI setup wizard (CLI)
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
- * Configures which AI provider(s) QuillTest's optional analysis layer consults,
+ * Configures which AI provider(s) Anne's Test's optional analysis layer consults,
  * tests each one, and writes quilltest.ai.json (git-ignored).
  *
  * Several providers can be enabled at once. The analysis layer then consults
  * them either one after another ("sequential") or all at once ("concurrent").
- * In both modes the providers analyze QuillTest's own findings and observed
+ * In both modes the providers analyze Anne's Test's own findings and observed
  * responses; they do not run the scan and never emit attack payloads.
  *
  * No third-party dependencies. Node 18+ (global fetch, readline/promises).
@@ -75,7 +75,7 @@ const c = {
 };
 
 function printHelp() {
-  console.log(`${c.bold('QuillTest AI setup wizard')}
+  console.log(`${c.bold('Anne\'s Test AI setup wizard')}
 
 Usage:
   node scripts/ai-setup-wizard.mjs [options]
@@ -138,7 +138,7 @@ async function runInteractive(rl, preset) {
   if (preset.providerIds.length) {
     chosen = preset.providerIds.map(getProvider).filter(Boolean);
   } else {
-    console.log(c.bold('\nSelect AI providers (QuillTest can consult several):\n'));
+    console.log(c.bold('\nSelect AI providers (Anne\'s Test can consult several):\n'));
     PROVIDERS.forEach((p, i) => {
       console.log(`  ${String(i + 1).padStart(2)}. ${p.label} ${c.dim('(' + p.id + ')')}`);
     });

@@ -2,7 +2,7 @@
   "name": "quilltest",
   "version": "0.0.0",
   "private": true,
-  "description": "QuillTest — open-source web application security testing and fixing tool, part of the Quill suite. Planning stage; ships a runnable AI-provider setup wizard.",
+  "description": "Anne's Test — open-source web application security testing and fixing tool, part of the Anne's Office suite. Planning stage; ships a runnable AI-provider setup wizard.",
   "type": "module",
   "license": "MIT",
   "author": "Paul D Pruitt",
@@ -35,7 +35,7 @@
     "vulnerability-scanner",
     "web-security",
     "owasp",
-    "quill-suite",
+    "annes-office-suite",
     "ai"
   ]
 }

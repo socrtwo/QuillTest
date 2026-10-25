@@ -10,7 +10,7 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 - [x] AI setup wizard — browser (`public/ai-wizard.html`), multi-provider + mode
 - [x] Multi-provider config (v2: `activeProviders`, `analysisMode`) + v1 normalization
 - [ ] Config module + schema validation for `quilltest.ai.json`
-- [ ] Project scaffold matching QuillStage stack (Vite, Capacitor, Electron, CI)
+- [ ] Project scaffold matching Anne's Stage stack (Vite, Capacitor, Electron, CI)
 
 ## M1 — Ownership and shell
 
@@ -49,6 +49,6 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 ## M6 — Report and release
 
 - [ ] Report/export, review packages, findings diff
-- [ ] Cross-platform builds and release workflow (parity with QuillStage)
+- [ ] Cross-platform builds and release workflow (parity with Anne's Stage)
 - [x] SECURITY.md and responsible-disclosure policy
 - [x] CI (GitHub Actions): registry-sync check, syntax, offline tests, keyless dry-run, secret scan

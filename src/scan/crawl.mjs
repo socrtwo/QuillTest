@@ -1,6 +1,6 @@
 /*
- * QuillTest — same-origin crawler
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — same-origin crawler
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * A bounded, polite spider for an origin the operator has verified they own.
  * It exists so the passive checks can see the whole site rather than only the

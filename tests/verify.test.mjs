@@ -1,5 +1,5 @@
 /*
- * QuillTest — ownership verification tests (offline; fetch and DNS are injected)
+ * Anne's Test — ownership verification tests (offline; fetch and DNS are injected)
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

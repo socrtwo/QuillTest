@@ -1,5 +1,5 @@
 /*
- * QuillTest — passive scan engine tests (offline; fetch is injected)
+ * Anne's Test — passive scan engine tests (offline; fetch is injected)
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
