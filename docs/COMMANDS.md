@@ -31,3 +31,9 @@ node scripts/targets.mjs remove https://example.com
 ```
 
 When `scripts/scan.mjs` or `scripts/mirror.mjs` scans an origin that is already a tracked target, it records the outcome (timestamp, finding counts by severity, report path) on that target, so `targets list` reflects the latest result. Re-adding an existing origin merges the new label/note and unions tags; it never duplicates. The store is one JSON file under `scans/` (git-ignored), written mode `0600`.
+
+## Web shell
+
+`public/shell.html` is a self-contained, build-free shell rendered from the registry: a ribbon (group tabs and command buttons), a quick-access bar with pinnable commands, and an Alt+Q (or Cmd/Ctrl-K) command palette whose search mirrors `searchCommands`. Open it via `file://` or any static server. It is dark-mode aware and keeps your pinned commands in `localStorage`.
+
+This shell is a command launcher and reference: selecting a command shows what it does and the exact CLI line to run it, which you can copy. Executing a scan from the UI belongs to the privileged desktop/mobile build (Electron main / Capacitor native), where the scanner's network calls are not constrained by browser CORS — see [ARCHITECTURE-PLAN.md](ARCHITECTURE-PLAN.md). The inlined command catalogue is kept current by `node scripts/sync-shell-registry.mjs` (a CI check fails if it drifts), the same arrangement as the AI wizard's provider registry.

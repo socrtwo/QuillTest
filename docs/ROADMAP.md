@@ -15,7 +15,7 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 ## M1 — Ownership and shell
 
 - [x] Ownership verification module (file-upload + DNS TXT), the scan gate (`src/verify/`, `scripts/scan.mjs verify`)
-- [~] Command registry (commands are data) — `src/commands/registry.mjs` with the Alt+Q palette search, CLI face `scripts/commands.mjs`; the ribbon/QAB shell UI awaits the Vite/Electron scaffold (M0)
+- [x] Command registry + minimal ribbon/QAB shell — `src/commands/registry.mjs` (commands as data, Alt+Q palette search), CLI `scripts/commands.mjs`, and a self-contained web shell `public/shell.html` (ribbon, quick-access bar, Alt+Q palette) rendered from the registry. The full Vite/Capacitor/Electron shell remains part of the M0 scaffold.
 - [x] Target management — `src/targets/store.mjs`, `scripts/targets.mjs` (add/list/show/remove with tags/notes, joined with verification status; scans record their outcome on a tracked target)
 - [x] Staging-mirror capture/serve pipeline — `src/scan/mirror.mjs`, `scripts/mirror.mjs` (capture a bounded own-site snapshot, serve it on loopback, scan the copy offline with real-origin findings)
 

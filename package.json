@@ -28,6 +28,7 @@
     "ai:setup": "node scripts/ai-setup-wizard.mjs",
     "ai:list": "node scripts/ai-setup-wizard.mjs --list",
     "ai:sync-browser": "node scripts/sync-browser-registry.mjs",
+    "shell:sync": "node scripts/sync-shell-registry.mjs",
     "test": "node --test",
     "ai:analyze": "node scripts/ai-analyze.mjs",
     "scan": "node scripts/scan.mjs",

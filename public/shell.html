@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QuillTest — Shell</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1b1e; --muted: #5c6370; --border: #d7dbe0;
+    --accent: #2d6cdf; --accent-fg: #ffffff; --card: #f6f8fa; --code: #eef1f4;
+    --ribbon: #f0f3f7; --sev-high: #c4314b; --sev-med: #b26a00; --ok: #1a7f37;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #16181d; --fg: #e6e8eb; --muted: #9aa3af; --border: #2b2f36;
+      --accent: #5b8cff; --accent-fg: #0d1117; --card: #1c1f26; --code: #20242c;
+      --ribbon: #1b1e24; --sev-high: #ff7b72; --sev-med: #ffb74d; --ok: #3fb950;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #16181d; --fg: #e6e8eb; --muted: #9aa3af; --border: #2b2f36;
+    --accent: #5b8cff; --accent-fg: #0d1117; --card: #1c1f26; --code: #20242c;
+    --ribbon: #1b1e24; --sev-high: #ff7b72; --sev-med: #ffb74d; --ok: #3fb950;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+  /* Quick-access bar */
+  .qab { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--ribbon); border-bottom: 1px solid var(--border); }
+  .qab .brand { font-weight: 700; letter-spacing: .2px; }
+  .qab .brand b { color: var(--accent); }
+  .qab .pins { display: flex; gap: 4px; flex-wrap: wrap; }
+  .qab .spacer { flex: 1; }
+  .qab .search-hint { font-size: 12px; color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; cursor: pointer; background: var(--bg); }
+  .qab .search-hint kbd { font: inherit; background: var(--code); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; }
+
+  /* Ribbon */
+  .tabs { display: flex; gap: 2px; padding: 0 12px; background: var(--ribbon); border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .tabs button { appearance: none; border: 0; background: transparent; color: var(--muted); padding: 9px 14px; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+  .tabs button.active { color: var(--fg); border-bottom-color: var(--accent); font-weight: 600; }
+  .ribbon { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px; background: var(--card); border-bottom: 1px solid var(--border); min-height: 72px; }
+  .cmd { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 150px; max-width: 220px;
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: var(--bg); color: var(--fg); cursor: pointer; text-align: left; }
+  .cmd:hover, .cmd:focus { border-color: var(--accent); outline: none; }
+  .cmd .t { font-weight: 600; font-size: 13px; }
+  .cmd .s { font-size: 11.5px; color: var(--muted); }
+  .pin-btn { font-size: 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--fg); padding: 4px 8px; cursor: pointer; }
+  .pin-btn.on { border-color: var(--accent); color: var(--accent); }
+
+  /* Detail panel */
+  main { display: grid; grid-template-columns: 1fr; gap: 0; }
+  .panel { padding: 16px; }
+  .panel .empty { color: var(--muted); }
+  .panel h2 { font-size: 16px; margin: 0 0 2px; }
+  .panel .meta { font-size: 12.5px; color: var(--muted); margin-bottom: 10px; }
+  .panel .tag { display: inline-block; font-size: 11px; border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px; margin: 0 4px 4px 0; color: var(--muted); }
+  .panel pre { background: var(--code); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; overflow: auto; font-size: 12.5px; }
+  .panel .copy { font-size: 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--fg); padding: 4px 10px; cursor: pointer; }
+  .cond { font-size: 12.5px; color: var(--muted); }
+
+  /* Command palette (Alt+Q) */
+  .palette-bg { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: flex-start; justify-content: center; padding-top: 10vh; z-index: 50; }
+  .palette-bg.open { display: flex; }
+  .palette { width: min(640px, 92vw); background: var(--bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+  .palette input { width: 100%; border: 0; border-bottom: 1px solid var(--border); padding: 14px 16px; font-size: 16px; background: var(--bg); color: var(--fg); }
+  .palette input:focus { outline: none; }
+  .palette ul { list-style: none; margin: 0; padding: 6px; max-height: 50vh; overflow: auto; }
+  .palette li { padding: 8px 10px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; gap: 10px; }
+  .palette li.sel { background: var(--card); }
+  .palette li .pt { font-weight: 600; font-size: 13px; }
+  .palette li .ps { font-size: 11.5px; color: var(--muted); }
+  .palette li .pg { font-size: 11px; color: var(--muted); align-self: center; }
+  .palette .none { padding: 16px; color: var(--muted); }
+  .palette .foot { padding: 8px 12px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--muted); display: flex; gap: 14px; }
+  .palette .foot kbd { background: var(--code); border: 1px solid var(--border); border-radius: 4px; padding: 0 5px; }
+</style>
+</head>
+<body>
+<div class="qab">
+  <span class="brand">Quill<b>Test</b></span>
+  <div class="pins" id="pins"></div>
+  <span class="spacer"></span>
+  <button class="search-hint" id="openPalette">Search commands <kbd>Alt</kbd>+<kbd>Q</kbd></button>
+</div>
+<div class="tabs" id="tabs"></div>
+<div class="ribbon" id="ribbon"></div>
+<main><section class="panel" id="panel"><p class="empty">Select a command from the ribbon, or press <kbd>Alt</kbd>+<kbd>Q</kbd> to search. QuillTest's commands are data; this shell renders the registry. The shell shows how each command runs today via the CLI — scanning itself runs in the privileged desktop/mobile build.</p></section></main>
+
+<div class="palette-bg" id="paletteBg">
+  <div class="palette" role="dialog" aria-label="Command palette">
+    <input id="paletteInput" type="text" placeholder="Search commands…" autocomplete="off" spellcheck="false">
+    <ul id="paletteList"></ul>
+    <div class="foot"><span><kbd>↑</kbd><kbd>↓</kbd> navigate</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div>
+  </div>
+</div>
+
+<script type="module">
+// @commands-start (generated by scripts/sync-shell-registry.mjs — do not edit by hand)
+const GROUPS = ["File","Verify","Targets","Scan","Fix","AI","Report","Help"];
+const CONDITIONS = {
+  "always": "Always available.",
+  "hasTarget": "A target origin must be selected or supplied.",
+  "targetVerified": "The selected target must have a current ownership verification.",
+  "hasReport": "A saved scan report is required.",
+  "aiConfigured": "quilltest.ai.json must exist and validate."
+};
+const COMMANDS = [
+  {
+    "id": "file.help",
+    "title": "Help & documentation",
+    "group": "File",
+    "summary": "Open the docs index.",
+    "keywords": [
+      "docs",
+      "about",
+      "readme"
+    ],
+    "when": "always",
+    "shortcut": null,
+    "cliLine": "README.md"
+  },
+  {
+    "id": "verify.issue",
+    "title": "Issue ownership challenge",
+    "group": "Verify",
+    "summary": "Get the verification file (and DNS TXT alternative) to prove you own an origin.",
+    "keywords": [
+      "prove",
+      "ownership",
+      "challenge",
+      "token",
+      "dns",
+      "well-known"
+    ],
+    "when": "hasTarget",
+    "shortcut": null,
+    "cliLine": "node scripts/scan.mjs verify issue <origin> [--ttl-hours]"
+  },
+  {
+    "id": "verify.check",
+    "title": "Check ownership challenge",
+    "group": "Verify",
+    "summary": "Fetch the uploaded file or TXT record and record the origin as verified.",
+    "keywords": [
+      "confirm",
+      "validate",
+      "ownership",
+      "unlock"
+    ],
+    "when": "hasTarget",
+    "shortcut": null,
+    "cliLine": "node scripts/scan.mjs verify check <origin>"
+  },
+  {
+    "id": "verify.list",
+    "title": "List verified origins",
+    "group": "Verify",
+    "summary": "Show which origins are verified and when each expires.",
+    "keywords": [
+      "status",
+      "expiry",
+      "records"
+    ],
+    "when": "always",
+    "shortcut": null,
+    "cliLine": "node scripts/scan.mjs verify list"
+  },
+  {
+    "id": "target.add",
+    "title": "Add target",
+    "group": "Targets",
+    "summary": "Add an origin to your target list, with optional label and tags.",
+    "keywords": [
+      "site",
+      "origin",
+      "new",
+      "manage"
+    ],
+    "when": "hasTarget",
+    "shortcut": null,
+    "cliLine": "node scripts/targets.mjs add <origin> [--label] [--tag] [--note]"
+  },
+  {
+    "id": "target.list",
+    "title": "List targets",
+    "group": "Targets",
+    "summary": "Show your targets with verification and last-scan status.",
+    "keywords": [
+      "sites",
+      "origins",
+      "manage",
+      "status"
+    ],
+    "when": "always",
+    "shortcut": null,
+    "cliLine": "node scripts/targets.mjs list"
+  },
+  {
+    "id": "target.show",
+    "title": "Show target",
+    "group": "Targets",
+    "summary": "Show one target in detail.",
+    "keywords": [
+      "detail",
+      "info"
+    ],
+    "when": "hasTarget",
+    "shortcut": null,
+    "cliLine": "node scripts/targets.mjs show <origin>"
+  },
+  {
+    "id": "target.remove",
+    "title": "Remove target",
+    "group": "Targets",
+    "summary": "Remove an origin from your target list (does not touch verification).",
+    "keywords": [
+      "delete",
+      "forget"
+    ],
+    "when": "hasTarget",
+    "shortcut": null,
+    "cliLine": "node scripts/targets.mjs remove <origin>"
+  },
+  {
+    "id": "scan.passive",
+    "title": "Passive scan",
+    "group": "Scan",
+    "summary": "Crawl and run the observation-only check set against a verified origin.",
+    "keywords": [
+      "crawl",
+      "headers",
+      "cookies",
+      "cors",
+      "fingerprint",
+      "components"
+    ],
+    "when": "targetVerified",
+    "shortcut": null,
+    "cliLine": "node scripts/scan.mjs scan <origin> [--max-pages] [--max-depth] [--online-cve] [--fixes] [--export]"
+  },
+  {
+    "id": "scan.active",
+    "title": "Active scan (safe profile)",
+    "group": "Scan",
+    "summary": "Add benign, non-state-changing probes: HTTP methods, open redirect, input reflection.",
+    "keywords": [
+      "redirect",
+      "reflection",
+      "trace",
+      "profile",
+      "intrusive"
+    ],
+    "when": "targetVerified",
+    "shortcut": null,
+    "cliLine": "node scripts/scan.mjs scan <origin> --active [--profile] [--max-active-requests]"
+  },
+  {
+    "id": "scan.protocols",
+    "title": "Protocol checks",
+    "group": "Scan",
+    "summary": "Observation-only TLS/FTP/mail/DNS checks for a verified host.",
+    "keywords": [
+      "tls",
+      "ftp",
+      "smtp",
+      "imap",
+      "pop3",
+      "dns",
+      "ssl"
+    ],
+    "when": "targetVerified",
+    "shortcut": null,
+    "cliLine": "node scripts/scan.mjs protocols <host> [--which]"
+  },
+  {
+    "id": "mirror.capture",
+    "title": "Capture staging mirror",
+    "group": "Scan",
+    "summary": "Capture a bounded same-origin snapshot of your verified site.",
+    "keywords": [
+      "mirror",
+      "snapshot",
+      "copy",
+      "staging"
+    ],
+    "when": "targetVerified",
+    "shortcut": null,
+    "cliLine": "node scripts/mirror.mjs capture <origin> [--max-pages] [--max-bytes]"
+  },
+  {
+    "id": "mirror.serve",
+    "title": "Serve staging mirror",
+    "group": "Scan",
+    "summary": "Replay a captured snapshot on a loopback address.",
+    "keywords": [
+      "mirror",
+      "serve",
+      "loopback",
+      "replay"
+    ],
+    "when": "always",
+    "shortcut": null,
+    "cliLine": "node scripts/mirror.mjs serve <dir> [--port]"
+  },
+  {
+    "id": "mirror.scan",
+    "title": "Scan staging mirror",
+    "group": "Scan",
+    "summary": "Scan a captured snapshot offline; findings name the real origin.",
+    "keywords": [
+      "mirror",
+      "offline",
+      "reproducible"
+    ],
+    "when": "targetVerified",
+    "shortcut": null,
+    "cliLine": "node scripts/mirror.mjs scan <origin> [--dir] [--analyze]"
+  },
+  {
+    "id": "fix.artifacts",
+    "title": "Generate fix artifacts",
+    "group": "Fix",
+    "summary": "Server header block, derived CSP, cookie settings and dependency bumps from a report.",
+    "keywords": [
+      "remediation",
+      "headers",
+      "csp",
+      "cookies",
+      "nginx",
+      "apache"
+    ],
+    "when": "hasReport",
+    "shortcut": null,
+    "cliLine": "node scripts/fix.mjs --report <report> [--target] [--all] [--print]"
+  },
+  {
+    "id": "fix.patch",
+    "title": "Generate applyable patch",
+    "group": "Fix",
+    "summary": "Emit a git apply-ready diff that bumps flagged versions in a manifest you provide.",
+    "keywords": [
+      "diff",
+      "package.json",
+      "composer.json",
+      "upgrade",
+      "dependency"
+    ],
+    "when": "hasReport",
+    "shortcut": null,
+    "cliLine": "node scripts/fix.mjs --report <report> --patch <manifest>"
+  },
+  {
+    "id": "ai.setup",
+    "title": "AI setup wizard",
+    "group": "AI",
+    "summary": "Configure providers and analysis mode in quilltest.ai.json.",
+    "keywords": [
+      "providers",
+      "openai",
+      "anthropic",
+      "config",
+      "key"
+    ],
+    "when": "always",
+    "shortcut": null,
+    "cliLine": "node scripts/ai-setup-wizard.mjs [--providers] [--mode] [--test]"
+  },
+  {
+    "id": "ai.validate",
+    "title": "Validate AI config",
+    "group": "AI",
+    "summary": "Check quilltest.ai.json against the schema without touching the network.",
+    "keywords": [
+      "config",
+      "schema",
+      "check",
+      "lint"
+    ],
+    "when": "always",
+    "shortcut": null,
+    "cliLine": "node scripts/ai-setup-wizard.mjs --validate [--config]"
+  },
+  {
+    "id": "ai.analyze",
+    "title": "AI analysis of findings",
+    "group": "AI",
+    "summary": "Have the configured providers triage findings and flag false positives.",
+    "keywords": [
+      "triage",
+      "consensus",
+      "review",
+      "false positive"
+    ],
+    "when": "aiConfigured",
+    "shortcut": null,
+    "cliLine": "node scripts/ai-analyze.mjs --findings <findings> [--mode] [--dry-run]"
+  },
+  {
+    "id": "report.render",
+    "title": "Render report",
+    "group": "Report",
+    "summary": "Render a saved scan as self-contained HTML, Markdown or CSV.",
+    "keywords": [
+      "html",
+      "markdown",
+      "csv",
+      "export",
+      "pdf"
+    ],
+    "when": "hasReport",
+    "shortcut": null,
+    "cliLine": "node scripts/report.mjs --report <report> [--format] [--out]"
+  },
+  {
+    "id": "report.diff",
+    "title": "Diff two scans",
+    "group": "Report",
+    "summary": "Show new / resolved / changed findings between two scans.",
+    "keywords": [
+      "compare",
+      "changes",
+      "delta",
+      "regression"
+    ],
+    "when": "hasReport",
+    "shortcut": null,
+    "cliLine": "node scripts/report.mjs --report <report> --diff <previous>"
+  },
+  {
+    "id": "report.package",
+    "title": "Build review package",
+    "group": "Report",
+    "summary": "Bundle the report, fixes and a SHA-256 manifest for a reviewer.",
+    "keywords": [
+      "bundle",
+      "handover",
+      "manifest",
+      "review"
+    ],
+    "when": "hasReport",
+    "shortcut": null,
+    "cliLine": "node scripts/report.mjs --report <report> --package <dir>"
+  },
+  {
+    "id": "report.verify",
+    "title": "Verify review package",
+    "group": "Report",
+    "summary": "Check a package directory against its manifest.",
+    "keywords": [
+      "integrity",
+      "checksum",
+      "tamper"
+    ],
+    "when": "always",
+    "shortcut": null,
+    "cliLine": "node scripts/report.mjs --verify <dir>"
+  },
+  {
+    "id": "help.docs",
+    "title": "Documentation index",
+    "group": "Help",
+    "summary": "List the docs/ guides.",
+    "keywords": [
+      "help",
+      "guide",
+      "manual"
+    ],
+    "when": "always",
+    "shortcut": null,
+    "cliLine": "docs/"
+  }
+];
+// @commands-end
+
+// --- registry access (mirrors src/commands/registry.mjs ranking) ---
+const byId = new Map(COMMANDS.map((c) => [c.id, c]));
+const norm = (s) => String(s || '').toLowerCase();
+function scoreCommand(cmd, query) {
+  const q = norm(query).trim();
+  if (!q) return 1;
+  const id = norm(cmd.id), title = norm(cmd.title), group = norm(cmd.group);
+  if (id === q) return 100;
+  if (id.startsWith(q) || title.startsWith(q)) return 80;
+  if (new RegExp('\\b' + q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(title)) return 60;
+  if (title.includes(q)) return 50;
+  if (id.includes(q)) return 45;
+  if ((cmd.keywords || []).some((k) => norm(k).includes(q))) return 35;
+  if (group.includes(q)) return 20;
+  const toks = q.split(/\s+/).filter(Boolean);
+  if (toks.length > 1) { const hay = (id + ' ' + title + ' ' + group + ' ' + (cmd.keywords || []).join(' ')).toLowerCase(); if (toks.every((t) => hay.includes(t))) return 30; }
+  return 0;
+}
+function searchCommands(query, limit) {
+  const scored = COMMANDS.map((c) => ({ cmd: c, score: scoreCommand(c, query) })).filter((x) => x.score > 0);
+  scored.sort((a, b) => b.score - a.score || GROUPS.indexOf(a.cmd.group) - GROUPS.indexOf(b.cmd.group) || a.cmd.title.localeCompare(b.cmd.title));
+  const list = scored.map((x) => x.cmd);
+  return typeof limit === 'number' ? list.slice(0, limit) : list;
+}
+
+// --- state ---
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+const DEFAULT_PINS = ['scan.passive', 'scan.active', 'report.render', 'ai.analyze'];
+let activeGroup = (['Scan'].concat(GROUPS)).find((g) => COMMANDS.some((c) => c.group === g)) || GROUPS[0];
+let pins = loadPins();
+
+function loadPins() { try { const v = JSON.parse(localStorage.getItem('qt.shell.pins')); return Array.isArray(v) ? v.filter((id) => byId.has(id)) : DEFAULT_PINS.slice(); } catch { return DEFAULT_PINS.slice(); } }
+function savePins() { try { localStorage.setItem('qt.shell.pins', JSON.stringify(pins)); } catch { /* private mode */ } }
+
+const $ = (id) => document.getElementById(id);
+
+function renderTabs() {
+  const used = GROUPS.filter((g) => COMMANDS.some((c) => c.group === g));
+  $('tabs').innerHTML = used.map((g) => `<button data-group="${esc(g)}" class="${g === activeGroup ? 'active' : ''}">${esc(g)}</button>`).join('');
+  $('tabs').querySelectorAll('button').forEach((b) => b.onclick = () => { activeGroup = b.dataset.group; render(); });
+}
+function renderRibbon() {
+  const cmds = COMMANDS.filter((c) => c.group === activeGroup);
+  $('ribbon').innerHTML = cmds.map((c) => `<button class="cmd" data-id="${esc(c.id)}"><span class="t">${esc(c.title)}</span><span class="s">${esc(c.summary)}</span></button>`).join('');
+  $('ribbon').querySelectorAll('.cmd').forEach((el) => el.onclick = () => selectCommand(el.dataset.id));
+}
+function renderPins() {
+  $('pins').innerHTML = pins.map((id) => { const c = byId.get(id); return c ? `<button class="pin-btn" data-id="${esc(id)}" title="${esc(c.summary)}">${esc(c.title)}</button>` : ''; }).join('');
+  $('pins').querySelectorAll('.pin-btn').forEach((el) => el.onclick = () => selectCommand(el.dataset.id));
+}
+function selectCommand(id) {
+  const c = byId.get(id); if (!c) return;
+  if (c.group !== activeGroup) { activeGroup = c.group; renderTabs(); renderRibbon(); }
+  const pinned = pins.includes(id);
+  $('panel').innerHTML = `
+    <h2>${esc(c.title)}</h2>
+    <div class="meta"><code>${esc(c.id)}</code> · ${esc(c.group)} · <span class="cond">${esc(CONDITIONS[c.when] || c.when)}</span></div>
+    <p>${esc(c.summary)}</p>
+    ${(c.keywords || []).map((k) => `<span class="tag">${esc(k)}</span>`).join('')}
+    ${c.cliLine ? `<h3 style="font-size:13px;margin:14px 0 4px;color:var(--muted)">Run it</h3><pre id="cli">${esc(c.cliLine)}</pre><button class="copy" id="copyCli">Copy</button>` : ''}
+    <button class="pin-btn ${pinned ? 'on' : ''}" id="togglePin" style="margin-left:8px">${pinned ? 'Unpin' : 'Pin to bar'}</button>`;
+  const copy = $('copyCli'); if (copy) copy.onclick = () => { navigator.clipboard?.writeText(c.cliLine); copy.textContent = 'Copied'; setTimeout(() => copy.textContent = 'Copy', 1200); };
+  $('togglePin').onclick = () => { if (pins.includes(id)) pins = pins.filter((x) => x !== id); else pins = [...pins, id]; savePins(); renderPins(); selectCommand(id); };
+}
+function render() { renderTabs(); renderRibbon(); renderPins(); }
+
+// --- palette ---
+let palItems = [], palSel = 0;
+function openPalette() { $('paletteBg').classList.add('open'); $('paletteInput').value = ''; updatePalette(''); $('paletteInput').focus(); }
+function closePalette() { $('paletteBg').classList.remove('open'); }
+function updatePalette(q) {
+  palItems = searchCommands(q, 50); palSel = 0;
+  $('paletteList').innerHTML = palItems.length
+    ? palItems.map((c, i) => `<li data-i="${i}" class="${i === 0 ? 'sel' : ''}"><span><span class="pt">${esc(c.title)}</span> <span class="ps">${esc(c.id)}</span></span><span class="pg">${esc(c.group)}</span></li>`).join('')
+    : `<div class="none">No command matches “${esc(q)}”.</div>`;
+  $('paletteList').querySelectorAll('li').forEach((li) => { li.onclick = () => { choose(Number(li.dataset.i)); }; });
+}
+function moveSel(d) { if (!palItems.length) return; palSel = (palSel + d + palItems.length) % palItems.length; $('paletteList').querySelectorAll('li').forEach((li, i) => li.classList.toggle('sel', i === palSel)); const el = $('paletteList').querySelector('li.sel'); el?.scrollIntoView({ block: 'nearest' }); }
+function choose(i) { const c = palItems[i]; if (!c) return; closePalette(); selectCommand(c.id); }
+
+$('openPalette').onclick = openPalette;
+$('paletteBg').onclick = (e) => { if (e.target === $('paletteBg')) closePalette(); };
+$('paletteInput').addEventListener('input', (e) => updatePalette(e.target.value));
+$('paletteInput').addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowDown') { e.preventDefault(); moveSel(1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); moveSel(-1); }
+  else if (e.key === 'Enter') { e.preventDefault(); choose(palSel); }
+  else if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
+});
+window.addEventListener('keydown', (e) => {
+  if ((e.altKey && (e.key === 'q' || e.key === 'Q')) || (e.key === 'k' && (e.metaKey || e.ctrlKey))) { e.preventDefault(); openPalette(); }
+});
+
+render();
+</script>
+</body>
+</html>

@@ -50,6 +50,8 @@ jobs:
         run: node --test tests/mirror.test.mjs
       - name: Command registry is well-formed
         run: node scripts/commands.mjs --validate
+      - name: Browser shell is in sync with the command registry
+        run: node scripts/sync-shell-registry.mjs --check
       - name: Dependency patch applies cleanly with git apply
         run: |
           printf '{\n  "dependencies": {\n    "jquery": "^1.12.4"\n  }\n}\n' > /tmp/package.json
