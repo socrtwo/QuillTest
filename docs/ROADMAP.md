@@ -36,7 +36,7 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 ## M4 — Fix layer
 
 - [x] Artifact generators: server header blocks (nginx/Apache/Caddy/IIS/Express/Netlify), crawl-derived CSP, framework cookie settings — `src/fix/artifacts.mjs`, `scripts/fix.mjs`, `scan --fixes`
-- [ ] Dependency-bump artifacts (package manifests) for fingerprinted libraries
+- [x] Dependency-bump artifacts for fingerprinted components: package.json / composer.json fragments, replacement CDN tags, upgrade commands, per-component summary — `src/fix/dependencies.mjs` (emitted by `generateFixes`)
 - [ ] Applyable patch/diff generation for provided or verified artifacts
 
 ## M5 — AI analysis

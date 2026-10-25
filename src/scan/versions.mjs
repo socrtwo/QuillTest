@@ -164,7 +164,7 @@ export function assessVersions(fp, { location } = {}) {
     const v = comp.version;
     if (compareVersions(v, '0') === null) continue;
     const base = { component: comp.name, version: v, location: location || null };
-    const evidenceBase = { snippet: `${comp.name} ${v} — detected from: ${comp.evidence.join('; ')}` };
+    const evidenceBase = { component: comp.name, version: v, snippet: `${comp.name} ${v} — detected from: ${comp.evidence.join('; ')}` };
 
     const eol = k.eol.find((e) => lt(v, e.below));
     if (eol) {
@@ -257,7 +257,7 @@ export function osvFindings(osvResults, { location } = {}) {
       title: `${display} ${r.version}: ${r.vulns.length} advisory(ies) in OSV (${ids.slice(0, 3).join(', ')}${ids.length > 3 ? ', …' : ''})`,
       severity: sev, confidence: 'firm',
       cwe: 'CWE-1395', owasp: 'A06:2021 Vulnerable and Outdated Components',
-      evidence: { snippet: `OSV.dev query for ${r.ecosystem}:${r.name}@${r.version}`, advisories: r.vulns.slice(0, 10), source: 'https://osv.dev' },
+      evidence: { component: display, version: r.version, snippet: `OSV.dev query for ${r.ecosystem}:${r.name}@${r.version}`, advisories: r.vulns.slice(0, 10), source: 'https://osv.dev' },
       remediation: `${KNOWN[display]?.upgrade || 'Upgrade to a release that is not affected.'} See the linked OSV entries for fixed versions.`,
     });
   }

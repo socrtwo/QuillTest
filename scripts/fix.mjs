@@ -7,8 +7,9 @@
  *   node scripts/fix.mjs --report r.json --target apache          # force a server
  *   node scripts/fix.mjs --report r.json --all --out fixes/        # every target
  *
- * Writes ready-to-review config files (headers block for your server, a CSP
- * derived from what the crawler saw, cookie settings for your framework) and
+ * Writes ready-to-review files (headers block for your server, a CSP derived
+ * from what the crawler saw, cookie settings for your framework, and manifest
+ * fragments / upgrade commands for vulnerable or end-of-life components) and
  * lists the findings that still need a manual change. Nothing is applied to
  * any server.
  */
@@ -35,7 +36,7 @@ const report = JSON.parse(readFileSync(reportPath, 'utf8'));
 const result = generateFixes(report, { target: typeof args.target === 'string' ? args.target : undefined, all: Boolean(args.all) });
 
 export function printFixes(result, { print = false } = {}) {
-  console.log(`\nFix artifacts — target: ${result.target}${result.files.length ? '' : ' (nothing to generate: no header/cookie findings)'}`);
+  console.log(`\nFix artifacts — target: ${result.target}${result.files.length ? '' : ' (nothing to generate: no header/cookie/component findings)'}`);
   for (const f of result.files) {
     console.log(`  • ${f.filename}  [${f.kind}${f.target !== result.target ? ` · ${f.target}` : ''}]`);
     if (print) console.log(f.contents.split('\n').map((l) => '      ' + l).join('\n'));
