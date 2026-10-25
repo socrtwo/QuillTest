@@ -24,6 +24,7 @@ import { runPassiveScan, sortFindings } from '../src/scan/passive.mjs';
 import { runProtocolScan } from '../src/scan/protocols.mjs';
 import { analyzeFindings } from '../src/ai/analyze.mjs';
 import { generateFixes, TARGETS } from '../src/fix/artifacts.mjs';
+import { renderHtml, renderMarkdown, renderCsv } from '../src/report/render.mjs';
 import { ANALYSIS_MODES } from '../src/ai/providers.mjs';
 
 const c = {
@@ -61,6 +62,7 @@ function usage(code = 0) {
       --online-cve        Also query OSV.dev for advisories on fingerprinted libraries (off by default; offline otherwise).
       --fixes             Generate ready-to-review fix files (server header block, derived CSP, cookie settings, dependency bumps).
       --target <t>        Force the fix target: nginx | apache | caddy | iis | express | netlify | generic.
+      --export <f>        Also write the report as html | md | csv | all, next to the JSON (scripts/report.mjs does more: diff, package).
       --protocols         Also run the non-HTTP protocol checks against the host (see below).
       --store <dir>       Verification store directory (default scans/verify).
       --ttl-hours <n>     Challenge lifetime for 'verify issue' (default 24).
@@ -224,6 +226,17 @@ async function cmdScan() {
     mkdirSync(fixDir, { recursive: true });
     for (const f of report.fixes.files) writeFileSync(resolve(fixDir, f.filename), f.contents, { mode: 0o600 });
     console.log(c.dim(`Fix files written to ${fixDir}/`));
+  }
+  if (args.export) {
+    const fmt = typeof args.export === 'string' ? args.export : 'html';
+    const EXPORTS = { html: renderHtml, md: renderMarkdown, csv: renderCsv };
+    const wanted = fmt === 'all' ? Object.keys(EXPORTS) : [fmt];
+    if (!wanted.every((w) => EXPORTS[w])) { console.error(c.red('--export must be one of: html, md, csv, all')); exit(2); }
+    for (const w of wanted) {
+      const p = outPath.replace(/\.json$/, '') + '.' + w;
+      writeFileSync(p, EXPORTS[w](report), { mode: 0o600 });
+      console.log(c.dim(`Report exported to ${p}`));
+    }
   }
 }
 

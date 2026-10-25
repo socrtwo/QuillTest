@@ -21,7 +21,7 @@ QuillTest follows the same shape as the rest of the Quill suite: a thin cross-pl
 ├───────────────────────────────────────────────────────┤
 │ AI analysis layer (optional, multi-provider)           │  src/ai/
 ├───────────────────────────────────────────────────────┤
-│ Report / export / review packages                      │  src/report/
+│ Report / export / diff / review packages               │  src/report/render.mjs
 └───────────────────────────────────────────────────────┘
 ```
 
@@ -40,4 +40,4 @@ Android, iOS/iPadOS, Windows, macOS, Linux (incl. Raspberry Pi OS), ChromeOS and
 
 ## Status
 
-Partially built, runnable from the command line. Implemented: ownership verification (`src/verify/`), the crawler, the passive check engine, stack fingerprinting with EOL/CVE assessment, observation-only protocol checks (`src/scan/`), fix-artifact generators (`src/fix/`), and the AI provider registry, wizard and analysis layer (`src/ai/`). The orchestrator is `scripts/scan.mjs`; it enforces the verification gate before any check runs. Not yet built: the command registry and shell, the active check engine, the staging mirror, applyable patches, and the report/export layer. The module layout above names the files that exist today; the directories shown for unbuilt layers (`src/commands/`, `src/report/`) are the plan, not the tree. See [ROADMAP.md](ROADMAP.md).
+Partially built, runnable from the command line. Implemented: ownership verification (`src/verify/`), the crawler, the passive check engine, stack fingerprinting with EOL/CVE assessment, observation-only protocol checks (`src/scan/`), fix-artifact generators (`src/fix/`), the report/export layer (`src/report/`), and the AI provider registry, wizard and analysis layer (`src/ai/`). The orchestrator is `scripts/scan.mjs`; it enforces the verification gate before any check runs. Not yet built: the command registry and shell, the active check engine, the staging mirror, and applyable patches. The module layout above names the files that exist today; the directory shown for the unbuilt shell layer (`src/commands/`) is the plan, not the tree. See [ROADMAP.md](ROADMAP.md).

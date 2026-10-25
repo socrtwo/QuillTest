@@ -57,6 +57,8 @@ node scripts/scan.mjs scan https://staging.example.com --analyze --mode concurre
 
 Add `--fixes` to get ready-to-review config files: a security-header block for the server QuillTest detected (nginx, Apache, Caddy, IIS, Express, Netlify), a Content-Security-Policy whose allow-list is exactly the third-party origins the crawler saw on your pages (emitted report-only first, with the enforced version alongside), cookie settings for your framework, and — for every component the fingerprint found end-of-life or vulnerable — a `package.json`/`composer.json` fragment, replacement CDN tags, the upgrade commands, and a summary of detected → minimum safe → recommended versions with the CVEs behind each. `scripts/fix.mjs --report <scan.json> --target apache` regenerates from a saved report. Add `--online-cve` to also check fingerprinted libraries against OSV.dev (off by default; the scan is otherwise fully offline apart from the target itself).
 
+Add `--export html` (or `md`, `csv`, `all`) to write a human-readable report next to the JSON. `scripts/report.mjs` does the rest from a saved report: `--diff previous.json` adds a new / resolved / changed section, `--package review/` writes the report in every format plus the fix artifacts and a manifest with a SHA-256 per file, and `--verify review/` checks a package against its manifest. The HTML is self-contained and script-free; open it in a browser and print to PDF. See [docs/REPORTS.md](docs/REPORTS.md).
+
 Scanning an origin without a valid verification exits with code 3; there is no override flag. By default the scan crawls up to 25 same-origin pages (honoring `robots.txt`, never following logout/delete-style links) and runs the header, cookie, content and form checks on every one, collapsing site-wide gaps into single findings with page counts. It also fingerprints the stack (server, framework, CMS) so fixes are phrased for what you actually run. Reports are written under `scans/<host>/` (git-ignored) with cookie values masked. Each origin — scheme, host, *and* port — needs its own verification.
 
 ## The AI setup wizard
@@ -123,6 +125,7 @@ Windows, macOS, Linux (including Raspberry Pi OS), ChromeOS and the web, with th
 | [docs/STAGING-MIRROR.md](docs/STAGING-MIRROR.md) | Testing a copy of your own verified site, and concurrent AI review |
 | [docs/PROTOCOLS.md](docs/PROTOCOLS.md) | FTP, mail, DNS, TLS checks beyond HTTP — detection only |
 | [docs/FIXES.md](docs/FIXES.md) | How findings become remediations and applyable fixes |
+| [docs/REPORTS.md](docs/REPORTS.md) | Report formats, the findings diff, and review packages |
 | [docs/CHECKS.md](docs/CHECKS.md) | Vulnerability-check inventory by category, with what is implemented |
 | [docs/ARCHITECTURE-PLAN.md](docs/ARCHITECTURE-PLAN.md) | Shell, crawler, check engine, findings model, AI layer, report, builds |
 | [docs/INNOVATIONS.md](docs/INNOVATIONS.md) | Survey of web scanners and what QuillTest adopts |

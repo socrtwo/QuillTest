@@ -48,7 +48,7 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 
 ## M6 — Report and release
 
-- [ ] Report/export, review packages, findings diff
+- [x] Report/export (self-contained HTML, Markdown, CSV), findings diff between scans, review packages with SHA-256 manifest — `src/report/render.mjs`, `scripts/report.mjs`, `scan --export`
 - [ ] Cross-platform builds and release workflow (parity with QuillStage)
 - [x] SECURITY.md and responsible-disclosure policy
 - [x] CI (GitHub Actions): registry-sync check, syntax, offline tests, keyless dry-run, secret scan
