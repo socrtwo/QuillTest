@@ -73,6 +73,7 @@ export function summarize(report) {
     stack: report?.stack?.summary || null,
     verification: report?.verification || null,
     protocolServices: services,
+    activeScan: report?.active ? { profile: report.active.profile, requests: report.active.requests ?? null, targetsProbed: report.active.targetsProbed ?? null } : null,
     analysis: report?.analysis ? { providers: (report.analysis.providers || []).map((p) => ({ label: p.label || p.providerId, ok: Boolean(p.ok) })), verdicts } : null,
     fixFiles: (report?.fixes?.files || []).map((f) => f.filename),
   };
@@ -157,7 +158,7 @@ export function renderMarkdown(report, opts = {}) {
   L.push(`| Scanned | ${mdCell(fmtDate(s.startedAt))}${s.finishedAt ? ` → ${mdCell(fmtDate(s.finishedAt))}` : ''} |`);
   if (s.verification) L.push(`| Ownership | verified via ${mdCell(s.verification.method)} on ${mdCell(fmtDate(s.verification.verifiedAt))} |`);
   if (s.stack) L.push(`| Stack | ${mdCell(s.stack)} |`);
-  if (s.pages != null) L.push(`| Coverage | ${s.pages} page(s), ${s.requests ?? '?'} request(s)${s.protocolServices.length ? `; services: ${mdCell(s.protocolServices.join(', '))}` : ''} |`);
+  if (s.pages != null) L.push(`| Coverage | ${s.pages} page(s), ${s.requests ?? '?'} request(s)${s.protocolServices.length ? `; services: ${mdCell(s.protocolServices.join(', '))}` : ''}${s.activeScan ? `; active profile: ${mdCell(s.activeScan.profile)} (${s.activeScan.requests ?? '?'} probe(s))` : ''} |`);
   L.push(`| Findings | **${s.total}** — ${SEVERITIES.filter((x) => s.bySeverity[x]).map((x) => `${s.bySeverity[x]} ${x}`).join(', ') || 'none'} |`);
   L.push('');
 
@@ -269,6 +270,7 @@ export function renderHtml(report, opts = {}) {
   if (s.stack) H.push(`<tr><th>Stack</th><td>${escapeHtml(s.stack)}</td></tr>`);
   if (s.requests != null) H.push(`<tr><th>Requests</th><td>${escapeHtml(s.requests)}</td></tr>`);
   if (s.protocolServices.length) H.push(`<tr><th>Services</th><td>${escapeHtml(s.protocolServices.join(', '))}</td></tr>`);
+  if (s.activeScan) H.push(`<tr><th>Active scan</th><td>profile ${escapeHtml(s.activeScan.profile)}, ${escapeHtml(s.activeScan.requests ?? '?')} probe(s) across ${escapeHtml(s.activeScan.targetsProbed ?? '?')} URL(s)</td></tr>`);
   if (s.fixFiles.length && includeFixes) H.push(`<tr><th>Fix artifacts</th><td>${escapeHtml(s.fixFiles.join(', '))}</td></tr>`);
   H.push('</table>');
 

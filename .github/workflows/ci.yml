@@ -44,6 +44,8 @@ jobs:
           test -s /tmp/report/r.html && test -s /tmp/report/r.md && test -s /tmp/report/r.csv
           node scripts/report.mjs --report /tmp/r.json --package /tmp/review
           node scripts/report.mjs --verify /tmp/review
+      - name: Active engine self-check (offline, no network)
+        run: node --test tests/active.test.mjs
       - name: Scan gate refuses an unverified origin (exit 3)
         run: |
           set +e

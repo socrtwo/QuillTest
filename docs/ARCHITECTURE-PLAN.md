@@ -12,7 +12,7 @@ QuillTest follows the same shape as the rest of the Quill suite: a thin cross-pl
 ├───────────────────────────────────────────────────────┤
 │ Ownership verification  │  Scan orchestrator           │  src/verify/, scripts/scan.mjs
 ├─────────────────────────┼─────────────────────────────┤
-│ Crawler / spider        │  Check engine (passive+active)│ src/scan/crawl.mjs, src/scan/passive.mjs
+│ Crawler / spider        │  Check engine (passive+active)│ src/scan/crawl.mjs, passive.mjs, active.mjs
 │ Fingerprint + versions  │  Protocol checks             │ src/scan/fingerprint.mjs, versions.mjs, protocols.mjs
 ├─────────────────────────┴─────────────────────────────┤
 │ Findings model (normalized, CWE/OWASP-mapped)          │  emitted by src/scan/*, shape in examples/
@@ -40,4 +40,4 @@ Android, iOS/iPadOS, Windows, macOS, Linux (incl. Raspberry Pi OS), ChromeOS and
 
 ## Status
 
-Partially built, runnable from the command line. Implemented: ownership verification (`src/verify/`), the crawler, the passive check engine, stack fingerprinting with EOL/CVE assessment, observation-only protocol checks (`src/scan/`), fix-artifact generators (`src/fix/`), the report/export layer (`src/report/`), and the AI provider registry, wizard and analysis layer (`src/ai/`). The orchestrator is `scripts/scan.mjs`; it enforces the verification gate before any check runs. Not yet built: the command registry and shell, the active check engine, the staging mirror, and applyable patches. The module layout above names the files that exist today; the directory shown for the unbuilt shell layer (`src/commands/`) is the plan, not the tree. See [ROADMAP.md](ROADMAP.md).
+Partially built, runnable from the command line. Implemented: ownership verification (`src/verify/`), the crawler, the passive check engine, stack fingerprinting with EOL/CVE assessment, observation-only protocol checks (`src/scan/`), fix-artifact generators (`src/fix/`), the report/export layer (`src/report/`), and the AI provider registry, wizard and analysis layer (`src/ai/`). The orchestrator is `scripts/scan.mjs`; it enforces the verification gate before any check runs. Not yet built: the command registry and shell, the injection family of active checks, the staging mirror, and applyable patches. A detection-only active engine (HTTP methods, open redirect, input reflection) with scan profiles is built (`src/scan/active.mjs`). The module layout above names the files that exist today; the directory shown for the unbuilt shell layer (`src/commands/`) is the plan, not the tree. See [ROADMAP.md](ROADMAP.md).

@@ -153,6 +153,15 @@ test('buildReviewPackage bundles every format plus fixes with a manifest that ve
   assert.ok(!minimal.files.some((f) => f.filename.startsWith('fixes/')) && !minimal.files.some((f) => f.filename === 'diff.json'));
 });
 
+test('reports surface active-scan metadata when present', () => {
+  const r = report({ active: { profile: 'safe-active', intrusivenessCap: 1, requests: 7, targetsProbed: 3 } });
+  const s = summarize(r);
+  assert.deepEqual(s.activeScan, { profile: 'safe-active', requests: 7, targetsProbed: 3 });
+  assert.match(renderMarkdown(r), /active profile: safe-active \(7 probe\(s\)\)/);
+  assert.match(renderHtml(r), /<th>Active scan<\/th><td>profile safe-active, 7 probe\(s\) across 3 URL\(s\)<\/td>/);
+  assert.equal(summarize(report()).activeScan, null, 'absent when no active scan ran');
+});
+
 test('sortFindings orders by severity, then confidence, then id', () => {
   const out = sortFindings([
     { id: 'F-003', severity: 'low', confidence: 'firm' }, { id: 'F-002', severity: 'high', confidence: 'tentative' },

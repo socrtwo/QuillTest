@@ -18,6 +18,19 @@ All detection is non-destructive: QuillTest confirms a flaw exists, it does not 
 
 ## Active checks (require verified ownership; least-intrusive probe)
 
+Active checks send a request the target would not otherwise receive. In QuillTest every active check is still **observation**: it sends a benign input and reads the response. There is no payload library. The engine sends only GET and OPTIONS, never submits a form or uses a state-changing method, and never follows a redirect off the verified origin. Intrusiveness is a declared property of each check and is capped by the scan profile (`passive` by default, `safe-active` for the benign probes below); see [PROFILES.md](PROFILES.md).
+
+**Implemented (`src/scan/active.mjs`, `scan --active`):**
+
+| Check | What it does |
+|---|---|
+| HTTP methods / Cross-Site Tracing (`active.http-trace`, `active.http-methods`) | One OPTIONS request; reads the advertised `Allow` set. Flags TRACE/TRACK (Cross-Site Tracing, CWE-693) and advertised state-changing methods for review. No TRACE/PUT/DELETE is ever sent. |
+| Open redirect (`active.open-redirect`, CWE-601) | Re-requests a URL with a redirect-looking parameter set to a benign non-resolving marker host; flags the parameter when the `Location` header forwards to it. The redirect is observed, never followed. |
+| Input reflection (`active.reflected-input`, CWE-79) | Re-requests with a query parameter set to a benign alphanumeric canary (no HTML metacharacters, so it cannot execute); flags unescaped reflection in an HTML response as a reflected-XSS **precondition** for manual review, at low/tentative. |
+
+**Planned** (specified here; deferred behind a future higher-intrusiveness profile because they send inputs meant to probe backend handling):
+
+
 | Category (OWASP/CWE) | Checks |
 |---|---|
 | Injection | SQLi (error/boolean/time-based detection), command injection, template injection (SSTI), host/header injection, CRLF |
