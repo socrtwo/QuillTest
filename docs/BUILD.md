@@ -23,7 +23,7 @@ The desktop build loads the same web app but in a privileged context: the main p
 
 **Security posture.** The renderer runs with `contextIsolation` on, `nodeIntegration` off and `sandbox` on. Its only privileged capability, via the preload bridge, is to ask the main process to run a **known** QuillTest command by its registry id with string arguments — never an arbitrary command line. `electron/bridge.mjs` validates the id against the command registry and the argument types; the main process spawns the mapped script with an argument array (no shell), so there is no command-injection surface. That boundary is unit-tested (`tests/electron-bridge.test.mjs`) without launching Electron.
 
-`electron-builder` targets AppImage/deb (Linux), dmg/zip (macOS) and nsis/portable (Windows). The `release.yml` workflow builds all three on a version tag.
+`electron-builder` targets AppImage/deb (Linux), dmg/zip (macOS) and nsis/portable (Windows). The `release.yml` workflow builds all three on a version tag and attaches the installers to the GitHub Release for that tag (via `softprops/action-gh-release`), so they appear on the release page for download.
 
 ## Mobile (Capacitor)
 
