@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
- * QuillTest — scan CLI (ownership gate + passive engine + optional AI analysis)
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — scan CLI (ownership gate + passive engine + optional AI analysis)
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  *   node scripts/scan.mjs verify issue https://example.com     # get the file to upload (and DNS alternative)
  *   node scripts/scan.mjs verify check https://example.com     # confirm it is in place; unlocks scanning that origin
@@ -48,7 +48,7 @@ function parseArgs(args) {
 }
 
 function usage(code = 0) {
-  console.log(`${c.bold('QuillTest scan')}
+  console.log(`${c.bold('Anne\'s Test scan')}
 
   verify issue <origin>   Issue an ownership challenge; prints the file to upload and a DNS alternative.
   verify check <origin>   Fetch the file (or TXT record) and, if it matches, record the origin as verified.
@@ -143,12 +143,12 @@ async function cmdScan() {
   const gate = isOriginVerified(store.loadVerified(), originArg);
   if (!gate.ok) {
     console.error(c.red('Refusing to scan: ') + gate.error);
-    console.error(c.dim('QuillTest only scans origins you have proven you control. See docs/OWNERSHIP-VERIFICATION.md.'));
+    console.error(c.dim('Anne\'s Test only scans origins you have proven you control. See docs/OWNERSHIP-VERIFICATION.md.'));
     exit(3);
   }
   const origin = gate.origin;
 
-  console.log(c.bold(`\nQuillTest passive scan — ${origin}`));
+  console.log(c.bold(`\nAnne\'s Test passive scan — ${origin}`));
   console.log(c.dim(`ownership verified via ${gate.record.method} on ${gate.record.verifiedAt}`));
   const maxPages = args['max-pages'] !== undefined ? Number.parseInt(args['max-pages'], 10) : 25;
   const maxDepth = args['max-depth'] !== undefined ? Number.parseInt(args['max-depth'], 10) : 3;
@@ -278,12 +278,12 @@ async function cmdProtocols() {
   const gate = isHostVerified(store.loadVerified(), host);
   if (!gate.ok) {
     console.error(c.red('Refusing to check: ') + gate.error);
-    console.error(c.dim('QuillTest only checks hosts you have proven you control. See docs/OWNERSHIP-VERIFICATION.md.'));
+    console.error(c.dim('Anne\'s Test only checks hosts you have proven you control. See docs/OWNERSHIP-VERIFICATION.md.'));
     exit(3);
   }
 
   const which = typeof args.which === 'string' ? args.which.split(',').map((s) => s.trim()).filter(Boolean) : undefined;
-  console.log(c.bold(`\nQuillTest protocol checks — ${gate.host}`));
+  console.log(c.bold(`\nAnne\'s Test protocol checks — ${gate.host}`));
   console.log(c.dim(`ownership verified via ${gate.record.method} on ${gate.record.verifiedAt}`));
   const report = await runProtocolScan(gate.host, { which });
   const present = report.services.filter((s) => s.present);

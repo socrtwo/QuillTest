@@ -1,6 +1,6 @@
 /*
- * QuillTest — AI provider registry
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — AI provider registry
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * Single source of truth for the AI setup wizard (CLI and browser).
  * Add a provider by adding one entry here; both wizards pick it up.
@@ -377,14 +377,14 @@ export function extractText(apiStyle, json) {
 // ---------------------------------------------------------------------------
 // Multi-provider configuration
 //
-// QuillTest's analysis layer can consult more than one provider over the same
+// Anne's Test's analysis layer can consult more than one provider over the same
 // set of findings. The wizard lets the user enable any subset of providers and
 // an analysis mode:
 //   - "sequential": consult each enabled provider in turn (deterministic order,
 //     gentle on rate limits, lets a later model react to earlier output).
 //   - "concurrent": consult all enabled providers at once (faster; pairs with
 //     the staging-mirror scan mode so several reviews run against a snapshot).
-// In both modes the providers analyze QuillTest's findings and the observed
+// In both modes the providers analyze Anne's Test's findings and the observed
 // responses. They do not run the scan and never emit attack payloads.
 // ---------------------------------------------------------------------------
 
@@ -392,7 +392,7 @@ export const CONFIG_VERSION = 2;
 export const ANALYSIS_MODES = ['sequential', 'concurrent'];
 
 /**
- * Build a QuillTest AI config object from an ordered list of provider selections.
+ * Build an Anne's Test AI config object from an ordered list of provider selections.
  * @param {Array<{providerId:string, base?:string, model?:string, apiKey?:string|null, apiKeyEnv?:string|null, saveKey?:boolean}>} selections
  * @param {{mode?:string}} [opts]
  */

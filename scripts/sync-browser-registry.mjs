@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
- * QuillTest — copy the provider registry into the browser wizard
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — copy the provider registry into the browser wizard
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * public/ai-wizard.html is a static page (opened via file:// or any plain web
  * server), so it cannot import src/ai/providers.mjs; it carries an inlined copy

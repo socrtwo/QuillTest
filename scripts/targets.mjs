@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
- * QuillTest — target management CLI
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — target management CLI
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  *   node scripts/targets.mjs add https://example.com --label "Prod" --tag prod --tag eu --note "main site"
  *   node scripts/targets.mjs list [--tag prod] [--json]
@@ -37,7 +37,7 @@ function parseArgs(args) {
 }
 
 function usage(code = 0) {
-  console.log(`${c.bold('QuillTest targets')}
+  console.log(`${c.bold('Anne\'s Test targets')}
 
   add <origin>     Add (or update) a target.   --label <t>  --tag <t> (repeatable)  --note <t>
   list             List targets with verification + last-scan status.   --tag <t>   --json

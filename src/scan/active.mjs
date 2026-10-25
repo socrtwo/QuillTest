@@ -1,6 +1,6 @@
 /*
- * QuillTest — active scan engine (detection only, ownership-gated)
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — active scan engine (detection only, ownership-gated)
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * Active checks differ from passive ones only in that they send a request the
  * target would not otherwise receive. Everything here is still observation:

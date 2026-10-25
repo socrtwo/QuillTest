@@ -1,5 +1,5 @@
 /*
- * QuillTest — version assessment and fix-artifact tests (offline)
+ * Anne's Test — version assessment and fix-artifact tests (offline)
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

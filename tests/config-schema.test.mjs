@@ -1,5 +1,5 @@
 /*
- * QuillTest — config schema validation tests (offline)
+ * Anne's Test — config schema validation tests (offline)
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

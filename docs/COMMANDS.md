@@ -1,10 +1,10 @@
 # Commands and targets
 
-Two pieces of the shell layer exist as data and CLIs today, ahead of the ribbon/QAB UI: the **command registry** (what QuillTest can do) and **target management** (the sites you work with).
+Two pieces of the shell layer exist as data and CLIs today, ahead of the ribbon/QAB UI: the **command registry** (what Anne's Test can do) and **target management** (the sites you work with).
 
 ## Command registry
 
-`src/commands/registry.mjs` is the single catalogue of QuillTest operations. Each command is data — an id (`group.verb`), a human title, a ribbon group, search keywords, a one-line summary, a precondition (`when`), and a `cli` descriptor of how it runs today. Nothing in the file executes; the registry is what a dispatcher reads. This is the suite's "no missing commands" principle made literal: adding a capability is adding an entry, and the CLI, a desktop shell and a web build all render the same list.
+`src/commands/registry.mjs` is the single catalogue of Anne's Test operations. Each command is data — an id (`group.verb`), a human title, a ribbon group, search keywords, a one-line summary, a precondition (`when`), and a `cli` descriptor of how it runs today. Nothing in the file executes; the registry is what a dispatcher reads. This is the suite's "no missing commands" principle made literal: adding a capability is adding an entry, and the CLI, a desktop shell and a web build all render the same list.
 
 ```sh
 node scripts/commands.mjs                 # every command by group

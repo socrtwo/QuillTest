@@ -1,6 +1,6 @@
 /*
- * QuillTest — staging-mirror capture, serve, and scan
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — staging-mirror capture, serve, and scan
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * A mirror is a local, sandboxed copy of the client-delivered surface of your
  * OWN verified site — the HTML, response headers, scripts and forms a browser
@@ -77,7 +77,7 @@ export function buildMirrorManifest(crawlResult, opts = {}) {
     i++;
   }
   const manifest = {
-    tool: 'QuillTest', kind: 'staging-mirror', origin: crawlResult.origin,
+    tool: 'Anne\'s Test', kind: 'staging-mirror', origin: crawlResult.origin,
     capturedAt: opts.now ? opts.now.toISOString() : new Date().toISOString(),
     pageCount: pages.length, bodyBytes: total, truncated,
     maxBytes, robots: crawlResult.robots || null, requests: crawlResult.requests ?? null,

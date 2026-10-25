@@ -1,5 +1,5 @@
 /*
- * QuillTest — browser shell tests (offline)
+ * Anne's Test — browser shell tests (offline)
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

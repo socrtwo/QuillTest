@@ -1,5 +1,5 @@
 /*
- * QuillTest — protocol-check tests (offline; dial/tls/dns are injected)
+ * Anne's Test — protocol-check tests (offline; dial/tls/dns are injected)
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

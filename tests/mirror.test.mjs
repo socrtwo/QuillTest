@@ -1,5 +1,5 @@
 /*
- * QuillTest — staging-mirror tests (offline; the loopback server binds 127.0.0.1)
+ * Anne's Test — staging-mirror tests (offline; the loopback server binds 127.0.0.1)
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

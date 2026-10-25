@@ -1,6 +1,6 @@
 /*
- * QuillTest — component version assessment (EOL and known advisories)
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — component version assessment (EOL and known advisories)
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * Turns a fingerprinted version ("nginx/1.18.0", "jQuery 1.12.4") into a
  * finding when that version is end-of-life or falls in a range with

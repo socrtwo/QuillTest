@@ -1,5 +1,5 @@
 /*
- * QuillTest — AI analysis layer tests (offline; fetch is injected)
+ * Anne's Test — AI analysis layer tests (offline; fetch is injected)
  * Run: npm test
  */
 import { test } from 'node:test';

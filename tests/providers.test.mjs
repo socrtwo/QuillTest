@@ -1,5 +1,5 @@
 /*
- * QuillTest — provider registry + request-builder tests
+ * Anne's Test — provider registry + request-builder tests
  * Run: npm test   (node --test, Node 18+; picks up tests/*.test.mjs)
  */
 import { test } from 'node:test';

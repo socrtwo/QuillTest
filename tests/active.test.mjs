@@ -1,5 +1,5 @@
 /*
- * QuillTest — active scan engine tests (offline)
+ * Anne's Test — active scan engine tests (offline)
  *
  * Besides behavior, these pin the safety invariants: only GET/OPTIONS are
  * ever sent, redirects are never followed, and the passive profile sends

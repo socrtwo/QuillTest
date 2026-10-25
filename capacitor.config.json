@@ -1,6 +1,6 @@
 {
   "appId": "com.quillsuite.quilltest",
-  "appName": "QuillTest",
+  "appName": "Anne's Test",
   "webDir": "dist",
   "server": { "androidScheme": "https" },
   "backgroundColor": "#16181d"

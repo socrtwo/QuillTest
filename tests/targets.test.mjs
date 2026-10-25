@@ -1,5 +1,5 @@
 /*
- * QuillTest — target management tests (offline)
+ * Anne's Test — target management tests (offline)
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

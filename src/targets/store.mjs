@@ -1,6 +1,6 @@
 /*
- * QuillTest — target management
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — target management
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * The set of sites you work with. A target is an origin plus the bookkeeping
  * around it: a label, tags, a note, when it was added and last scanned. It is

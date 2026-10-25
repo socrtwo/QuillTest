@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
- * QuillTest — command catalogue (the CLI face of the Alt+Q palette)
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — command catalogue (the CLI face of the Alt+Q palette)
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  *   node scripts/commands.mjs                 # list every command by group
  *   node scripts/commands.mjs <query>         # search (what the palette does)
@@ -9,7 +9,7 @@
  *   node scripts/commands.mjs --id scan.active
  *
  * The registry (src/commands/registry.mjs) is the single source of truth for
- * what QuillTest can do; the future shell renders the same data.
+ * what Anne's Test can do; the future shell renders the same data.
  */
 import { argv, exit } from 'node:process';
 import { COMMANDS, GROUPS, commandsByGroup, searchCommands, getCommand, commandCliLine, validateRegistry } from '../src/commands/registry.mjs';
@@ -24,7 +24,7 @@ function parseArgs(args) {
 const args = parseArgs(argv.slice(2));
 
 if (args.help) {
-  console.log(`QuillTest commands — list or search the command registry\n  node scripts/commands.mjs [query] [--json] [--id <command-id>] [--validate]`);
+  console.log(`Anne\'s Test commands — list or search the command registry\n  node scripts/commands.mjs [query] [--json] [--id <command-id>] [--validate]`);
   exit(0);
 }
 if (args.validate) { const r = validateRegistry(); if (r.ok) console.log(c.green(`registry ok (${COMMANDS.length} commands)`)); else { for (const e of r.errors) console.error('  ' + e); } exit(r.ok ? 0 : 1); }

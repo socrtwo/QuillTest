@@ -1,6 +1,6 @@
 /*
- * QuillTest — Vite build (web platform target)
- * Part of the Quill suite. Builds the static web app: the landing page, the
+ * Anne's Test — Vite build (web platform target)
+ * Part of the Anne's Office suite. Builds the static web app: the landing page, the
  * command shell and the AI setup wizard. The pages are self-contained (inline
  * CSS and inline module scripts), so Vite minifies and fingerprints them
  * without any framework runtime. publicDir is disabled because our source
