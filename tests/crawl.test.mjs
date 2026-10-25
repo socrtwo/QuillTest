@@ -127,6 +127,16 @@ test('fingerprint infers server, framework and CMS with evidence; describeStack 
   assert.ok(fp.library.some((l) => l.name === 'jQuery'));
   assert.equal(describeStack(fp), 'nginx/1.18.0 · PHP 8.1.2 · WordPress 6.4.2');
   assert.equal(describeStack(fingerprint([{ headers: {}, body: '' }])), 'unknown');
+  // Versions carried in CDN directory paths rather than the filename.
+  const cdn = (body) => fingerprint([{ headers: {}, body }]).library.map((l) => `${l.name}@${l.version}`).sort();
+  assert.deepEqual(cdn('<link href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.0/dist/css/bootstrap.min.css"><script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.0/dist/js/bootstrap.bundle.min.js"></script>'), ['Bootstrap@4.3.0']);
+  assert.deepEqual(cdn('<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script>'), ['jQuery@3.5.1']);
+  assert.deepEqual(cdn('<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>'), ['jQuery@3.4.1']);
+  assert.deepEqual(cdn('<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>'), ['jQuery@1.12.4']);
+  assert.deepEqual(cdn('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css">'), ['Bootstrap@3.3.7']);
+  assert.deepEqual(cdn('<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">'), ['Bootstrap@4.3.1']);
+  assert.deepEqual(cdn('<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">'), [], 'bootstrap-icons is not Bootstrap');
+  assert.deepEqual(cdn('<script src="/js/jquery-1.12.4.min.js"></script>'), ['jQuery@1.12.4'], 'filename style still works');
   const dj = fingerprint([{ headers: { 'set-cookie': ['csrftoken=a', 'sessionid=b'] }, body: '<input name="csrfmiddlewaretoken">' }]);
   assert.ok(dj.framework.some((f) => f.name === 'Django' && f.confidence >= 0.8));
   const next = fingerprint([{ headers: {}, body: '<script id="__NEXT_DATA__"></script><div data-reactroot></div>' }]);
