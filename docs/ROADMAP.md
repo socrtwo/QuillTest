@@ -29,7 +29,7 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 
 ## M3 — Active engine
 
-- [~] Active checks — detection-only, ownership-gated engine with scan profiles (`src/scan/active.mjs`, `scan --active`): HTTP method / Cross-Site Tracing, open redirect, and input-reflection (reflected-XSS precondition) implemented; the injection family (SQLi, command, SSTI, SSRF, XXE) remains specified in CHECKS.md, behind a future higher-intrusiveness profile
+- [~] Active checks — detection-only, ownership-gated engine with scan profiles (`src/scan/active.mjs`, `scan --active`): HTTP method / Cross-Site Tracing, open redirect, and input-reflection (reflected-XSS precondition) implemented. The injection family (SQLi, command, SSTI, SSRF, XXE) is **deliberately deferred**: it is reserved behind intrusiveness level 2 (enabled by no profile) and is specified in CHECKS.md, to be built only on an explicit decision to send inputs that probe backend handling. The engine is otherwise considered feature-complete.
 - [x] Protocol checks beyond HTTP (TLS, FTP, mail, DNS) — observation-only, per-host ownership-gated — `src/scan/protocols.mjs`, `scripts/scan.mjs protocols`
 - [x] Scan profiles and intrusiveness caps — `SCAN_PROFILES` (passive | safe-active) with a declared per-check intrusiveness level and a hard request budget — `src/scan/active.mjs`
 
