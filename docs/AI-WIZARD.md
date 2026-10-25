@@ -79,11 +79,15 @@ Credentials travel as headers in every case: `Authorization: Bearer` (OpenAI-sty
 - `activeProviders` is the ordered set QuillTest consults; `active` is kept as a backward-compatible pointer to the first one.
 - Version 1 configs (single `active` provider, no `activeProviders`/`analysisMode`) are still read: the wizard and the `--test-only` path normalize them to a one-provider, sequential config.
 
+### Validation
+
+`node scripts/ai-setup-wizard.mjs --validate [--config <path>]` checks the file against the schema without touching the network: it reports *errors* (the config will not work — a referenced provider has no entry, an endpoint is plaintext to a remote host, `analysisMode` is unknown) and *warnings* (it will work but maybe not as meant — a key stored in plaintext, a `providerId` not in the built-in registry, an entry defined but not enabled). It exits non-zero on any error. The same check runs automatically after the wizard writes a file and before any analysis (`scripts/ai-analyze.mjs` and `scan --analyze`), so a broken config is caught with a clear message instead of being silently normalized to nothing. `validateConfig()` / `formatValidation()` are exported from `src/ai/config-schema.mjs` for programmatic use.
+
 By default the wizard stores a **reference to an environment variable** (`apiKeyEnv`), not the key itself, so secrets never land in the file. Pass `--save-key` (CLI) or tick "store keys in this browser" (browser) only if you accept the keys being written to disk / localStorage. The CLI writes the file with mode `0600`. Re-running the wizard merges into the existing file and leaves other providers' entries, including any key they stored with `--save-key`, untouched. The `.gitignore` excludes `quilltest.ai.json`.
 
 ## Adding a provider
 
-Add one object to the `PROVIDERS` array in `src/ai/providers.mjs`: `id`, `label`, `apiStyle`, `defaultBase`, `baseEditable`, `keyEnv`, `keysUrl`, `models`, `listModelsPath`, `notes`, and optionally `requiresBase` and `maxTokensParam`. Then run `npm run ai:sync-browser` to refresh the browser copy and `npm test`. The CLI wizard and the (future) analysis layer pick it up with no other changes. If the provider is OpenAI-compatible, that single entry is all that is needed.
+Add one object to the `PROVIDERS` array in `src/ai/providers.mjs`: `id`, `label`, `apiStyle`, `defaultBase`, `baseEditable`, `keyEnv`, `keysUrl`, `models`, `listModelsPath`, `notes`, and optionally `requiresBase` and `maxTokensParam`. Then run `npm run ai:sync-browser` to refresh the browser copy and `npm test`. The CLI wizard and the analysis layer pick it up with no other changes. If the provider is OpenAI-compatible, that single entry is all that is needed.
 
 ## Security notes
 

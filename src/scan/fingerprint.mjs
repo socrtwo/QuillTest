@@ -71,6 +71,12 @@ const SIGNALS = [
   { kind: 'framework', name: 'ASP.NET WebForms', body: /name=["']__VIEWSTATE["']/i },
   { kind: 'library', name: 'jQuery', body: /jquery(?:[-.]([\d.]+))?(?:\.min)?\.js/i },
   { kind: 'library', name: 'Bootstrap', body: /bootstrap(?:[-.]([\d.]+))?(?:\.min)?\.(?:css|js)/i },
+  // CDN path styles carry the version in the directory, not the filename:
+  //   cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js · unpkg.com/bootstrap@4.3.0/dist/css/bootstrap.min.css
+  //   cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js · ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js
+  //   cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.0/css/bootstrap.min.css · stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css
+  { kind: 'library', name: 'jQuery', body: /(?:jquery@|\/jquery\/)v?(\d+\.\d+(?:\.\d+)?)\/[^"'\s>]*jquery(?:\.slim)?(?:\.min)?\.js/i },
+  { kind: 'library', name: 'Bootstrap', body: /(?:bootstrap@|\/(?:twitter-)?bootstrap\/)v?(\d+\.\d+(?:\.\d+)?)\/[^"'\s>]*bootstrap(?:\.bundle)?(?:\.min)?\.(?:css|js)/i },
 ];
 
 function cookieNames(headers) {

@@ -4,7 +4,7 @@
 
 **Quill Test** (repository `QuillTest`) is an original, open-source web application security **testing and fixing** tool for Windows, macOS, Linux, ChromeOS and the web. It tests a target website for known classes of security flaws and uses AI, through the major provider APIs, to reason about the vulnerabilities an attacker — including an AI-assisted one — would look for, then helps you **fix** them with concrete, mapped remediations. It does not exploit anything. Its goal is the same as the rest of the Quill suite: **no missing commands**. It provides the familiar office-suite workflow plus the best ideas from current and former web security scanners.
 
-> **Status: early, runnable.** Implemented today: the ownership-verification gate, a same-origin crawler, a site-wide passive scan engine (headers, transport, cookies, CORS, disclosure, mixed content, forms, SRI, exposed files — each finding with a concrete fix), stack fingerprinting with EOL/CVE assessment, fix-artifact generation (server header blocks, a crawl-derived CSP, cookie settings), the multi-provider AI setup wizard, and the AI analysis layer with cross-provider consensus. Not yet implemented: active checks (injection/XSS detection), applyable patches, and the desktop/mobile shell. The pipeline below runs end-to-end from the command line.
+> **Status: runnable, engine feature-complete.** Built and covered by an offline test suite: the ownership-verification gate; a same-origin crawler; the passive scan engine (headers, transport, cookies, CORS, disclosure, mixed content, forms, SRI, exposed files); stack fingerprinting with EOL/CVE assessment; observation-only protocol checks (TLS/FTP/mail/DNS); a detection-only active engine with scan profiles (HTTP methods / Cross-Site Tracing, open redirect, input reflection); fix-artifact generation (server header blocks, crawl-derived CSP, cookie settings, dependency bumps) and applyable manifest patches; the staging-mirror capture/serve/scan pipeline; the multi-provider AI setup wizard, config-schema validation and the analysis layer with cross-provider consensus; report/export (HTML/Markdown/CSV), findings diff and review packages; the command registry with a web shell and target management; and the app builds (Vite web, Electron desktop, Capacitor mobile config). Not yet built: the injection family of active checks (SQLi/SSTI/SSRF/XXE — reserved behind a higher intrusiveness profile), and the generated native mobile projects (they need the Android/iOS SDKs). The whole pipeline runs end-to-end from the command line.
 
 ## Scope and ethics — read first
 
@@ -56,6 +56,12 @@ node scripts/scan.mjs scan https://staging.example.com --analyze --mode concurre
 ```
 
 Add `--fixes` to get ready-to-review config files: a security-header block for the server QuillTest detected (nginx, Apache, Caddy, IIS, Express, Netlify), a Content-Security-Policy whose allow-list is exactly the third-party origins the crawler saw on your pages (emitted report-only first, with the enforced version alongside), cookie settings for your framework, and — for every component the fingerprint found end-of-life or vulnerable — a `package.json`/`composer.json` fragment, replacement CDN tags, the upgrade commands, and a summary of detected → minimum safe → recommended versions with the CVEs behind each. `scripts/fix.mjs --report <scan.json> --target apache` regenerates from a saved report. Add `--online-cve` to also check fingerprinted libraries against OSV.dev (off by default; the scan is otherwise fully offline apart from the target itself).
+
+Add `--export html` (or `md`, `csv`, `all`) to write a human-readable report next to the JSON. `scripts/report.mjs` does the rest from a saved report: `--diff previous.json` adds a new / resolved / changed section, `--package review/` writes the report in every format plus the fix artifacts and a manifest with a SHA-256 per file, and `--verify review/` checks a package against its manifest. The HTML is self-contained and script-free; open it in a browser and print to PDF. See [docs/REPORTS.md](docs/REPORTS.md).
+
+Add `--active` (or `--profile safe-active`) to also run the active checks: benign, non-state-changing probes for HTTP-method / Cross-Site Tracing, open redirects, and input reflection. The active engine sends only GET and OPTIONS, never submits a form, and never follows a redirect off the verified origin; the injection family is deferred (see [docs/PROFILES.md](docs/PROFILES.md) and [docs/CHECKS.md](docs/CHECKS.md)).
+
+Test a copy instead of production with the staging mirror: `node scripts/mirror.mjs capture <origin>` writes a bounded same-origin snapshot of your verified site under `scans/<host>/<ts>/`, `mirror serve <dir>` replays it on loopback, and `mirror scan <origin> --dir <snapshot>` runs the passive engine against the copy offline, with findings that still name the real origin. Capture and scan use the same ownership gate as a live scan. See [docs/STAGING-MIRROR.md](docs/STAGING-MIRROR.md).
 
 Scanning an origin without a valid verification exits with code 3; there is no override flag. By default the scan crawls up to 25 same-origin pages (honoring `robots.txt`, never following logout/delete-style links) and runs the header, cookie, content and form checks on every one, collapsing site-wide gaps into single findings with page counts. It also fingerprints the stack (server, framework, CMS) so fixes are phrased for what you actually run. Reports are written under `scans/<host>/` (git-ignored) with cookie values masked. Each origin — scheme, host, *and* port — needs its own verification.
 
@@ -109,9 +115,9 @@ Supported providers out of the box:
 
 > Model names drift. The wizard treats the lists above as suggestions and lets you type any model id the provider accepts; it fetches the live model list where the provider exposes one (every provider above does, at `GET {base}/models`). Vendor-hosted Llama model ids in particular differ from gateway to gateway.
 
-## Platforms (planned)
+## Platforms
 
-Windows, macOS, Linux (including Raspberry Pi OS), ChromeOS and the web, with the same stack and CI/release workflows as QuillStage (TypeScript, Vite, Capacitor, Electron).
+Windows, macOS, Linux (including Raspberry Pi OS), ChromeOS and the web, with the same stack as QuillStage (Vite, Electron, Capacitor). The web build and the Electron desktop app are built here; the native mobile projects are generated on a machine with the Android/iOS SDKs. See [docs/BUILD.md](docs/BUILD.md).
 
 ## Documentation
 
@@ -123,7 +129,11 @@ Windows, macOS, Linux (including Raspberry Pi OS), ChromeOS and the web, with th
 | [docs/STAGING-MIRROR.md](docs/STAGING-MIRROR.md) | Testing a copy of your own verified site, and concurrent AI review |
 | [docs/PROTOCOLS.md](docs/PROTOCOLS.md) | FTP, mail, DNS, TLS checks beyond HTTP — detection only |
 | [docs/FIXES.md](docs/FIXES.md) | How findings become remediations and applyable fixes |
+| [docs/REPORTS.md](docs/REPORTS.md) | Report formats, the findings diff, and review packages |
 | [docs/CHECKS.md](docs/CHECKS.md) | Vulnerability-check inventory by category, with what is implemented |
+| [docs/PROFILES.md](docs/PROFILES.md) | Scan profiles, intrusiveness levels, and the active-engine guarantees |
+| [docs/COMMANDS.md](docs/COMMANDS.md) | The command registry (commands as data), the web shell, and target management |
+| [docs/BUILD.md](docs/BUILD.md) | Building the web, desktop (Electron) and mobile (Capacitor) apps |
 | [docs/ARCHITECTURE-PLAN.md](docs/ARCHITECTURE-PLAN.md) | Shell, crawler, check engine, findings model, AI layer, report, builds |
 | [docs/INNOVATIONS.md](docs/INNOVATIONS.md) | Survey of web scanners and what QuillTest adopts |
 | [docs/ETHICS.md](docs/ETHICS.md) | Authorization, responsible use, and what QuillTest will not do |

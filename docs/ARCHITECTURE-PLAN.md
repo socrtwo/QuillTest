@@ -8,11 +8,12 @@ QuillTest follows the same shape as the rest of the Quill suite: a thin cross-pl
 ┌───────────────────────────────────────────────────────┐
 │ Shell (ribbon, QAB, command search Alt+Q, panels)      │  TS + Vite UI
 ├───────────────────────────────────────────────────────┤
-│ Command registry (commands are data: ids, not code)    │  src/commands/
+│ Command registry (commands are data: ids, not code)    │  src/commands/registry.mjs
 ├───────────────────────────────────────────────────────┤
 │ Ownership verification  │  Scan orchestrator           │  src/verify/, scripts/scan.mjs
 ├─────────────────────────┼─────────────────────────────┤
-│ Crawler / spider        │  Check engine (passive+active)│ src/scan/crawl.mjs, src/scan/passive.mjs
+│ Crawler / spider        │  Check engine (passive+active)│ src/scan/crawl.mjs, passive.mjs, active.mjs
+│ Staging mirror (capture/serve/scan a copy)             │ src/scan/mirror.mjs
 │ Fingerprint + versions  │  Protocol checks             │ src/scan/fingerprint.mjs, versions.mjs, protocols.mjs
 ├─────────────────────────┴─────────────────────────────┤
 │ Findings model (normalized, CWE/OWASP-mapped)          │  emitted by src/scan/*, shape in examples/
@@ -21,7 +22,7 @@ QuillTest follows the same shape as the rest of the Quill suite: a thin cross-pl
 ├───────────────────────────────────────────────────────┤
 │ AI analysis layer (optional, multi-provider)           │  src/ai/
 ├───────────────────────────────────────────────────────┤
-│ Report / export / review packages                      │  src/report/
+│ Report / export / diff / review packages               │  src/report/render.mjs
 └───────────────────────────────────────────────────────┘
 ```
 
@@ -40,4 +41,4 @@ Android, iOS/iPadOS, Windows, macOS, Linux (incl. Raspberry Pi OS), ChromeOS and
 
 ## Status
 
-Partially built, runnable from the command line. Implemented: ownership verification (`src/verify/`), the crawler, the passive check engine, stack fingerprinting with EOL/CVE assessment, observation-only protocol checks (`src/scan/`), fix-artifact generators (`src/fix/`), and the AI provider registry, wizard and analysis layer (`src/ai/`). The orchestrator is `scripts/scan.mjs`; it enforces the verification gate before any check runs. Not yet built: the command registry and shell, the active check engine, the staging mirror, applyable patches, and the report/export layer. The module layout above names the files that exist today; the directories shown for unbuilt layers (`src/commands/`, `src/report/`) are the plan, not the tree. See [ROADMAP.md](ROADMAP.md).
+Partially built, runnable from the command line. Implemented: ownership verification (`src/verify/`), the crawler, the passive check engine, stack fingerprinting with EOL/CVE assessment, observation-only protocol checks (`src/scan/`), fix-artifact generators (`src/fix/`), the report/export layer (`src/report/`), and the AI provider registry, wizard and analysis layer (`src/ai/`). The orchestrator is `scripts/scan.mjs`; it enforces the verification gate before any check runs. Not yet built: the injection family of active checks, and the native mobile projects (Capacitor needs the Android/iOS SDKs, scaffolded but not generated here). Built: the command registry (`src/commands/registry.mjs`, commands as data with palette search), target management (`src/targets/store.mjs`), a detection-only active engine with scan profiles (`src/scan/active.mjs`), applyable manifest patches (`src/fix/patch.mjs`), and the staging-mirror pipeline (`src/scan/mirror.mjs`). The web shell (`public/shell.html`), Electron desktop app (`electron/`) and Vite build (`vite.config.js`) are built; see [BUILD.md](BUILD.md). The shell is a renderer over the command registry. The module layout above names files that exist today; `src/report/` is `src/report/render.mjs`. See [ROADMAP.md](ROADMAP.md).

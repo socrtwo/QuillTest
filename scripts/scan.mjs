@@ -22,8 +22,12 @@ import { issueChallenge, verifyChallenge, isOriginVerified, isHostVerified, norm
 import { createStore } from '../src/verify/store.mjs';
 import { runPassiveScan, sortFindings } from '../src/scan/passive.mjs';
 import { runProtocolScan } from '../src/scan/protocols.mjs';
+import { runActiveScan, SCAN_PROFILES } from '../src/scan/active.mjs';
 import { analyzeFindings } from '../src/ai/analyze.mjs';
 import { generateFixes, TARGETS } from '../src/fix/artifacts.mjs';
+import { renderHtml, renderMarkdown, renderCsv } from '../src/report/render.mjs';
+import { validateConfig, formatValidation } from '../src/ai/config-schema.mjs';
+import { createTargetStore } from '../src/targets/store.mjs';
 import { ANALYSIS_MODES } from '../src/ai/providers.mjs';
 
 const c = {
@@ -61,6 +65,11 @@ function usage(code = 0) {
       --online-cve        Also query OSV.dev for advisories on fingerprinted libraries (off by default; offline otherwise).
       --fixes             Generate ready-to-review fix files (server header block, derived CSP, cookie settings, dependency bumps).
       --target <t>        Force the fix target: nginx | apache | caddy | iis | express | netlify | generic.
+      --export <f>        Also write the report as html | md | csv | all, next to the JSON (scripts/report.mjs does more: diff, package).
+      --active            Also run the active checks: benign, non-state-changing probes (HTTP methods,
+                          open redirect, input reflection). Detection only; implies --profile safe-active.
+      --profile <name>    Scan profile / intrusiveness cap: passive (default) | safe-active.
+      --max-active-requests <n>  Hard cap on active probe requests (default 60).
       --protocols         Also run the non-HTTP protocol checks against the host (see below).
       --store <dir>       Verification store directory (default scans/verify).
       --ttl-hours <n>     Challenge lifetime for 'verify issue' (default 24).
@@ -162,6 +171,18 @@ async function cmdScan() {
     console.log(c.dim(`protocol checks on ${host}: ${proto.findings.length} finding(s) across ${proto.services.filter((s) => s.present).length} service(s)`));
   }
 
+  // Optional: active checks (benign, non-state-changing; ownership already verified above).
+  const profileName = typeof args.profile === 'string' ? args.profile : (args.active ? 'safe-active' : 'passive');
+  if (!SCAN_PROFILES[profileName]) { console.error(c.red(`--profile must be one of: ${Object.keys(SCAN_PROFILES).join(', ')}`)); exit(2); }
+  if (args.active || (profileName !== 'passive')) {
+    const targets = [origin + '/', ...(report.pages || []).map((p) => p.url).filter(Boolean)];
+    const maxActive = args['max-active-requests'] !== undefined ? Number.parseInt(args['max-active-requests'], 10) : 60;
+    const active = await runActiveScan(origin, { targets, profile: profileName, maxRequests: Number.isInteger(maxActive) ? maxActive : 60, delayMs: Number.isFinite(delayMs) ? delayMs : 0 });
+    report.active = { profile: active.profile, intrusivenessCap: active.intrusivenessCap, requests: active.requests, targetsProbed: active.targetsProbed };
+    active.findings.forEach((f, i) => report.findings.push({ id: `A-${String(i + 1).padStart(3, '0')}`, ...f }));
+    console.log(c.dim(`active checks (${active.profile}): ${active.findings.length} finding(s) from ${active.requests} probe(s) across ${active.targetsProbed} URL(s)`));
+  }
+
   report.findings = sortFindings(report.findings);
 
   console.log(c.dim(`stack: ${report.stack.summary}`));
@@ -192,6 +213,13 @@ async function cmdScan() {
       console.log(c.yellow('\n--analyze requested but quilltest.ai.json not found; run scripts/ai-setup-wizard.mjs first. Skipping analysis.'));
     } else {
       const config = JSON.parse(readFileSync(cfgPath, 'utf8'));
+      const cfgCheck = validateConfig(config);
+      if (!cfgCheck.ok) {
+        console.log(c.yellow('\n--analyze requested but quilltest.ai.json is not valid; skipping analysis:'));
+        console.log(formatValidation(cfgCheck));
+        report.analysis = { error: 'config invalid', errors: cfgCheck.errors };
+      } else {
+      for (const w of cfgCheck.warnings) console.log(c.dim(`config warning: ${w}`));
       console.log(c.bold('\nAI analysis'));
       const analysis = await analyzeFindings(report.findings, config, {
         mode: typeof args.mode === 'string' ? args.mode : undefined,
@@ -209,6 +237,7 @@ async function cmdScan() {
         console.log('  consensus:');
         for (const [id, v] of cons) console.log(`    ${id}: ${v.verdict} (${v.reviewers})${v.meanAttackerPriority != null ? `  attacker-priority≈${v.meanAttackerPriority.toFixed(1)}` : ''}`);
       }
+      }
     }
   }
 
@@ -219,11 +248,23 @@ async function cmdScan() {
   mkdirSync(resolve(outPath, '..'), { recursive: true });
   writeFileSync(outPath, JSON.stringify(report, null, 2) + '\n', { mode: 0o600 });
   console.log(c.dim(`\nReport written to ${outPath}`));
+  try { const t = createTargetStore().recordScan(origin, { findings: report.findings, reportPath: outPath }); if (t) console.log(c.dim(`target ${origin} updated with this scan's result`)); } catch { /* target store is optional */ }
   if (report.fixes?.files?.length) {
     const fixDir = outPath.replace(/\.json$/, '') + '-fixes';
     mkdirSync(fixDir, { recursive: true });
     for (const f of report.fixes.files) writeFileSync(resolve(fixDir, f.filename), f.contents, { mode: 0o600 });
     console.log(c.dim(`Fix files written to ${fixDir}/`));
+  }
+  if (args.export) {
+    const fmt = typeof args.export === 'string' ? args.export : 'html';
+    const EXPORTS = { html: renderHtml, md: renderMarkdown, csv: renderCsv };
+    const wanted = fmt === 'all' ? Object.keys(EXPORTS) : [fmt];
+    if (!wanted.every((w) => EXPORTS[w])) { console.error(c.red('--export must be one of: html, md, csv, all')); exit(2); }
+    for (const w of wanted) {
+      const p = outPath.replace(/\.json$/, '') + '.' + w;
+      writeFileSync(p, EXPORTS[w](report), { mode: 0o600 });
+      console.log(c.dim(`Report exported to ${p}`));
+    }
   }
 }
 

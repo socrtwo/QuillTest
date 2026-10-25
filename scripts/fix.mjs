@@ -14,9 +14,10 @@
  * any server.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { resolve, join } from 'node:path';
+import { resolve, join, relative, basename } from 'node:path';
 import { argv, exit } from 'node:process';
 import { generateFixes, TARGETS } from '../src/fix/artifacts.mjs';
+import { generatePatchForFile } from '../src/fix/patch.mjs';
 
 function parseArgs(args) {
   const out = {};
@@ -25,7 +26,12 @@ function parseArgs(args) {
 }
 const args = parseArgs(argv.slice(2));
 if (args.help || !args.report) {
-  console.log(`Usage: node scripts/fix.mjs --report <scan.json> [--target ${TARGETS.join('|')}] [--all] [--out <dir>] [--print]`);
+  console.log(`Usage: node scripts/fix.mjs --report <scan.json> [--target ${TARGETS.join('|')}] [--all] [--out <dir>] [--print]
+       node scripts/fix.mjs --report <scan.json> --patch <package.json|composer.json> [--patch <file> ...] [--out <dir>] [--print]
+
+  --patch <file>   Read your real dependency manifest and emit a unified diff (<file>.patch) that bumps the
+                   versions this scan flagged. The diff is written for review, never applied. Apply it yourself
+                   with: git apply <file>.patch   (or: patch -p1 < <file>.patch)`);
   exit(args.help ? 0 : 2);
 }
 if (args.target && !TARGETS.includes(args.target)) { console.error(`--target must be one of: ${TARGETS.join(', ')}`); exit(2); }
@@ -56,4 +62,40 @@ if (result.files.length) {
   for (const f of result.files) writeFileSync(join(outDir, f.filename), f.contents, { mode: 0o600 });
   writeFileSync(join(outDir, 'fixes.json'), JSON.stringify(result, null, 2) + '\n', { mode: 0o600 });
   console.log(`\nWrote ${result.files.length} file(s) to ${outDir}`);
+}
+
+// Level 3: applyable patches for provided manifests. Collect every --patch occurrence from argv.
+const patchFiles = [];
+{
+  const a = argv.slice(2);
+  for (let i = 0; i < a.length; i++) if (a[i] === '--patch' && a[i + 1] && !a[i + 1].startsWith('--')) patchFiles.push(a[++i]);
+}
+if (patchFiles.length) {
+  const outDir = resolve(process.cwd(), typeof args.out === 'string' ? args.out : reportPath.replace(/\.json$/, '') + '-fixes');
+  let wrote = 0;
+  console.log('\nApplyable patches (review, then apply yourself — nothing is applied):');
+  for (const pf of patchFiles) {
+    const abs = resolve(process.cwd(), pf);
+    if (!existsSync(abs)) { console.error(`  ${pf}: no such file`); continue; }
+    const contents = readFileSync(abs, 'utf8');
+    // Use a path git apply can resolve: relative to cwd when the file is under it, else the basename.
+    const rel = relative(process.cwd(), abs);
+    const diffPath = !rel || rel.startsWith('..') ? basename(abs) : rel;
+    let res;
+    try { res = generatePatchForFile(report, { filename: pf, contents, path: diffPath }); }
+    catch (e) { console.error(`  ${pf}: ${e.message}`); continue; }
+    if (res.error) { console.error(`  ${res.error}`); continue; }
+    if (!res.changes.length) {
+      console.log(`  ${pf}: nothing to change${res.skipped.length ? ` (${res.skipped.map((x) => `${x.pkg}: ${x.reason}`).join('; ')})` : ' (no matching flagged dependency in this file)'}`);
+      continue;
+    }
+    mkdirSync(outDir, { recursive: true });
+    const outPath = join(outDir, pf.split(/[\\/]/).pop() + '.patch');
+    writeFileSync(outPath, res.patch, { mode: 0o600 });
+    wrote++;
+    console.log(`  ${pf}: ${res.changes.map((x) => `${x.pkg} ${x.from} -> ${x.to}`).join(', ')}`);
+    console.log(`      -> ${outPath}   (apply from the directory holding ${diffPath}: git apply "${outPath}")`);
+    if (args.print) console.log(res.patch.split('\n').map((l) => '      ' + l).join('\n'));
+  }
+  if (wrote) console.log(`\nWrote ${wrote} patch file(s). Review each diff before applying; QuillTest never modifies your files.`);
 }
