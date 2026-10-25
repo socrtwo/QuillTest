@@ -37,7 +37,7 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 
 - [x] Artifact generators: server header blocks (nginx/Apache/Caddy/IIS/Express/Netlify), crawl-derived CSP, framework cookie settings — `src/fix/artifacts.mjs`, `scripts/fix.mjs`, `scan --fixes`
 - [x] Dependency-bump artifacts for fingerprinted components: package.json / composer.json fragments, replacement CDN tags, upgrade commands, per-component summary — `src/fix/dependencies.mjs` (emitted by `generateFixes`)
-- [ ] Applyable patch/diff generation for provided or verified artifacts
+- [x] Applyable patch/diff generation for dependency manifests: `fix.mjs --patch package.json|composer.json` emits a `git apply`-ready unified diff that bumps flagged versions, never applied — `src/fix/patch.mjs`
 
 ## M5 — AI analysis
 

@@ -46,6 +46,13 @@ jobs:
           node scripts/report.mjs --verify /tmp/review
       - name: Active engine self-check (offline, no network)
         run: node --test tests/active.test.mjs
+      - name: Dependency patch applies cleanly with git apply
+        run: |
+          printf '{\n  "dependencies": {\n    "jquery": "^1.12.4"\n  }\n}\n' > /tmp/package.json
+          node -e "require('fs').writeFileSync('/tmp/depscan.json', JSON.stringify({findings:[{id:'F-1',checkId:'components.eol',title:'jQuery 1.12.4',component:'jQuery',version:'1.12.4',evidence:{component:'jQuery',version:'1.12.4'}}]}))"
+          node scripts/fix.mjs --report /tmp/depscan.json --patch /tmp/package.json --out /tmp/pfix
+          ( cd /tmp && git apply --check pfix/package.json.patch )
+          grep -q '3.7.1' /tmp/pfix/package.json.patch
       - name: Scan gate refuses an unverified origin (exit 3)
         run: |
           set +e
