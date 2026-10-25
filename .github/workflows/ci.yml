@@ -46,6 +46,8 @@ jobs:
           node scripts/report.mjs --verify /tmp/review
       - name: Active engine self-check (offline, no network)
         run: node --test tests/active.test.mjs
+      - name: Staging-mirror self-check (offline; loopback server)
+        run: node --test tests/mirror.test.mjs
       - name: Dependency patch applies cleanly with git apply
         run: |
           printf '{\n  "dependencies": {\n    "jquery": "^1.12.4"\n  }\n}\n' > /tmp/package.json

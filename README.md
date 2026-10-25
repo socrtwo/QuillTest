@@ -61,6 +61,8 @@ Add `--export html` (or `md`, `csv`, `all`) to write a human-readable report nex
 
 Add `--active` (or `--profile safe-active`) to also run the active checks: benign, non-state-changing probes for HTTP-method / Cross-Site Tracing, open redirects, and input reflection. The active engine sends only GET and OPTIONS, never submits a form, and never follows a redirect off the verified origin; the injection family is deferred (see [docs/PROFILES.md](docs/PROFILES.md) and [docs/CHECKS.md](docs/CHECKS.md)).
 
+Test a copy instead of production with the staging mirror: `node scripts/mirror.mjs capture <origin>` writes a bounded same-origin snapshot of your verified site under `scans/<host>/<ts>/`, `mirror serve <dir>` replays it on loopback, and `mirror scan <origin> --dir <snapshot>` runs the passive engine against the copy offline, with findings that still name the real origin. Capture and scan use the same ownership gate as a live scan. See [docs/STAGING-MIRROR.md](docs/STAGING-MIRROR.md).
+
 Scanning an origin without a valid verification exits with code 3; there is no override flag. By default the scan crawls up to 25 same-origin pages (honoring `robots.txt`, never following logout/delete-style links) and runs the header, cookie, content and form checks on every one, collapsing site-wide gaps into single findings with page counts. It also fingerprints the stack (server, framework, CMS) so fixes are phrased for what you actually run. Reports are written under `scans/<host>/` (git-ignored) with cookie values masked. Each origin — scheme, host, *and* port — needs its own verification.
 
 ## The AI setup wizard

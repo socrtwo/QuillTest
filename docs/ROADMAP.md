@@ -17,7 +17,7 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 - [x] Ownership verification module (file-upload + DNS TXT), the scan gate (`src/verify/`, `scripts/scan.mjs verify`)
 - [ ] Command registry + minimal ribbon/QAB shell
 - [ ] Target management
-- [ ] Staging-mirror capture/serve pipeline (own-site snapshot, loopback serve)
+- [x] Staging-mirror capture/serve pipeline — `src/scan/mirror.mjs`, `scripts/mirror.mjs` (capture a bounded own-site snapshot, serve it on loopback, scan the copy offline with real-origin findings)
 
 ## M2 — Passive engine
 
