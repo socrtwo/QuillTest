@@ -27,6 +27,7 @@ import { analyzeFindings } from '../src/ai/analyze.mjs';
 import { generateFixes, TARGETS } from '../src/fix/artifacts.mjs';
 import { renderHtml, renderMarkdown, renderCsv } from '../src/report/render.mjs';
 import { validateConfig, formatValidation } from '../src/ai/config-schema.mjs';
+import { createTargetStore } from '../src/targets/store.mjs';
 import { ANALYSIS_MODES } from '../src/ai/providers.mjs';
 
 const c = {
@@ -247,6 +248,7 @@ async function cmdScan() {
   mkdirSync(resolve(outPath, '..'), { recursive: true });
   writeFileSync(outPath, JSON.stringify(report, null, 2) + '\n', { mode: 0o600 });
   console.log(c.dim(`\nReport written to ${outPath}`));
+  try { const t = createTargetStore().recordScan(origin, { findings: report.findings, reportPath: outPath }); if (t) console.log(c.dim(`target ${origin} updated with this scan's result`)); } catch { /* target store is optional */ }
   if (report.fixes?.files?.length) {
     const fixDir = outPath.replace(/\.json$/, '') + '-fixes';
     mkdirSync(fixDir, { recursive: true });

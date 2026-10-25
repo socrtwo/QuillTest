@@ -20,7 +20,9 @@
     "quilltest": "scripts/scan.mjs",
     "quilltest-fix": "scripts/fix.mjs",
     "quilltest-report": "scripts/report.mjs",
-    "quilltest-mirror": "scripts/mirror.mjs"
+    "quilltest-mirror": "scripts/mirror.mjs",
+    "quilltest-targets": "scripts/targets.mjs",
+    "quilltest-commands": "scripts/commands.mjs"
   },
   "scripts": {
     "ai:setup": "node scripts/ai-setup-wizard.mjs",
@@ -32,7 +34,9 @@
     "fix": "node scripts/fix.mjs",
     "report": "node scripts/report.mjs",
     "protocols": "node scripts/scan.mjs protocols",
-    "mirror": "node scripts/mirror.mjs"
+    "mirror": "node scripts/mirror.mjs",
+    "targets": "node scripts/targets.mjs",
+    "commands": "node scripts/commands.mjs"
   },
   "keywords": [
     "security",

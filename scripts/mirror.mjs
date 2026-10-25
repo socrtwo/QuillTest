@@ -22,6 +22,7 @@ import { captureMirror, serveMirror, loadMirror, scanMirror, MIRROR_MANIFEST } f
 import { sortFindings } from '../src/scan/passive.mjs';
 import { analyzeFindings } from '../src/ai/analyze.mjs';
 import { validateConfig, formatValidation } from '../src/ai/config-schema.mjs';
+import { createTargetStore } from '../src/targets/store.mjs';
 
 const c = {
   bold: (s) => `\x1b[1m${s}\x1b[0m`, dim: (s) => `\x1b[2m${s}\x1b[0m`,
@@ -134,6 +135,7 @@ async function cmdScan() {
   mkdirSync(resolve(outPath, '..'), { recursive: true });
   writeFileSync(outPath, JSON.stringify(report, null, 2) + '\n', { mode: 0o600 });
   console.log(c.dim(`\nReport written to ${outPath}`));
+  try { createTargetStore().recordScan(origin, { findings: report.findings, reportPath: outPath }); } catch { /* target store is optional */ }
 }
 
 try {

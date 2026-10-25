@@ -132,6 +132,7 @@ Windows, macOS, Linux (including Raspberry Pi OS), ChromeOS and the web, with th
 | [docs/REPORTS.md](docs/REPORTS.md) | Report formats, the findings diff, and review packages |
 | [docs/CHECKS.md](docs/CHECKS.md) | Vulnerability-check inventory by category, with what is implemented |
 | [docs/PROFILES.md](docs/PROFILES.md) | Scan profiles, intrusiveness levels, and the active-engine guarantees |
+| [docs/COMMANDS.md](docs/COMMANDS.md) | The command registry (commands as data) and target management |
 | [docs/ARCHITECTURE-PLAN.md](docs/ARCHITECTURE-PLAN.md) | Shell, crawler, check engine, findings model, AI layer, report, builds |
 | [docs/INNOVATIONS.md](docs/INNOVATIONS.md) | Survey of web scanners and what QuillTest adopts |
 | [docs/ETHICS.md](docs/ETHICS.md) | Authorization, responsible use, and what QuillTest will not do |

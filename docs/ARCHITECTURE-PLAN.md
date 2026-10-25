@@ -8,7 +8,7 @@ QuillTest follows the same shape as the rest of the Quill suite: a thin cross-pl
 ┌───────────────────────────────────────────────────────┐
 │ Shell (ribbon, QAB, command search Alt+Q, panels)      │  TS + Vite UI
 ├───────────────────────────────────────────────────────┤
-│ Command registry (commands are data: ids, not code)    │  src/commands/
+│ Command registry (commands are data: ids, not code)    │  src/commands/registry.mjs
 ├───────────────────────────────────────────────────────┤
 │ Ownership verification  │  Scan orchestrator           │  src/verify/, scripts/scan.mjs
 ├─────────────────────────┼─────────────────────────────┤
@@ -41,4 +41,4 @@ Android, iOS/iPadOS, Windows, macOS, Linux (incl. Raspberry Pi OS), ChromeOS and
 
 ## Status
 
-Partially built, runnable from the command line. Implemented: ownership verification (`src/verify/`), the crawler, the passive check engine, stack fingerprinting with EOL/CVE assessment, observation-only protocol checks (`src/scan/`), fix-artifact generators (`src/fix/`), the report/export layer (`src/report/`), and the AI provider registry, wizard and analysis layer (`src/ai/`). The orchestrator is `scripts/scan.mjs`; it enforces the verification gate before any check runs. Not yet built: the command registry and shell, and the injection family of active checks. Built: a detection-only active engine with scan profiles (`src/scan/active.mjs`), applyable manifest patches (`src/fix/patch.mjs`), and the staging-mirror capture/serve/scan pipeline (`src/scan/mirror.mjs`). The module layout above names the files that exist today; the directory shown for the unbuilt shell layer (`src/commands/`) is the plan, not the tree. See [ROADMAP.md](ROADMAP.md).
+Partially built, runnable from the command line. Implemented: ownership verification (`src/verify/`), the crawler, the passive check engine, stack fingerprinting with EOL/CVE assessment, observation-only protocol checks (`src/scan/`), fix-artifact generators (`src/fix/`), the report/export layer (`src/report/`), and the AI provider registry, wizard and analysis layer (`src/ai/`). The orchestrator is `scripts/scan.mjs`; it enforces the verification gate before any check runs. Not yet built: the ribbon/QAB shell UI and the project scaffold it needs (Vite/Capacitor/Electron), and the injection family of active checks. Built: the command registry (`src/commands/registry.mjs`, commands as data with palette search), target management (`src/targets/store.mjs`), a detection-only active engine with scan profiles (`src/scan/active.mjs`), applyable manifest patches (`src/fix/patch.mjs`), and the staging-mirror pipeline (`src/scan/mirror.mjs`). The shell, when built, is a renderer over the command registry. The module layout above names the files that exist today; the directory shown for the unbuilt shell layer (`src/commands/`) is the plan, not the tree. See [ROADMAP.md](ROADMAP.md).
