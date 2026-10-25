@@ -1,0 +1,46 @@
+# QuillTest — cross-platform desktop release (parity with QuillStage).
+# Builds the web app and packages the Electron desktop app for Linux, macOS and
+# Windows when a version tag is pushed, attaching the installers to the GitHub
+# release. Mobile (Capacitor/Android/iOS) is built from a maintainer machine
+# with the platform SDKs, not here. This workflow is scaffolded to spec; it is
+# exercised when a maintainer pushes a tag, not in the per-commit CI.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  desktop:
+    name: Desktop (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: npm ci
+      - name: Build web + package desktop
+        run: npm run electron:build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: quilltest-${{ matrix.os }}
+          path: |
+            release/*.AppImage
+            release/*.deb
+            release/*.dmg
+            release/*.zip
+            release/*.exe
+          if-no-files-found: ignore

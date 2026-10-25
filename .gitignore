@@ -9,9 +9,14 @@ quilltest.ai.json
 # Node / build
 node_modules/
 dist/
+release/
 .vite/
 *.log
 npm-debug.log*
+
+# Capacitor native projects (generated; built from a machine with the SDKs)
+/android/
+/ios/
 
 # Editor / OS
 .DS_Store

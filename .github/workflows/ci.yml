@@ -21,13 +21,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      # No dependencies to install: the project is dependency-free by design.
+      # The engine and CLIs are dependency-free (stdlib only); build tooling is installed in the separate build job.
       - name: Browser registry is in sync with src/ai/providers.mjs
         run: node scripts/sync-browser-registry.mjs --check
       - name: Shipped example config passes schema validation
         run: node scripts/ai-setup-wizard.mjs --validate --config quilltest.ai.example.json
       - name: Syntax-check every module
-        run: for f in src/ai/*.mjs src/verify/*.mjs src/scan/*.mjs src/fix/*.mjs src/report/*.mjs scripts/*.mjs; do node --check "$f"; done
+        run: for f in src/ai/*.mjs src/verify/*.mjs src/scan/*.mjs src/fix/*.mjs src/report/*.mjs src/commands/*.mjs src/targets/*.mjs scripts/*.mjs electron/*.js electron/*.mjs vite.config.js; do node --check "$f"; done
       - name: Unit tests (offline)
         run: npm test
       - name: Analysis dry-run against the sample findings needs no keys
@@ -74,3 +74,20 @@ jobs:
           # The example config and sample findings must never carry real-looking keys.
           ! grep -rEn '"apiKey": *"[^"n]' quilltest.ai.example.json
           ! git grep -En 'sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{30,}' -- . ':!tests/' ':!SECURITY.md' || (echo "key-shaped string committed" && exit 1)
+
+  build:
+    name: Web build (Vite)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install build tooling
+        run: npm ci
+      - name: Build the web app
+        run: npm run build
+      - name: Built output exists
+        run: test -s dist/index.html && test -s dist/public/shell.html && test -s dist/public/ai-wizard.html
+      - name: Shell build is in sync with the command registry
+        run: node scripts/sync-shell-registry.mjs --check

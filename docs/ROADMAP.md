@@ -10,7 +10,7 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 - [x] AI setup wizard — browser (`public/ai-wizard.html`), multi-provider + mode
 - [x] Multi-provider config (v2: `activeProviders`, `analysisMode`) + v1 normalization
 - [x] Config module + schema validation for `quilltest.ai.json` — `src/ai/config-schema.mjs`, `ai-setup-wizard.mjs --validate`, enforced before every analysis run
-- [ ] Project scaffold matching QuillStage stack (Vite, Capacitor, Electron, CI)
+- [x] Project scaffold (Vite, Electron, Capacitor, CI) — `vite.config.js` web build (verified), `electron/` desktop main + guarded command bridge, `capacitor.config.json`; CI builds the web app, `release.yml` packages the desktop app on a tag. See [BUILD.md](BUILD.md).
 
 ## M1 — Ownership and shell
 
@@ -49,6 +49,6 @@ Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo
 ## M6 — Report and release
 
 - [x] Report/export (self-contained HTML, Markdown, CSV), findings diff between scans, review packages with SHA-256 manifest — `src/report/render.mjs`, `scripts/report.mjs`, `scan --export`
-- [ ] Cross-platform builds and release workflow (parity with QuillStage)
+- [x] Cross-platform builds and release workflow — electron-builder targets (AppImage/deb, dmg/zip, nsis/portable) and `.github/workflows/release.yml` (tag-driven, per-OS matrix). Mobile packaging runs from a maintainer machine with the SDKs.
 - [x] SECURITY.md and responsible-disclosure policy
 - [x] CI (GitHub Actions): registry-sync check, syntax, offline tests, keyless dry-run, secret scan

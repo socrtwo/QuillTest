@@ -115,9 +115,9 @@ Supported providers out of the box:
 
 > Model names drift. The wizard treats the lists above as suggestions and lets you type any model id the provider accepts; it fetches the live model list where the provider exposes one (every provider above does, at `GET {base}/models`). Vendor-hosted Llama model ids in particular differ from gateway to gateway.
 
-## Platforms (planned)
+## Platforms
 
-Windows, macOS, Linux (including Raspberry Pi OS), ChromeOS and the web, with the same stack and CI/release workflows as QuillStage (TypeScript, Vite, Capacitor, Electron).
+Windows, macOS, Linux (including Raspberry Pi OS), ChromeOS and the web, with the same stack as QuillStage (Vite, Electron, Capacitor). The web build and the Electron desktop app are built here; the native mobile projects are generated on a machine with the Android/iOS SDKs. See [docs/BUILD.md](docs/BUILD.md).
 
 ## Documentation
 
@@ -133,6 +133,7 @@ Windows, macOS, Linux (including Raspberry Pi OS), ChromeOS and the web, with th
 | [docs/CHECKS.md](docs/CHECKS.md) | Vulnerability-check inventory by category, with what is implemented |
 | [docs/PROFILES.md](docs/PROFILES.md) | Scan profiles, intrusiveness levels, and the active-engine guarantees |
 | [docs/COMMANDS.md](docs/COMMANDS.md) | The command registry (commands as data), the web shell, and target management |
+| [docs/BUILD.md](docs/BUILD.md) | Building the web, desktop (Electron) and mobile (Capacitor) apps |
 | [docs/ARCHITECTURE-PLAN.md](docs/ARCHITECTURE-PLAN.md) | Shell, crawler, check engine, findings model, AI layer, report, builds |
 | [docs/INNOVATIONS.md](docs/INNOVATIONS.md) | Survey of web scanners and what QuillTest adopts |
 | [docs/ETHICS.md](docs/ETHICS.md) | Authorization, responsible use, and what QuillTest will not do |

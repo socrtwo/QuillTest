@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QuillTest</title>
+<style>
+  :root {
+    --bg: #ffffff; --fg: #1a1b1e; --muted: #5c6370; --border: #d7dbe0;
+    --accent: #2d6cdf; --accent-fg: #ffffff; --card: #f6f8fa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#16181d; --fg:#e6e8eb; --muted:#9aa3af; --border:#2b2f36; --accent:#5b8cff; --accent-fg:#0d1117; --card:#1c1f26; }
+  }
+  :root[data-theme="dark"] { --bg:#16181d; --fg:#e6e8eb; --muted:#9aa3af; --border:#2b2f36; --accent:#5b8cff; --accent-fg:#0d1117; --card:#1c1f26; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 15px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 20px 64px; }
+  h1 { font-size: 30px; margin: 0 0 4px; }
+  h1 b { color: var(--accent); }
+  .tag { color: var(--muted); margin: 0 0 32px; font-size: 16px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+  a.card { display: block; text-decoration: none; color: inherit; background: var(--card);
+    border: 1px solid var(--border); border-radius: 12px; padding: 20px; transition: border-color .15s; }
+  a.card:hover { border-color: var(--accent); }
+  a.card h2 { font-size: 17px; margin: 0 0 6px; }
+  a.card p { margin: 0; color: var(--muted); font-size: 14px; }
+  .note { margin-top: 32px; color: var(--muted); font-size: 13.5px; }
+  code { background: var(--card); border: 1px solid var(--border); border-radius: 5px; padding: 1px 5px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Quill<b>Test</b></h1>
+  <p class="tag">Open-source web application security testing and fixing. Every scan is gated behind proof you own the site.</p>
+  <div class="cards">
+    <a class="card" href="./public/shell.html">
+      <h2>Command shell →</h2>
+      <p>The ribbon and Alt+Q command palette over QuillTest's full command set.</p>
+    </a>
+    <a class="card" href="./public/ai-wizard.html">
+      <h2>AI setup wizard →</h2>
+      <p>Configure the AI providers that review findings, and the analysis mode.</p>
+    </a>
+  </div>
+  <p class="note">This is the web build. Scans run from the command line or the desktop/mobile build, where the scanner's network calls are not constrained by browser CORS. See <code>docs/</code> for the full documentation.</p>
+</div>
+</body>
+</html>

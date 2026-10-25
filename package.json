@@ -2,7 +2,7 @@
   "name": "quilltest",
   "version": "0.0.0",
   "private": true,
-  "description": "QuillTest — open-source web application security testing and fixing tool, part of the Quill suite. Runnable from the CLI: ownership-gated passive scan, stack fingerprinting with EOL/CVE assessment, protocol checks, fix-artifact generation, and multi-provider AI analysis.",
+  "description": "QuillTest \u2014 open-source web application security testing and fixing tool, part of the Quill suite. Runnable from the CLI: ownership-gated passive scan, stack fingerprinting with EOL/CVE assessment, protocol checks, fix-artifact generation, and multi-provider AI analysis.",
   "type": "module",
   "license": "MIT",
   "author": "Paul D Pruitt",
@@ -37,7 +37,16 @@
     "protocols": "node scripts/scan.mjs protocols",
     "mirror": "node scripts/mirror.mjs",
     "targets": "node scripts/targets.mjs",
-    "commands": "node scripts/commands.mjs"
+    "commands": "node scripts/commands.mjs",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "electron:dev": "VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .",
+    "electron:start": "electron .",
+    "electron:build": "vite build && electron-builder",
+    "cap:sync": "vite build && cap sync",
+    "cap:add:android": "cap add android",
+    "cap:add:ios": "cap add ios"
   },
   "keywords": [
     "security",
@@ -46,5 +55,51 @@
     "owasp",
     "quill-suite",
     "ai"
-  ]
+  ],
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.4",
+    "electron": "^40.1.0",
+    "electron-builder": "^26.0.12",
+    "vite": "^8.3.5"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.4",
+    "@capacitor/core": "^7.4.4",
+    "@capacitor/ios": "^7.4.4"
+  },
+  "main": "electron/main.js",
+  "build": {
+    "appId": "com.quillsuite.quilltest",
+    "productName": "QuillTest",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "src/**/*",
+      "scripts/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Security"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    }
+  }
 }

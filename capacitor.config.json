@@ -1,0 +1,7 @@
+{
+  "appId": "com.quillsuite.quilltest",
+  "appName": "QuillTest",
+  "webDir": "dist",
+  "server": { "androidScheme": "https" },
+  "backgroundColor": "#16181d"
+}
