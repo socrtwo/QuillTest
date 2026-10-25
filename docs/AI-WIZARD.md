@@ -87,7 +87,7 @@ By default the wizard stores a **reference to an environment variable** (`apiKey
 
 ## Adding a provider
 
-Add one object to the `PROVIDERS` array in `src/ai/providers.mjs`: `id`, `label`, `apiStyle`, `defaultBase`, `baseEditable`, `keyEnv`, `keysUrl`, `models`, `listModelsPath`, `notes`, and optionally `requiresBase` and `maxTokensParam`. Then run `npm run ai:sync-browser` to refresh the browser copy and `npm test`. The CLI wizard and the (future) analysis layer pick it up with no other changes. If the provider is OpenAI-compatible, that single entry is all that is needed.
+Add one object to the `PROVIDERS` array in `src/ai/providers.mjs`: `id`, `label`, `apiStyle`, `defaultBase`, `baseEditable`, `keyEnv`, `keysUrl`, `models`, `listModelsPath`, `notes`, and optionally `requiresBase` and `maxTokensParam`. Then run `npm run ai:sync-browser` to refresh the browser copy and `npm test`. The CLI wizard and the analysis layer pick it up with no other changes. If the provider is OpenAI-compatible, that single entry is all that is needed.
 
 ## Security notes
 
