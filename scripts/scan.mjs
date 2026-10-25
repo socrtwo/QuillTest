@@ -59,7 +59,7 @@ function usage(code = 0) {
       --ignore-robots     Do not honor robots.txt Disallow rules (it is your site; default honors them).
       --delay-ms <n>      Pause between requests (default 0).
       --online-cve        Also query OSV.dev for advisories on fingerprinted libraries (off by default; offline otherwise).
-      --fixes             Generate ready-to-review fix files (server header block, derived CSP, cookie settings).
+      --fixes             Generate ready-to-review fix files (server header block, derived CSP, cookie settings, dependency bumps).
       --target <t>        Force the fix target: nginx | apache | caddy | iis | express | netlify | generic.
       --protocols         Also run the non-HTTP protocol checks against the host (see below).
       --store <dir>       Verification store directory (default scans/verify).
@@ -181,7 +181,7 @@ async function cmdScan() {
     report.fixes = fx;
     console.log(c.bold(`\nFix artifacts`) + c.dim(` — target: ${fx.target}`));
     for (const f of fx.files) console.log(`  • ${f.filename}  ${c.dim('[' + f.kind + (f.target !== fx.target ? ' · ' + f.target : '') + ']')}`);
-    if (!fx.files.length) console.log(c.dim('  (no header/cookie findings → nothing to generate)'));
+    if (!fx.files.length) console.log(c.dim('  (no header/cookie/component findings → nothing to generate)'));
     for (const n of fx.notes) console.log(c.dim('  - ' + n));
     if (fx.coverage.manual.length) console.log(c.dim(`  ${fx.coverage.manual.length} finding(s) need a manual change; see their remediation text above.`));
   }

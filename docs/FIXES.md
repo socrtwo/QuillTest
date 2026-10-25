@@ -16,7 +16,7 @@ QuillTest is a test-*and*-fix tool. A finding that only says "you have a problem
 
 ## The fix is mapped, not generic
 
-QuillTest fingerprints the server and framework from response headers, error pages, cookie names, and asset paths, then selects the remediation that fits. A missing-CSP finding on an Express app gets a `helmet` snippet; on nginx it gets an `add_header` block; on a static host it gets the `<meta http-equiv>` fallback and a note on why a header is better. The mapping lives in `src/fixes/` (planned) as data, same as the check and command registries.
+QuillTest fingerprints the server and framework from response headers, error pages, cookie names, and asset paths, then selects the remediation that fits. A missing-CSP finding on an Express app gets a `helmet` snippet; on nginx it gets an `add_header` block; on a static host it gets the `<meta http-equiv>` fallback and a note on why a header is better. The mapping lives in `src/fix/artifacts.mjs` as data (`renderers` per server target, `COOKIE_FIXES` per framework), same as the check registry.
 
 ## Role of AI in fixes
 
@@ -35,7 +35,8 @@ Levels 1 and 2 are implemented.
 - **Generated artifacts (level 2):** `src/fix/artifacts.mjs`, run with `scripts/scan.mjs scan <origin> --fixes` or `scripts/fix.mjs --report <scan.json>`. From a report it emits:
   - a **security-header block for the detected server** — nginx `add_header … always`, Apache `<IfModule mod_headers.c>` (plus `ServerTokens Prod`, `Options -Indexes`), Caddy `header { }`, IIS `web.config` `customHeaders`, Express/helmet options, Netlify `_headers`, or a generic header list; `--target` overrides the choice and `--all` emits every variant;
   - a **Content-Security-Policy derived from what the crawler observed** — the `script-src`/`style-src`/`frame-src` allow-lists are exactly the third-party origins seen on crawled pages, `upgrade-insecure-requests` is added when mixed content was found, and every `'unsafe-inline'` concession is explained so it can be removed. It is emitted as `Content-Security-Policy-Report-Only` with the enforced twin alongside, because a CSP deployed blind breaks sites;
-  - **cookie-attribute settings for the detected framework** (PHP ini, express-session, Django, Rails, Laravel, ASP.NET, Flask, WordPress).
+  - **cookie-attribute settings for the detected framework** (PHP ini, express-session, Django, Rails, Laravel, ASP.NET, Flask, WordPress);
+  - **dependency bumps for components found end-of-life or vulnerable** (`src/fix/dependencies.mjs`) — a `package.json` fragment for npm-hosted libraries (jQuery, Bootstrap), a `composer.json` fragment for Drupal, replacement `<script>`/`<link>` tags with an SRI placeholder for CDN or self-hosted copies, a review-before-running shell script of package-manager commands (runtime and server upgrades for PHP, nginx, Apache, IIS, Joomla appear as commented, distribution-dependent steps), and `quilltest-dependencies.md` summarizing each component's detected version, the lowest version that clears the matched advisories (computed from the same offline table the scanner used), the last patched release on the current line where one exists, the recommended target, and the finding ids and CVEs behind it. Targets are dated (`BUMP_DATA_AS_OF`); caret ranges let the installer float above them.
 
   Only headers that a finding calls for are emitted, each tagged with the finding it addresses; the result lists which findings were covered and which still need a manual change.
 - **Applyable patch (level 3):** not yet implemented. Files are written under `scans/<host>/<timestamp>-fixes/` for review; nothing is applied to any server.

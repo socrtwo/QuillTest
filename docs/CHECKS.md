@@ -1,4 +1,4 @@
-# Vulnerability-check inventory (planned)
+# Vulnerability-check inventory
 
 Checks are data, registered against ids, same as commands. Each check declares: id, category (OWASP/CWE), severity default, whether it is passive or active, how intrusive it is, and the remediation it maps to (see [FIXES.md](FIXES.md)). Active checks run only after ownership verification ([OWNERSHIP-VERIFICATION.md](OWNERSHIP-VERIFICATION.md)) and never go beyond the least-intrusive probe that proves the finding.
 
@@ -51,4 +51,4 @@ The **passive** set is implemented in `src/scan/passive.mjs` (checks are data in
 
 **Component versions.** Fingerprinted versions are assessed against an offline table of end-of-life lines and well-known advisories (`src/scan/versions.mjs`, dated `KNOWN_DATA_AS_OF`): jQuery, Bootstrap, PHP, nginx, Apache httpd, IIS, Drupal, WordPress, Joomla, Angular. Findings `components.eol` and `components.known-vulnerable` name the CVEs and the fixed version. Because distributions backport fixes without changing banners, these are reported with confidence *firm* and a caveat to confirm against the vendor advisory. With `--online-cve`, libraries that map to a package ecosystem (jQuery and Bootstrap on npm, Drupal on Packagist) are also looked up in [OSV.dev](https://osv.dev) (`components.osv`); this is the only check that leaves the machine for anything other than the target, and it is off by default.
 
-Active checks and the broader protocol set remain planned.
+**Protocol checks** (TLS, FTP, SMTP, IMAP, POP3, DNS) are implemented, observation-only, in `src/scan/protocols.mjs`; see [PROTOCOLS.md](PROTOCOLS.md). **Active checks** (injection, XSS, CSRF, SSRF, XXE, access control, open redirects) remain planned; see [ROADMAP.md](ROADMAP.md) M3.

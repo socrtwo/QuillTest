@@ -5,8 +5,10 @@
  * Turns a scan report into things you can paste: a security-header block for
  * the server the fingerprint detected (nginx, Apache, Caddy, IIS, Express/
  * helmet, Netlify/Vercel), a Content-Security-Policy derived from the script,
- * style and frame origins the crawler actually observed, and cookie-attribute
- * settings for the detected framework.
+ * style and frame origins the crawler actually observed, cookie-attribute
+ * settings for the detected framework, and (via dependencies.mjs) manifest
+ * fragments and upgrade commands for components found at vulnerable or
+ * end-of-life versions.
  *
  * Principles:
  *   - Generate, never apply. Output is files for the operator to review.
@@ -15,6 +17,8 @@
  *   - Start safe. The CSP is emitted as Report-Only with an enforced twin,
  *     and every 'unsafe-*' concession is called out so it can be removed.
  */
+
+import { planDependencyBumps, renderDependencyFiles } from './dependencies.mjs';
 
 export const TARGETS = ['nginx', 'apache', 'caddy', 'iis', 'express', 'netlify', 'generic'];
 
@@ -218,7 +222,7 @@ export function pickTarget(report) {
 /**
  * @param {object} report  a scan report from runPassiveScan (findings, assets, stack, origin)
  * @param {{target?:string, all?:boolean}} [opts]
- * @returns {{target:string, files:Array<{filename, contents, kind}>, plan:object, notes:string[], coverage:object}}
+ * @returns {{target:string, files:Array<{filename, contents, kind, target}>, plan:object, dependencies:object, notes:string[], coverage:object}}
  */
 export function generateFixes(report, opts = {}) {
   const plan = planHeaders(report);
@@ -247,6 +251,15 @@ export function generateFixes(report, opts = {}) {
     covered.add('cookies.flags');
   }
 
+  // Dependency bumps for components with EOL / known-vulnerability / OSV findings.
+  const dependencies = planDependencyBumps(report);
+  const depNotes = [];
+  if (dependencies.bumps.length) {
+    files.push(...renderDependencyFiles(dependencies));
+    for (const id of dependencies.coveredCheckIds) covered.add(id);
+    depNotes.push(`Dependency bumps: ${dependencies.bumps.map((b) => `${b.component} ${b.from || '?'} → ${b.recommended}`).join(', ')} (version data as of ${dependencies.dataAsOf}; see quilltest-dependencies.md).`);
+  }
+
   // Findings without a generated artifact still carry their textual remediation.
   const manual = (report.findings || []).filter((f) => !covered.has(f.checkId)).map((f) => ({ id: f.id, checkId: f.checkId, title: f.title, remediation: f.remediation }));
 
@@ -254,7 +267,8 @@ export function generateFixes(report, opts = {}) {
     target,
     files,
     plan,
-    notes: plan.notes.concat(plan.csp?.concessions?.map((c) => 'CSP concession: ' + c) || []),
+    dependencies,
+    notes: plan.notes.concat(plan.csp?.concessions?.map((c) => 'CSP concession: ' + c) || [], depNotes),
     coverage: { generated: [...covered].sort(), manual },
   };
 }
