@@ -1,11 +1,14 @@
 {
   "name": "quilltest",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "QuillTest \u2014 open-source web application security testing and fixing tool, part of the Quill suite. Runnable from the CLI: ownership-gated passive scan, stack fingerprinting with EOL/CVE assessment, protocol checks, fix-artifact generation, and multi-provider AI analysis.",
   "type": "module",
   "license": "MIT",
-  "author": "Paul D Pruitt",
+  "author": {
+    "name": "Paul D Pruitt",
+    "email": "socrtwo@s2services.com"
+  },
   "homepage": "https://github.com/socrtwo/QuillTest",
   "repository": {
     "type": "git",
@@ -86,20 +89,23 @@
         "AppImage",
         "deb"
       ],
-      "category": "Security"
+      "category": "Security",
+      "icon": "build/icon.png"
     },
     "mac": {
       "target": [
         "dmg",
         "zip"
       ],
-      "category": "public.app-category.developer-tools"
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.png"
     },
     "win": {
       "target": [
         "nsis",
         "portable"
-      ]
+      ],
+      "icon": "build/icon.png"
     }
   }
 }
