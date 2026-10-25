@@ -2,7 +2,7 @@
   "name": "quilltest",
   "version": "0.0.0",
   "private": true,
-  "description": "QuillTest — open-source web application security testing and fixing tool, part of the Quill suite. Planning stage; ships a runnable AI-provider setup wizard.",
+  "description": "QuillTest — open-source web application security testing and fixing tool, part of the Quill suite. Runnable from the CLI: ownership-gated passive scan, stack fingerprinting with EOL/CVE assessment, protocol checks, fix-artifact generation, and multi-provider AI analysis.",
   "type": "module",
   "license": "MIT",
   "author": "Paul D Pruitt",

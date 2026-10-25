@@ -23,4 +23,4 @@ QuillTest is not the right tool — it will not let you scan a site you cannot v
 
 ## Reporting a vulnerability in QuillTest itself
 
-See SECURITY.md (planned). Until then, open a private advisory via the repository's Security tab.
+See [SECURITY.md](../SECURITY.md): open a private advisory via the repository's Security tab.

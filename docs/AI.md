@@ -71,4 +71,4 @@ See [AI-WIZARD.md](AI-WIZARD.md). Providers and models are configured through th
 
 ## Status
 
-Implemented: the provider registry, the setup wizard, and the analysis layer (`src/ai/analyze.mjs`, runnable via `scripts/ai-analyze.mjs`) with scrubbing, size caps, output filtering, sequential/concurrent consultation, and consensus — all covered by offline tests. Not yet implemented: the scanner that produces the findings; until then, feed the analysis layer findings from `examples/findings.sample.json` or your own records in that shape.
+Implemented: the provider registry, the setup wizard, and the analysis layer (`src/ai/analyze.mjs`, runnable via `scripts/ai-analyze.mjs`) with scrubbing, size caps, output filtering, sequential/concurrent consultation, and consensus — all covered by offline tests. The scanner feeds it directly: `scripts/scan.mjs scan <origin> --analyze` runs the configured providers over the scan's findings. It also accepts a saved report or any findings file in the documented shape (`examples/findings.sample.json`) via `scripts/ai-analyze.mjs`.

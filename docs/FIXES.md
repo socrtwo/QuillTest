@@ -16,7 +16,7 @@ QuillTest is a test-*and*-fix tool. A finding that only says "you have a problem
 
 ## The fix is mapped, not generic
 
-QuillTest fingerprints the server and framework from response headers, error pages, cookie names, and asset paths, then selects the remediation that fits. A missing-CSP finding on an Express app gets a `helmet` snippet; on nginx it gets an `add_header` block; on a static host it gets the `<meta http-equiv>` fallback and a note on why a header is better. The mapping lives in `src/fixes/` (planned) as data, same as the check and command registries.
+QuillTest fingerprints the server and framework from response headers, error pages, cookie names, and asset paths, then selects the remediation that fits. A missing-CSP finding on an Express app gets a `helmet` snippet; on nginx it gets an `add_header` block; on a static host it gets the `<meta http-equiv>` fallback and a note on why a header is better. The mapping lives in `src/fix/artifacts.mjs` as data (`renderers` per server target, `COOKIE_FIXES` per framework), same as the check registry.
 
 ## Role of AI in fixes
 

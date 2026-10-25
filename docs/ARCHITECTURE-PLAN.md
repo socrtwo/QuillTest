@@ -10,13 +10,14 @@ QuillTest follows the same shape as the rest of the Quill suite: a thin cross-pl
 ├───────────────────────────────────────────────────────┤
 │ Command registry (commands are data: ids, not code)    │  src/commands/
 ├───────────────────────────────────────────────────────┤
-│ Ownership verification  │  Scan orchestrator           │  src/verify/, src/scan/
+│ Ownership verification  │  Scan orchestrator           │  src/verify/, scripts/scan.mjs
 ├─────────────────────────┼─────────────────────────────┤
-│ Crawler / spider        │  Check engine (passive+active)│ src/crawl/, src/checks/
+│ Crawler / spider        │  Check engine (passive+active)│ src/scan/crawl.mjs, src/scan/passive.mjs
+│ Fingerprint + versions  │  Protocol checks             │ src/scan/fingerprint.mjs, versions.mjs, protocols.mjs
 ├─────────────────────────┴─────────────────────────────┤
-│ Findings model (normalized, CWE/OWASP-mapped)          │  src/findings/
+│ Findings model (normalized, CWE/OWASP-mapped)          │  emitted by src/scan/*, shape in examples/
 ├───────────────────────────────────────────────────────┤
-│ Fix/remediation registry + artifact generators        │  src/fixes/
+│ Fix/remediation registry + artifact generators        │  src/fix/
 ├───────────────────────────────────────────────────────┤
 │ AI analysis layer (optional, multi-provider)           │  src/ai/
 ├───────────────────────────────────────────────────────┤
@@ -39,4 +40,4 @@ Android, iOS/iPadOS, Windows, macOS, Linux (incl. Raspberry Pi OS), ChromeOS and
 
 ## Status
 
-Planning. Only `src/ai/providers.mjs` and the setup wizard exist. Everything else is specified, not built.
+Partially built, runnable from the command line. Implemented: ownership verification (`src/verify/`), the crawler, the passive check engine, stack fingerprinting with EOL/CVE assessment, observation-only protocol checks (`src/scan/`), fix-artifact generators (`src/fix/`), and the AI provider registry, wizard and analysis layer (`src/ai/`). The orchestrator is `scripts/scan.mjs`; it enforces the verification gate before any check runs. Not yet built: the command registry and shell, the active check engine, the staging mirror, applyable patches, and the report/export layer. The module layout above names the files that exist today; the directories shown for unbuilt layers (`src/commands/`, `src/report/`) are the plan, not the tree. See [ROADMAP.md](ROADMAP.md).

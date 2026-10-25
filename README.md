@@ -123,7 +123,7 @@ Windows, macOS, Linux (including Raspberry Pi OS), ChromeOS and the web, with th
 | [docs/STAGING-MIRROR.md](docs/STAGING-MIRROR.md) | Testing a copy of your own verified site, and concurrent AI review |
 | [docs/PROTOCOLS.md](docs/PROTOCOLS.md) | FTP, mail, DNS, TLS checks beyond HTTP — detection only |
 | [docs/FIXES.md](docs/FIXES.md) | How findings become remediations and applyable fixes |
-| [docs/CHECKS.md](docs/CHECKS.md) | Planned vulnerability-check inventory by category |
+| [docs/CHECKS.md](docs/CHECKS.md) | Vulnerability-check inventory by category, with what is implemented |
 | [docs/ARCHITECTURE-PLAN.md](docs/ARCHITECTURE-PLAN.md) | Shell, crawler, check engine, findings model, AI layer, report, builds |
 | [docs/INNOVATIONS.md](docs/INNOVATIONS.md) | Survey of web scanners and what QuillTest adopts |
 | [docs/ETHICS.md](docs/ETHICS.md) | Authorization, responsible use, and what QuillTest will not do |
