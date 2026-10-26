@@ -97,7 +97,9 @@ test('renderMarkdown has the summary table, findings table, per-finding sections
   assert.match(md, /\| Ownership \| verified via http-file/);
   assert.match(md, /^\| F-003 \| low \| firm \| Server version disclosed \\\| pipe, "quote", comma \| https:\/\/w\.test\/ \|$/m);
   assert.match(md, /^\| F-001 \| medium \| confirmed \| Content-Security-Policy header missing \| https:\/\/w\.test\/ \(\+11\) \|$/m);
-  assert.match(md, /### F-002 · Session cookie without Secure <script>alert\(1\)<\/script>/, 'Markdown keeps text verbatim');
+  assert.match(md, /### F-002 · Session cookie without Secure \\<script\\>alert\(1\)\\<\/script\\>/, 'Markdown backslash-escapes angle brackets');
+  assert.ok(!/^[^`\n]*<script>/m.test(md.replace(/```[\s\S]*?```/g, '')), 'a raw tag appears only inside a fenced block');
+  assert.match(md, /```\nPHPSESSID lacks Secure\n```/, 'snippets are fenced');
   assert.match(md, /> Affected pages: 12 \(e\.g\. https:\/\/w\.test\/, https:\/\/w\.test\/a\)/);
   assert.match(md, /```json\n\{\n  "responseHeaders"/, 'structured evidence as a JSON block');
   assert.match(md, /\*\*Fix\*\*\n\nserver_tokens off;\nsecond line/);

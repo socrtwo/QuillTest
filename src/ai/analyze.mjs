@@ -38,7 +38,7 @@ import {
   ANALYSIS_MODES,
 } from './providers.mjs';
 
-export const ANALYSIS_MAX_TOKENS = 4096;
+export const ANALYSIS_MAX_TOKENS = 8192; // per-finding rationale + remediation for up to 60k chars of findings; override with --max-tokens
 export const MAX_EVIDENCE_CHARS = 2000;
 export const MAX_PAYLOAD_CHARS = 60_000;
 export const DEFAULT_TIMEOUT_MS = 120_000;

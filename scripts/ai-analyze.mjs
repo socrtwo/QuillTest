@@ -32,7 +32,7 @@ function parseArgs(args) {
 
 const args = parseArgs(argv.slice(2));
 if (args.help || !args.findings) {
-  console.log(`Usage: node scripts/ai-analyze.mjs --findings <file.json> [--config quilltest.ai.json] [--mode sequential|concurrent] [--dry-run] [--out result.json] [--stack '<json>']`);
+  console.log(`Usage: node scripts/ai-analyze.mjs --findings <file.json> [--config quilltest.ai.json] [--mode sequential|concurrent] [--max-tokens <n>] [--dry-run] [--out result.json] [--stack '<json>']`);
   exit(args.help ? 0 : 2);
 }
 if (args.mode !== undefined && !ANALYSIS_MODES.includes(args.mode)) {
@@ -56,11 +56,14 @@ if (!cfgCheck.ok) {
 }
 if (cfgCheck.warnings.length && !args['dry-run']) for (const w of cfgCheck.warnings) console.error(`config warning: ${w}`);
 let stack; if (typeof args.stack === 'string') { try { stack = JSON.parse(args.stack); } catch { console.error('--stack must be JSON'); exit(2); } }
+const maxTokens = args['max-tokens'] !== undefined ? Number.parseInt(args['max-tokens'], 10) : undefined;
+if (maxTokens !== undefined && (!Number.isInteger(maxTokens) || maxTokens < 1)) { console.error('--max-tokens must be a positive integer'); exit(2); }
 
 const result = await analyzeFindings(findings, config, {
   mode: typeof args.mode === 'string' ? args.mode : undefined,
   dryRun: Boolean(args['dry-run']),
   stack,
+  maxTokens,
 });
 
 if (result.error) { console.error(result.error); exit(1); }

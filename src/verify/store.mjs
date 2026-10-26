@@ -15,7 +15,10 @@ export const DEFAULT_DIR = resolve(process.cwd(), 'scans', 'verify');
 
 function readJson(path, fallback) {
   if (!existsSync(path)) return fallback;
-  try { return JSON.parse(readFileSync(path, 'utf8')); } catch { return fallback; }
+  // A file that exists but does not parse is damage, not emptiness: say so instead of
+  // returning the fallback, which the next save would then write over the damaged data.
+  const text = readFileSync(path, 'utf8');
+  try { return JSON.parse(text); } catch (e) { throw new Error(`${path} is not valid JSON (${e.message}). Repair or move the file; it will not be overwritten.`); }
 }
 
 function writeJson(path, data) {

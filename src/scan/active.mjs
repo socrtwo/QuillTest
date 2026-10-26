@@ -87,6 +87,8 @@ async function sendProbe(url, { method = 'GET', fetchImpl = globalThis.fetch, ti
   const ctype = headers['content-type'] || '';
   if (method === 'GET' && /text|html|json|xml|javascript/i.test(ctype)) {
     try { body = (await res.text()).slice(0, 256 * 1024); } catch { /* ignore body read errors */ }
+  } else {
+    try { const p = res.body?.cancel?.(); if (p && typeof p.catch === 'function') p.catch(() => {}); } catch { /* ignore */ } // unread body: release the socket
   }
   return { url, method, status: res.status, headers, body, contentType: ctype };
 }

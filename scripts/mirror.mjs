@@ -98,7 +98,12 @@ async function cmdScan() {
   let dir = typeof args.dir === 'string' ? args.dir : null;
   if (!dir) {
     console.log(c.bold(`\nCapturing mirror — ${origin}`));
-    const cap = await captureMirror(origin, { maxPages: args['max-pages'] !== undefined ? Number.parseInt(args['max-pages'], 10) : 25 });
+    const cap = await captureMirror(origin, {
+      maxPages: args['max-pages'] !== undefined ? Number.parseInt(args['max-pages'], 10) : 25,
+      maxDepth: args['max-depth'] !== undefined ? Number.parseInt(args['max-depth'], 10) : 3,
+      maxBytes: args['max-bytes'] !== undefined ? Number.parseInt(args['max-bytes'], 10) : undefined,
+      respectRobots: !args['ignore-robots'],
+    });
     dir = cap.dir;
     console.log(c.dim(`  snapshot: ${dir}/ (${cap.manifest.pageCount} page(s))`));
   } else if (!existsSync(resolve(process.cwd(), dir, MIRROR_MANIFEST))) { console.error(c.red(`No ${MIRROR_MANIFEST} in ${dir}`)); exit(1); }

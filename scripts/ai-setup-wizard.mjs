@@ -327,19 +327,18 @@ async function testAll(entries, { dryRun, mode }) {
  */
 function mergeIntoExisting(outPath, fresh) {
   if (!existsSync(outPath)) return fresh;
-  try {
-    const existing = JSON.parse(readFileSync(outPath, 'utf8'));
-    const providers = { ...(existing.providers || {}), ...fresh.providers };
-    return {
-      version: fresh.version,
-      analysisMode: fresh.analysisMode,
-      activeProviders: fresh.activeProviders,
-      active: fresh.active,
-      providers,
-    };
-  } catch {
-    return fresh;
-  }
+  let existing;
+  // An existing config that does not parse may still hold keys: never overwrite it silently.
+  try { existing = JSON.parse(readFileSync(outPath, 'utf8')); }
+  catch (e) { throw new Error(`${outPath} exists but is not valid JSON (${e.message}). Repair or move it before saving a new config.`); }
+  const providers = { ...(existing.providers || {}), ...fresh.providers };
+  return {
+    version: fresh.version,
+    analysisMode: fresh.analysisMode,
+    activeProviders: fresh.activeProviders,
+    active: fresh.active,
+    providers,
+  };
 }
 
 function writeConfig(outPath, config) {

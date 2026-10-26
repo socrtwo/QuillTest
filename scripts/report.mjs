@@ -14,7 +14,7 @@
  * The HTML is self-contained and script-free; open it in a browser and print
  * to PDF. Nothing here contacts the network.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync, readdirSync } from 'node:fs';
 import { resolve, join, dirname, basename, sep } from 'node:path';
 import { argv, exit } from 'node:process';
 import { renderHtml, renderMarkdown, renderCsv, diffReports, buildReviewPackage, verifyManifest, summarize, isSafePackagePath } from '../src/report/render.mjs';
@@ -53,7 +53,8 @@ if (args.verify) {
   const dir = resolve(process.cwd(), String(args.verify));
   const manifest = load(join(dir, 'manifest.json'), 'manifest');
   // verifyManifest rejects traversal paths itself; the extra check keeps this reader honest on its own.
-  const res = verifyManifest(manifest, (rel) => (isSafePackagePath(rel) && existsSync(join(dir, rel)) ? readFileSync(join(dir, rel)) : null));
+  const listFiles = (d = dir, prefix = '') => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? listFiles(join(d, e.name), prefix + e.name + '/') : [prefix + e.name]));
+  const res = verifyManifest(manifest, (rel) => (isSafePackagePath(rel) && existsSync(join(dir, rel)) ? readFileSync(join(dir, rel)) : null), { listFiles });
   for (const r of res.results) console.log(`  ${r.ok ? 'ok     ' : 'FAILED '} ${r.path}${r.reason ? `  (${r.reason})` : ''}`);
   console.log(res.ok ? `\nPackage intact: ${res.results.length} file(s) match the manifest.` : '\nPackage does NOT match its manifest.');
   exit(res.ok ? 0 : 4);

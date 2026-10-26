@@ -13,7 +13,7 @@ The scanner's source of truth is the JSON report `scripts/scan.mjs` writes under
 
 Every report contains: the headline counts by severity, the target, stack and coverage, each finding with its evidence and remediation (evidence can be dropped with `--no-evidence`), the generated fix artifacts if the scan ran with `--fixes` (`--no-fixes` omits them), the AI review summaries and per-finding consensus if it ran with `--analyze` (`--no-analysis` omits them), and the non-HTTP services checked if it ran with `--protocols`.
 
-Everything that came from the target — titles, banners, headers, snippets — is treated as untrusted text: HTML-escaped in HTML, pipe-escaped in Markdown tables, quoted in CSV. A hostile `Server` banner cannot execute when the report is opened.
+Everything that came from the target — titles, banners, headers, snippets — is treated as untrusted text: HTML-escaped in HTML; in Markdown, pipes and angle brackets are backslash-escaped and response snippets are placed in fenced code blocks (so a wiki or pull-request renderer that allows inline HTML still shows them as text); in CSV, cells are quoted and a leading `=`, `+`, `-`, `@` or tab is prefixed with an apostrophe so a spreadsheet does not evaluate it as a formula. A hostile `Server` banner cannot execute when the report is opened. `--verify` also fails on files present in the package that the manifest does not list.
 
 ## Findings diff
 
