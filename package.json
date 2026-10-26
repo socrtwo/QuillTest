@@ -101,8 +101,8 @@
     },
     "mac": {
       "target": [
-        "dmg",
-        "zip"
+        { "target": "dmg", "arch": ["x64", "arm64"] },
+        { "target": "zip", "arch": ["x64", "arm64"] }
       ],
       "category": "public.app-category.developer-tools",
       "icon": "build/icon.png"
@@ -113,6 +113,12 @@
         "portable"
       ],
       "icon": "build/icon.png"
+    },
+    "nsis": {
+      "artifactName": "QuillTest-${version}-${os}-${arch}-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "QuillTest-${version}-${os}-${arch}-portable.${ext}"
     }
   }
 }

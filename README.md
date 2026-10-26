@@ -117,7 +117,7 @@ Supported providers out of the box:
 
 ## Platforms
 
-Windows, macOS, Linux (x64 installers from the release workflow; Raspberry Pi OS and other arm64 systems run the CLI on Node and can build the desktop app locally), ChromeOS and the web, with the same stack as Anne's Stage (Vite, Electron, Capacitor). The web build and the Electron desktop app are built here; the native mobile projects are generated on a machine with the Android/iOS SDKs. See [docs/BUILD.md](docs/BUILD.md).
+Windows (x64 installer and portable), macOS (Apple silicon and Intel), Linux (x64 AppImage and deb from the release workflow; Raspberry Pi OS and other arm64 Linux systems run the CLI on Node and can build the desktop app locally), ChromeOS and the web, with the same stack as Anne's Stage (Vite, Electron, Capacitor). The web build and the Electron desktop app are built here; the native mobile projects are generated on a machine with the Android/iOS SDKs. See [docs/BUILD.md](docs/BUILD.md).
 
 ## Documentation
 
