@@ -37,7 +37,7 @@ Anne's Test follows the same shape as the rest of the Anne's Office suite: a thi
 
 ## Platforms and builds
 
-Android, iOS/iPadOS, Windows, macOS, Linux (incl. Raspberry Pi OS), ChromeOS and web — same stack and CI/release workflows as QuillStage. The scanner's network calls run in the shell's privileged context (Electron main / Capacitor native) so CORS does not constrain testing from the desktop/mobile builds; the pure-web build is limited to same-origin and CORS-permitted targets and leans on the desktop build for full active scanning.
+Android, iOS/iPadOS, Windows, macOS, Linux (incl. Raspberry Pi OS), ChromeOS and web — same stack and CI/release workflows as Anne's Stage. The scanner's network calls run in the shell's privileged context (Electron main / Capacitor native) so CORS does not constrain testing from the desktop/mobile builds; the pure-web build is limited to same-origin and CORS-permitted targets and leans on the desktop build for full active scanning.
 
 ## Status
 
