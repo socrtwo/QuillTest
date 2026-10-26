@@ -1,8 +1,8 @@
 {
   "name": "quilltest",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "Anne's Test \u2014 open-source web application security testing and fixing tool, part of the Anne's Office suite. Runnable from the CLI: ownership-gated passive scan, stack fingerprinting with EOL/CVE assessment, protocol checks, fix-artifact generation, and multi-provider AI analysis.",
+  "description": "Anne's Test — open-source web application security testing and fixing tool, part of the Anne's Office suite. Runnable from the CLI: ownership-gated passive scan, stack fingerprinting with EOL/CVE assessment, protocol checks, fix-artifact generation, and multi-provider AI analysis.",
   "type": "module",
   "license": "MIT",
   "author": {
