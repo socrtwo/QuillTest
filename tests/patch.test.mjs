@@ -58,10 +58,10 @@ test('patchPackageJson bumps only flagged, out-of-date deps and preserves format
   ]);
   assert.ok(JSON.parse(newText), 'result is still valid JSON');
   assert.equal(JSON.parse(newText).dependencies.jquery, '^3.7.1');
-  assert.equal(JSON.parse(newText).devDependencies.bootstrap, '^5.3.3');
+  assert.equal(JSON.parse(newText).devDependencies.bootstrap, '5.3.3', 'an exact pin stays an exact pin');
   assert.equal(JSON.parse(newText).dependencies['left-pad'], '~1.3.0', 'untouched dep preserved');
   assert.deepEqual(changes.map((c) => [c.pkg, c.from, c.to, c.block]).sort(), [
-    ['bootstrap', '4.3.0', '^5.3.3', 'devDependencies'], ['jquery', '^1.12.4', '^3.7.1', 'dependencies'],
+    ['bootstrap', '4.3.0', '5.3.3', 'devDependencies'], ['jquery', '^1.12.4', '^3.7.1', 'dependencies'],
   ]);
   // original indentation (2 spaces) kept
   assert.match(newText, /\n    "jquery": "\^3\.7\.1"/);
@@ -152,7 +152,7 @@ test('CLI --patch writes a diff that git apply accepts and leaves the file uncha
   execFileSync('git', ['apply', patchPath], { cwd: dir });
   const after = JSON.parse(readFileSync(pkgPath, 'utf8'));
   assert.equal(after.dependencies.jquery, '^3.7.1');
-  assert.equal(after.devDependencies.bootstrap, '^5.3.3');
+  assert.equal(after.devDependencies.bootstrap, '5.3.3');
   assert.equal(after.dependencies['left-pad'], '~1.3.0');
 
   // A manifest with nothing flagged writes no patch.

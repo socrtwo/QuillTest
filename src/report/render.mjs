@@ -30,7 +30,12 @@ const CONF_RANK = { confirmed: 3, firm: 2, tentative: 1 };
 export function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
-const mdCell = (s) => String(s ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+// Markdown inline text from the target: pipes escaped for tables, newlines flattened, and
+// < > backslash-escaped (CommonMark) so a hostile banner cannot become raw HTML in a wiki
+// or pull-request renderer that allows inline HTML.
+const mdCell = (s) => String(s ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ').replace(/[<>]/g, (c) => '\\' + c);
+/** A fenced block that cannot be broken out of: the fence is longer than any run of backticks inside. */
+const mdFence = (text, lang = '') => { const longest = Math.max(2, ...[...String(text).matchAll(/`+/g)].map((m) => m[0].length)); const fence = '`'.repeat(longest + 1); return [`${fence}${lang}`, String(text), fence]; };
 // Quote on CSV metacharacters, and neutralise spreadsheet formula injection: a cell beginning
 // with = + - @ or a tab/CR is prefixed with an apostrophe so Excel/Sheets treat it as text.
 const csvCell = (s) => {
@@ -144,9 +149,10 @@ export function renderCsv(report) {
 function evidenceLines(f) {
   const ev = { ...(f.evidence || {}) };
   const out = [];
-  if (ev.snippet) { out.push(String(ev.snippet)); delete ev.snippet; }
-  if (ev.affectedPages) { out.push(`Affected pages: ${ev.affectedPages}${ev.pages ? ` (e.g. ${ev.pages.join(', ')})` : ''}`); delete ev.affectedPages; delete ev.pages; }
-  return { lines: out, rest: Object.keys(ev).length ? ev : null };
+  let snippet = null;
+  if (ev.snippet) { snippet = String(ev.snippet); delete ev.snippet; }
+  if (ev.affectedPages) { out.push(`Affected pages: ${ev.affectedPages}${ev.pages ? ` (e.g. ${ev.pages.map(mdCell).join(', ')})` : ''}`); delete ev.affectedPages; delete ev.pages; }
+  return { lines: out, snippet, rest: Object.keys(ev).length ? ev : null };
 }
 
 /**
@@ -200,14 +206,15 @@ export function renderMarkdown(report, opts = {}) {
       const cons = report.analysis?.consensus?.[f.id];
       if (includeAnalysis && cons && cons.verdict !== 'unreviewed') L.push(`- AI consensus: ${cons.verdict} (${cons.reviewers} reviewer(s)${cons.meanAttackerPriority != null ? `, attacker priority ≈ ${cons.meanAttackerPriority.toFixed(1)}` : ''})`);
       if (includeEvidence) {
-        const { lines, rest } = evidenceLines(f);
-        if (lines.length || rest) {
+        const { lines, snippet, rest } = evidenceLines(f);
+        if (lines.length || snippet || rest) {
           L.push('', '**Evidence**', '');
           for (const l of lines) L.push(`> ${l.replace(/\r?\n/g, '\n> ')}`);
-          if (rest) L.push('', '```json', pretty(rest), '```');
+          if (snippet) L.push('', ...mdFence(snippet)); // response text goes in a fence, never as Markdown
+          if (rest) L.push('', ...mdFence(pretty(rest), 'json'));
         }
       }
-      L.push('', '**Fix**', '', String(f.remediation || '—'), '');
+      L.push('', '**Fix**', '', String(f.remediation || '—').replace(/[<>]/g, (c) => '\\' + c), ''); // remediations may quote target-derived names
     }
   }
 
@@ -413,9 +420,17 @@ export function isSafePackagePath(p) {
   return s.split('/').every((seg) => seg && seg !== '.' && seg !== '..');
 }
 
-/** Verify a package directory's files against its manifest. Pure; the caller supplies file contents. */
-export function verifyManifest(manifest, readFile) {
+/**
+ * Verify a package directory's files against its manifest. Pure; the caller supplies file
+ * contents and, optionally, a listing of the files actually present so additions are reported
+ * too (a package with an extra fixes/evil.sh must not verify as intact).
+ */
+export function verifyManifest(manifest, readFile, { listFiles } = {}) {
   const results = [];
+  if (listFiles) {
+    const known = new Set((manifest.files || []).map((e) => String(e.path)));
+    for (const p of listFiles()) if (p !== 'manifest.json' && !known.has(p)) results.push({ path: p, ok: false, reason: 'not in manifest' });
+  }
   for (const entry of manifest.files || []) {
     let ok = false, reason = null;
     if (!isSafePackagePath(entry.path)) { results.push({ path: String(entry.path), ok: false, reason: 'unsafe path in manifest' }); continue; }

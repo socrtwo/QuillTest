@@ -65,7 +65,7 @@ function makeSession(socket, timeoutMs) {
       flush();
     }),
     send: (s) => new Promise((res) => { try { socket.write(s.replace(/\r?\n?$/, '') + '\r\n', () => res()); } catch { res(); } }),
-    close: () => { try { socket.end(); } catch { /* ignore */ } setTimeout(() => { try { socket.destroy(); } catch { /* ignore */ } }, 150); },
+    close: () => { try { socket.end(); } catch { /* ignore */ } setTimeout(() => { try { socket.destroy(); } catch { /* ignore */ } }, 150).unref?.(); },
   };
 }
 
@@ -358,27 +358,47 @@ async function loadResolvers(opts) {
   };
 }
 
+/** The host and each parent zone down to two labels: www.example.com → [www.example.com, example.com]. */
+export function zoneCandidates(host) {
+  const labels = String(host).split('.').filter(Boolean);
+  const out = [];
+  for (let i = 0; i < labels.length - 1; i++) out.push(labels.slice(i).join('.'));
+  return out.length ? out : [String(host)];
+}
+
 export async function dnsFindings(host, opts = {}, now = new Date()) {
   const r = await loadResolvers(opts);
   const out = [];
   const flat = (recs) => (recs || []).map((x) => (Array.isArray(x) ? x.join('') : String(x)));
   const loc = `dns://${host}`;
+  // A verified host is often www.<zone>; SPF/DMARC/CAA live at the organizational domain
+  // (DMARC's org-domain fallback, RFC 7489 §6.6.3; CAA climbs the tree, RFC 8659 §3), so
+  // look at the host first and then each parent, reporting where the record was found.
+  const names = zoneCandidates(host);
+  const firstHit = async (lookup, pick) => {
+    const queried = [];
+    for (const name of names) {
+      let recs = null;
+      try { recs = await lookup(name); } catch { recs = null; }
+      queried.push(name);
+      const hit = recs ? pick(recs, name) : null;
+      if (hit) return { hit, foundAt: name, queried };
+    }
+    return { hit: null, foundAt: null, queried };
+  };
 
-  let txt = [];
-  try { txt = flat(await r.resolveTxt(host)); } catch { /* none */ }
-  const spf = txt.find((t) => /^v=spf1/i.test(t));
-  if (!spf) out.push({ checkId: 'dns.spf-missing', severity: 'low', confidence: 'confirmed', cwe: 'CWE-290', owasp: 'A05:2021 Security Misconfiguration', title: 'No SPF record', location: loc, evidence: { note: 'No v=spf1 TXT record at the apex.' }, remediation: 'Publish an SPF record listing the hosts allowed to send mail for this domain, ending in "-all" (hard fail) or "~all" (soft fail).' });
-  else if (/[\s]\+all\b/i.test(spf) || /^v=spf1\s+\+all/i.test(spf)) out.push({ checkId: 'dns.spf-weak', severity: 'medium', confidence: 'confirmed', cwe: 'CWE-290', owasp: 'A05:2021 Security Misconfiguration', title: 'SPF record ends in +all (permits any sender)', location: loc, evidence: { spf }, remediation: 'Replace "+all" with "-all" or "~all"; "+all" authorizes the whole internet to send as your domain.' });
+  const spfRes = await firstHit((n) => r.resolveTxt(n).then(flat), (txt) => txt.find((t) => /^v=spf1/i.test(t)));
+  const spf = spfRes.hit;
+  if (!spf) out.push({ checkId: 'dns.spf-missing', severity: 'low', confidence: 'confirmed', cwe: 'CWE-290', owasp: 'A05:2021 Security Misconfiguration', title: 'No SPF record', location: loc, evidence: { note: `No v=spf1 TXT record at ${spfRes.queried.join(' or ')}.`, queried: spfRes.queried }, remediation: 'Publish an SPF record listing the hosts allowed to send mail for this domain, ending in "-all" (hard fail) or "~all" (soft fail).' });
+  else if (/[\s]\+all\b/i.test(spf) || /^v=spf1\s+\+all/i.test(spf)) out.push({ checkId: 'dns.spf-weak', severity: 'medium', confidence: 'confirmed', cwe: 'CWE-290', owasp: 'A05:2021 Security Misconfiguration', title: 'SPF record ends in +all (permits any sender)', location: loc, evidence: { spf, foundAt: spfRes.foundAt }, remediation: 'Replace "+all" with "-all" or "~all"; "+all" authorizes the whole internet to send as your domain.' });
 
-  let dmarc = [];
-  try { dmarc = flat(await r.resolveTxt('_dmarc.' + host)); } catch { /* none */ }
-  const dm = dmarc.find((t) => /^v=DMARC1/i.test(t));
-  if (!dm) out.push({ checkId: 'dns.dmarc-missing', severity: 'low', confidence: 'confirmed', cwe: 'CWE-290', owasp: 'A05:2021 Security Misconfiguration', title: 'No DMARC record', location: loc, evidence: { note: 'No v=DMARC1 TXT record at _dmarc.' + host }, remediation: 'Publish a DMARC record at _dmarc.' + host + ' (start with p=none to monitor, then move to quarantine/reject).' });
-  else if (/\bp=none\b/i.test(dm)) out.push({ checkId: 'dns.dmarc-weak', severity: 'low', confidence: 'confirmed', cwe: 'CWE-290', owasp: 'A05:2021 Security Misconfiguration', title: 'DMARC policy is p=none (monitor only)', location: loc, evidence: { dmarc: dm }, remediation: 'Once your SPF/DKIM alignment is clean, move the DMARC policy to p=quarantine then p=reject.' });
+  const dmRes = await firstHit((n) => r.resolveTxt('_dmarc.' + n).then(flat), (txt) => txt.find((t) => /^v=DMARC1/i.test(t)));
+  const dm = dmRes.hit;
+  if (!dm) out.push({ checkId: 'dns.dmarc-missing', severity: 'low', confidence: 'confirmed', cwe: 'CWE-290', owasp: 'A05:2021 Security Misconfiguration', title: 'No DMARC record', location: loc, evidence: { note: `No v=DMARC1 TXT record at ${dmRes.queried.map((n) => '_dmarc.' + n).join(' or ')}`, queried: dmRes.queried.map((n) => '_dmarc.' + n) }, remediation: `Publish a DMARC record at _dmarc.${names[names.length - 1]} (start with p=none to monitor, then move to quarantine/reject).` });
+  else if (/\bp=none\b/i.test(dm)) out.push({ checkId: 'dns.dmarc-weak', severity: 'low', confidence: 'confirmed', cwe: 'CWE-290', owasp: 'A05:2021 Security Misconfiguration', title: 'DMARC policy is p=none (monitor only)', location: loc, evidence: { dmarc: dm, foundAt: '_dmarc.' + dmRes.foundAt }, remediation: 'Once your SPF/DKIM alignment is clean, move the DMARC policy to p=quarantine then p=reject.' });
 
-  let caa = [];
-  try { caa = await r.resolveCaa(host); } catch { /* none */ }
-  if (!caa || !caa.length) out.push({ checkId: 'dns.caa-missing', severity: 'info', confidence: 'confirmed', cwe: 'CWE-295', owasp: 'A05:2021 Security Misconfiguration', title: 'No CAA record', location: loc, evidence: { note: 'No CAA record restricts which CAs may issue certificates for this domain.' }, remediation: 'Publish a CAA record naming only the CA(s) you use (e.g. 0 issue "letsencrypt.org"), to limit mis-issuance.' });
+  const caaRes = await firstHit((n) => r.resolveCaa(n), (recs) => (Array.isArray(recs) && recs.length ? recs : null));
+  if (!caaRes.hit) out.push({ checkId: 'dns.caa-missing', severity: 'info', confidence: 'confirmed', cwe: 'CWE-295', owasp: 'A05:2021 Security Misconfiguration', title: 'No CAA record', location: loc, evidence: { note: `No CAA record at ${caaRes.queried.join(' or ')} restricts which CAs may issue certificates for this domain.`, queried: caaRes.queried }, remediation: 'Publish a CAA record naming only the CA(s) you use (e.g. 0 issue "letsencrypt.org"), to limit mis-issuance.' });
 
   let ds = null;
   try { ds = await r.resolveDs(host); } catch { ds = null; }

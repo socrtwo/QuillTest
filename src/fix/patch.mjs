@@ -71,7 +71,13 @@ export function unifiedDiff(oldText, newText, opts = {}) {
   // Mark changed line indices to find hunk windows.
   const changedOld = new Set(), changedNew = new Set();
   for (const op of ops) { if (op.t === 'del') changedOld.add(op.a); if (op.t === 'ins') changedNew.add(op.b); }
-  if (!changedOld.size && !changedNew.size) return '';
+  if (!changedOld.size && !changedNew.size) {
+    // Same lines, different final newline: that is a change to the last line (git shows it as -/+).
+    if (o.hadFinalNewline === nw.hadFinalNewline || !o.lines.length) return '';
+    const last = o.lines.length - 1;
+    ops.splice(ops.length - 1, 1, { t: 'del', a: last }, { t: 'ins', b: last });
+    changedOld.add(last); changedNew.add(last);
+  }
 
   // Build hunks by walking the op list, grouping ops that are within `context`
   // equal lines of a change.
@@ -106,10 +112,11 @@ export function unifiedDiff(oldText, newText, opts = {}) {
   for (const h of hunks) {
     const firstEqOrDel = h.ops.find((x) => x.t !== 'ins');
     const firstEqOrIns = h.ops.find((x) => x.t !== 'del');
-    const oldStart = (firstEqOrDel ? firstEqOrDel.a : 0) + 1;
-    const newStart = (firstEqOrIns ? firstEqOrIns.b : 0) + 1;
     const oldCount = h.ops.filter((x) => x.t === 'eq' || x.t === 'del').length;
     const newCount = h.ops.filter((x) => x.t === 'eq' || x.t === 'ins').length;
+    // An empty side is written as 0,0 (git's convention for creating or emptying a file).
+    const oldStart = oldCount === 0 ? 0 : (firstEqOrDel ? firstEqOrDel.a : 0) + 1;
+    const newStart = newCount === 0 ? 0 : (firstEqOrIns ? firstEqOrIns.b : 0) + 1;
     out.push(`@@ -${oldStart},${oldCount} +${newStart},${newCount} @@`);
     for (const op of h.ops) {
       if (op.t === 'eq') { out.push(' ' + o.lines[op.a]); maybeNoEol(out, op.a, o, o.lines.length); }
@@ -131,6 +138,17 @@ function maybeNoEol(out, idx, side, total) {
 const caret = (v) => `^${v}`;
 /** Pull the first dotted version out of a semver range like "^1.12.4" or ">=1.2 <2". */
 const rangeFloor = (range) => (String(range).match(/\d+\.\d+(?:\.\d+)?/) || [null])[0];
+/**
+ * Rewrite a simple range to `version` keeping its operator: "^1.2.3" → "^X", "~1.2" → "~X",
+ * "1.2.3" (exact pin) → "X", ">=1.2.3" → ">=X". Returns null for anything else — an npm:
+ * alias, a URL, workspace:/file:/git ranges, "*", "latest", or a compound range — so the
+ * patcher leaves those for manual review instead of silently replacing them with a caret range.
+ */
+export function restyleRange(current, version) {
+  const m = String(current).trim().match(/^(\^|~|>=|=)?v?\d+(?:\.\d+){0,2}$/);
+  if (!m) return null;
+  return `${m[1] === '=' ? '' : (m[1] || '')}${version}`;
+}
 
 /** component → npm package names we are willing to patch (Angular is excluded: ng update owns the manifest). */
 function npmPackagesFor(component) {
@@ -189,7 +207,8 @@ export function patchPackageJson(originalText, bumps) {
         located = true;
         const floor = rangeFloor(cur);
         if (floor && parseVersion(bump.recommended) && compareVersions(floor, bump.recommended) !== -1) { skipped.push({ pkg, reason: `already at ${cur} (>= ${bump.recommended})` }); continue; }
-        const to = caret(bump.recommended);
+        const to = restyleRange(cur, bump.recommended);
+        if (!to) { skipped.push({ pkg, reason: `range "${cur}" is an alias, URL or compound range; update it by hand to ${bump.recommended}` }); continue; }
         const r = replaceVersionInBlock(text, blk, pkg, to);
         if (r.changed) { text = r.text; changes.push({ pkg, from: r.oldRange, to, block: blk }); }
       }
@@ -211,8 +230,9 @@ export function patchComposerJson(originalText, bumps) {
         if (cur === undefined) continue;
         const floor = rangeFloor(cur), target = rangeFloor(to);
         if (floor && target && compareVersions(floor, target) !== -1) { skipped.push({ pkg: name, reason: `already at ${cur}` }); continue; }
-        const r = replaceVersionInBlock(text, blk, name, to);
-        if (r.changed) { text = r.text; changes.push({ pkg: name, from: r.oldRange, to, block: blk }); }
+        const styled = restyleRange(cur, (String(to).match(/\d+(?:\.\d+)*/) || [target])[0]) || to; // keep "~"/exact pins; composer defaults to caret otherwise
+        const r = replaceVersionInBlock(text, blk, name, styled);
+        if (r.changed) { text = r.text; changes.push({ pkg: name, from: r.oldRange, to: styled, block: blk }); }
       }
     }
   }

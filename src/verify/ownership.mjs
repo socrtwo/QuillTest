@@ -295,7 +295,8 @@ export function isOriginVerified(records, originInput, now = new Date()) {
 export function isHostVerified(records, hostInput, now = new Date()) {
   const host = String(hostInput || '').trim().toLowerCase().replace(/^\[|\]$/g, '');
   if (!host || /[/\\\s]/.test(host)) return { ok: false, host, error: `Invalid host: ${hostInput}` };
-  const matches = (records || []).filter((r) => { try { return hostOf(r.origin).toLowerCase() === host; } catch { return false; } });
+  // hostOf() keeps the brackets of an IPv6 literal; the input had them stripped above.
+  const matches = (records || []).filter((r) => { try { return hostOf(r.origin).toLowerCase().replace(/^\[|\]$/g, '') === host; } catch { return false; } });
   if (!matches.length) return { ok: false, host, error: `No ownership verification on file for host ${host}. Run: quilltest verify issue https://${host}` };
   const valid = matches.find((r) => !isExpired(r, now));
   if (!valid) return { ok: false, host, error: `Ownership verification for ${host} has expired. Issue and verify a new challenge.` };

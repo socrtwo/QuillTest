@@ -57,6 +57,7 @@ function usage(code = 0) {
       --out <file>        Write the JSON report (default scans/<host>/<timestamp>.json).
       --analyze           Also run the configured AI providers over the findings (quilltest.ai.json).
       --mode <m>          Override analysis mode: ${ANALYSIS_MODES.join(' | ')}.
+      --max-tokens <n>    Output cap per provider reply for --analyze (default 8192; raise if replies come back truncated).
       --no-file-probes    Skip the exposed-file probes (.git/HEAD, .env, …).
       --max-pages <n>     Crawl up to n same-origin pages (default 25; 1 = root page only).
       --max-depth <n>     Crawl link depth (default 3).
@@ -138,6 +139,8 @@ async function cmdScan() {
   const originArg = args._[1];
   if (!originArg) usage(2);
   if (args.mode !== undefined && !ANALYSIS_MODES.includes(args.mode)) { console.error(c.red(`--mode must be one of: ${ANALYSIS_MODES.join(', ')}`)); exit(2); }
+  const maxTokens = args['max-tokens'] !== undefined ? Number.parseInt(args['max-tokens'], 10) : undefined;
+  if (maxTokens !== undefined && (!Number.isInteger(maxTokens) || maxTokens < 1)) { console.error(c.red('--max-tokens must be a positive integer')); exit(2); }
 
   // ---- The gate. No override exists. ----
   const gate = isOriginVerified(store.loadVerified(), originArg);
@@ -223,6 +226,7 @@ async function cmdScan() {
       console.log(c.bold('\nAI analysis'));
       const analysis = await analyzeFindings(report.findings, config, {
         mode: typeof args.mode === 'string' ? args.mode : undefined,
+        maxTokens,
         stack: { summary: report.stack.summary, server: report.stack.server, framework: report.stack.framework, cms: report.stack.cms },
       });
       report.analysis = analysis;

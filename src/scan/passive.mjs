@@ -83,6 +83,7 @@ export async function observe(url, { fetchImpl = globalThis.fetch, timeoutMs = D
     }
     const hdrs = headersToObject(res.headers);
     if (res.status >= 300 && res.status < 400 && hdrs.location) {
+      discardBody(res); // a redirect body is never read; release the socket for reuse
       let next; try { next = new URL(hdrs.location, current).toString(); } catch { next = null; }
       chain.push({ url: current, status: res.status, location: hdrs.location });
       if (!next) break;
@@ -103,6 +104,11 @@ export async function observe(url, { fetchImpl = globalThis.fetch, timeoutMs = D
 // ---------------------------------------------------------------------------
 // Small parsers
 // ---------------------------------------------------------------------------
+
+/** Drop an unread response body so undici can reuse the connection (no-op on mocks). */
+export function discardBody(res) {
+  try { const p = res?.body?.cancel?.(); if (p && typeof p.catch === 'function') p.catch(() => {}); } catch { /* ignore */ }
+}
 
 export function parseHsts(value) {
   if (!value) return null;
@@ -509,7 +515,8 @@ export async function runPassiveScan(originInput, opts = {}) {
     raw.push(...runChecks(pageChecks, { origin, isHttps, root: pageObs, pageUrl: page.url, page, cors, httpVariant, probes }));
   }
   const { fingerprint, describeStack } = await import('./fingerprint.mjs');
-  const fp = fingerprint([root, ...pages.filter((p) => p.isHtml).slice(0, 10)]);
+  // pages[0] is the root response again (the crawl is seeded with it): do not count its signals twice.
+  const fp = fingerprint([root, ...pages.filter((p) => p.isHtml && p.url !== root.url).slice(0, 10)]);
 
   // Component versions: offline EOL/advisory table, plus optional OSV.dev lookup.
   const { assessVersions, enrichWithOsv, osvFindings } = await import('./versions.mjs');

@@ -240,7 +240,7 @@ export async function enrichWithOsv(fp, { fetchImpl = globalThis.fetch, timeoutM
         id: v.id,
         aliases: v.aliases || [],
         summary: v.summary || v.details?.slice(0, 200) || '',
-        severity: (v.database_specific?.severity || v.severity?.[0]?.type || '').toString().toLowerCase() || null,
+        severity: osvSeverity(v),
       }));
       results.push({ ...cand, vulns });
     } catch (e) {
@@ -251,6 +251,17 @@ export async function enrichWithOsv(fp, { fetchImpl = globalThis.fetch, timeoutM
 }
 
 /** Turn OSV results into partial findings (one per component with ≥1 vuln). */
+/**
+ * OSV's `severity[]` entries carry a CVSS *vector* with a `type` such as "CVSS_V3", not a
+ * level; the level lives in `database_specific.severity` (GHSA: CRITICAL/HIGH/MODERATE/LOW).
+ * Returns critical|high|medium|low, or null when the advisory carries no rating.
+ */
+export function osvSeverity(v) {
+  const ds = String(v?.database_specific?.severity || '').toLowerCase();
+  if (ds) return ds === 'moderate' ? 'medium' : ds;
+  return null;
+}
+
 export function osvFindings(osvResults, { location } = {}) {
   const out = [];
   for (const r of osvResults) {

@@ -42,9 +42,17 @@ function safeName(url, i) {
   return `pages/${String(i).padStart(3, '0')}-${slug}-${h}.bin`;
 }
 
+const maskCookieAscii = (sc) => String(sc).replace(/^([^=;\s]+)=([^;]*)/, (m, name, val) => `${name}=${val ? '***' : ''}`);
+
 function cleanHeaders(headers) {
   const out = {};
-  for (const [k, v] of Object.entries(headers || {})) if (!HOP_BY_HOP.has(k.toLowerCase())) out[k.toLowerCase()] = v;
+  for (const [k, v] of Object.entries(headers || {})) {
+    const key = k.toLowerCase();
+    if (HOP_BY_HOP.has(key)) continue;
+    // The snapshot is written to disk: keep cookie attributes (the checks need them) but never the
+    // values. ASCII mask only — a header value outside Latin-1 cannot be replayed through Headers.
+    out[key] = key === 'set-cookie' ? (Array.isArray(v) ? v.map(maskCookieAscii) : maskCookieAscii(v)) : v;
+  }
   return out;
 }
 
@@ -192,8 +200,11 @@ export function mirrorFetchFromManifest(manifest) {
     const headers = new Headers();
     if (page) {
       for (const [k, v] of Object.entries(page.headers || {})) {
-        if (k === 'set-cookie') { for (const c of Array.isArray(v) ? v : [v]) headers.append('set-cookie', c); }
-        else headers.set(k, v);
+        // A captured value Headers refuses (non-Latin-1) drops that header, not the whole page.
+        try {
+          if (k === 'set-cookie') { for (const c of Array.isArray(v) ? v : [v]) headers.append('set-cookie', c); }
+          else headers.set(k, Array.isArray(v) ? v.join(', ') : v);
+        } catch { /* skip an unreplayable header */ }
       }
       const body = page.body || '';
       return { status: page.status || 200, url: page.url, headers, text: async () => body };
