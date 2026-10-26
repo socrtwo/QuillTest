@@ -1,6 +1,6 @@
 {
   "name": "quilltest",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Anne's Test — open-source web application security testing and fixing tool, part of the Anne's Office suite. Runnable from the CLI: ownership-gated passive scan, stack fingerprinting with EOL/CVE assessment, protocol checks, fix-artifact generation, and multi-provider AI analysis.",
   "type": "module",
@@ -101,8 +101,20 @@
     },
     "mac": {
       "target": [
-        { "target": "dmg", "arch": ["x64", "arm64"] },
-        { "target": "zip", "arch": ["x64", "arm64"] }
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
       ],
       "category": "public.app-category.developer-tools",
       "icon": "build/icon.png"
