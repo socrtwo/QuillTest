@@ -8,7 +8,7 @@
  *
  * The directory is overridable so tests can use a temp dir.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, chmodSync, renameSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 export const DEFAULT_DIR = resolve(process.cwd(), 'scans', 'verify');
@@ -20,8 +20,12 @@ function readJson(path, fallback) {
 
 function writeJson(path, data) {
   mkdirSync(resolve(path, '..'), { recursive: true });
-  writeFileSync(path, JSON.stringify(data, null, 2) + '\n', { mode: 0o600 });
-  try { chmodSync(path, 0o600); } catch { /* best effort */ }
+  // Write-then-rename so a crash or full disk mid-write cannot leave a truncated file
+  // (which readJson would then treat as empty and the next save would overwrite).
+  const tmp = `${path}.${process.pid}.tmp`;
+  writeFileSync(tmp, JSON.stringify(data, null, 2) + '\n', { mode: 0o600 });
+  try { chmodSync(tmp, 0o600); } catch { /* best effort */ }
+  renameSync(tmp, path);
 }
 
 export function createStore(dir = DEFAULT_DIR) {

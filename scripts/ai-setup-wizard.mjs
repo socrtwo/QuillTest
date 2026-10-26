@@ -24,7 +24,7 @@
 
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout, env, argv, exit } from 'node:process';
-import { writeFileSync, readFileSync, existsSync, chmodSync } from 'node:fs';
+import { writeFileSync, readFileSync, existsSync, chmodSync, renameSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import {
@@ -343,8 +343,11 @@ function mergeIntoExisting(outPath, fresh) {
 }
 
 function writeConfig(outPath, config) {
-  writeFileSync(outPath, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
-  try { chmodSync(outPath, 0o600); } catch { /* best effort (e.g. Windows) */ }
+  // Write-then-rename: the config may hold a key, so never leave a half-written file behind.
+  const tmp = `${outPath}.${process.pid}.tmp`;
+  writeFileSync(tmp, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
+  try { chmodSync(tmp, 0o600); } catch { /* best effort (e.g. Windows) */ }
+  renameSync(tmp, outPath);
 }
 
 // ----- main ------------------------------------------------------------------

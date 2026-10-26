@@ -184,6 +184,31 @@ export function filterOutput(text) {
   return { text: kept.join('\n'), removed, filtered: removed > 0 };
 }
 
+/**
+ * Scrub payload-shaped fragments inside an already-parsed reply, field by field.
+ * The line filter above is right for free text, but a JSON reply is one logical
+ * record: a rationale that says "reflected inside a <script> block" must keep
+ * its finding (and a compact single-line reply must not vanish entirely).
+ * Each matched fragment is replaced with "[filtered]"; returns the count.
+ */
+export function scrubParsedOutput(value) {
+  let replaced = 0;
+  const walk = (v) => {
+    if (typeof v === 'string') {
+      let s = v;
+      for (const re of PAYLOAD_LINE_RE) {
+        const g = new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g');
+        s = s.replace(g, () => { replaced++; return '[filtered]'; });
+      }
+      return s;
+    }
+    if (Array.isArray(v)) return v.map(walk);
+    if (v && typeof v === 'object') { const o = {}; for (const [k, x] of Object.entries(v)) o[k] = walk(x); return o; }
+    return v;
+  };
+  return { value: walk(value), replaced };
+}
+
 /** Pull the JSON object out of a model reply (tolerates code fences and preamble). */
 export function parseAnalysis(text) {
   const s = String(text ?? '').trim();
@@ -269,13 +294,28 @@ async function consultOne(entry, messages, { fetchImpl, env, timeoutMs, dryRun, 
       return { ...base, ok: false, ms, error: scrubSecrets(`HTTP ${res.status}: ${msg}`, [apiKey]) };
     }
     const rawReply = json ? extractText(provider.apiStyle, json) : '';
-    const { text: cleaned, filtered, removed } = filterOutput(rawReply);
-    const parsed = parseAnalysis(cleaned);
-    return { ...base, ok: true, ms, raw: cleaned, filtered, removedLines: removed, parsed, parseError: parsed ? null : 'Reply was not the expected JSON object' };
+    const { text: cleaned, removed } = filterOutput(rawReply);
+    // Parse the unfiltered reply (so a payload-shaped substring in a rationale cannot delete the
+    // whole JSON line or record), then scrub the parsed fields; `raw` is still the line-filtered text.
+    let parsed = parseAnalysis(rawReply);
+    let replaced = 0;
+    if (parsed) ({ value: parsed, replaced } = scrubParsedOutput(parsed));
+    const truncated = stopReason(provider.apiStyle, json);
+    return {
+      ...base, ok: true, ms, raw: cleaned, filtered: removed > 0 || replaced > 0, removedLines: removed, scrubbedFragments: replaced, parsed,
+      truncated,
+      parseError: parsed ? null : (truncated ? `Reply was cut off by the provider's output limit (${truncated}); raise maxTokens` : 'Reply was not the expected JSON object'),
+    };
   } catch (e) {
     const msg = e?.name === 'TimeoutError' ? `No response within ${timeoutMs / 1000}s` : (e?.cause?.message || e.message);
     return { ...base, ok: false, error: scrubSecrets(msg, [apiKey]) };
   }
+}
+
+/** The provider's stop reason when it indicates a truncated reply, else null. */
+function stopReason(apiStyle, json) {
+  const r = json?.stop_reason || json?.choices?.[0]?.finish_reason || json?.candidates?.[0]?.finishReason || null;
+  return r && /^(max_tokens|length|MAX_TOKENS)$/.test(String(r)) ? String(r) : null;
 }
 
 function briefNotes(result) {

@@ -2,7 +2,7 @@
 
 Milestones, roughly ordered. Dates omitted deliberately; this is a planning repo.
 
-## M0 — Foundations (in progress)
+## M0 — Foundations
 
 - [x] Repository, license, documentation plan
 - [x] AI provider registry (`src/ai/providers.mjs`)

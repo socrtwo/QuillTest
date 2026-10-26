@@ -84,7 +84,12 @@
       "src/**/*",
       "scripts/**/*",
       "electron/**/*",
-      "package.json"
+      "package.json",
+      "!node_modules/@capacitor/**"
+    ],
+    "asarUnpack": [
+      "src/**/*",
+      "scripts/**/*"
     ],
     "linux": {
       "target": [
