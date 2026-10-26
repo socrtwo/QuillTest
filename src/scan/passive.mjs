@@ -110,7 +110,7 @@ export function parseHsts(value) {
   for (const part of String(value).split(';')) {
     const [k, v] = part.trim().split('=');
     const key = (k || '').toLowerCase();
-    if (key === 'max-age') out.maxAge = Number.parseInt(v, 10);
+    if (key === 'max-age') out.maxAge = Number.parseInt(String(v ?? '').trim().replace(/^"(.*)"$/, '$1'), 10); // RFC 6797 allows a quoted value
     else if (key === 'includesubdomains') out.includeSubDomains = true;
     else if (key === 'preload') out.preload = true;
   }
@@ -143,7 +143,9 @@ export function parseCookie(setCookie) {
   return { name, ...flags };
 }
 
-const SESSION_COOKIE_RE = /sess|sid|token|auth|jwt|login|remember|csrf|xsrf/i;
+const SESSION_COOKIE_RE = /sess|sid|token|auth|jwt|login|remember/i;
+// Double-submit CSRF cookies (XSRF-TOKEN, csrftoken) must be readable by script, so HttpOnly is not required.
+const CSRF_COOKIE_RE = /csrf|xsrf/i;
 const VERSION_RE = /\d+\.\d+/;
 
 function snippet(s, n = SNIPPET_CHARS) {
@@ -260,11 +262,12 @@ export const PASSIVE_CHECKS = [
       for (const sc of root.headers['set-cookie'] || []) {
         const c = parseCookie(sc);
         const missing = [];
+        const csrfLike = CSRF_COOKIE_RE.test(c.name);
         if (isHttps && !c.secure) missing.push('Secure');
-        if (!c.httpOnly) missing.push('HttpOnly');
+        if (!c.httpOnly && !csrfLike) missing.push('HttpOnly');
         if (!c.sameSite) missing.push('SameSite');
         if (!missing.length) continue;
-        const sessionLike = SESSION_COOKIE_RE.test(c.name);
+        const sessionLike = !csrfLike && SESSION_COOKIE_RE.test(c.name);
         out.push({
           location: pageUrl,
           severity: sessionLike ? 'high' : 'medium',
@@ -314,7 +317,9 @@ export const PASSIVE_CHECKS = [
     remediation: 'Load all scripts, styles, frames and images over https:// (or protocol-relative/absolute https URLs). Add `Content-Security-Policy: upgrade-insecure-requests` as a backstop.',
     run: ({ origin, pageUrl, isHttps, root }) => {
       if (!isHttps || !root || root.error || !root.body) return [];
-      const active = [...root.body.matchAll(/<(script|iframe|link)\b[^>]*\b(?:src|href)\s*=\s*["']http:\/\/[^"']+/gi)].map((m) => m[0]);
+      // <link> is active content only when it loads a stylesheet or preloads a resource; canonical/alternate/etc. are not fetched.
+      const active = [...root.body.matchAll(/<(script|iframe|link)\b[^>]*\b(?:src|href)\s*=\s*["']http:\/\/[^"']+/gi)].map((m) => m[0])
+        .filter((tag) => !/^<link/i.test(tag) || /\brel\s*=\s*["']?[^"'>]*\b(?:stylesheet|preload|modulepreload|prefetch|import)\b/i.test(tag));
       const passive = [...root.body.matchAll(/<(img|video|audio|source)\b[^>]*\bsrc\s*=\s*["']http:\/\/[^"']+/gi)].map((m) => m[0]);
       const out = [];
       if (active.length) out.push({ location: pageUrl, severity: 'high', title: 'Active mixed content (script/iframe/stylesheet over http://)', evidence: { snippet: snippet(active.slice(0, 5).join('\n')) } });
@@ -466,7 +471,9 @@ export async function runPassiveScan(originInput, opts = {}) {
 
   const root = await get(origin + '/');
   const cors = root.error ? null : await get(origin + '/', { origin: CORS_PROBE_ORIGIN });
-  const httpVariant = isHttps && !root.error ? await get('http://' + new URL(origin).host + '/') : null;
+  // The http→https redirect check talks to port 80; on a non-default https port the plaintext
+  // listener is a different origin (and port 8443 would just get a plaintext request to a TLS socket).
+  const httpVariant = isHttps && !root.error && !new URL(origin).port ? await get('http://' + new URL(origin).host + '/') : null;
 
   const probes = [];
   if (opts.probeSensitiveFiles !== false && !root.error) {
@@ -496,7 +503,8 @@ export async function runPassiveScan(originInput, opts = {}) {
 
   const raw = runChecks(originChecks, { origin, isHttps, root, cors, httpVariant, probes, pageUrl: origin + '/' });
   for (const page of pages) {
-    if (page.error || !page.status) continue;
+    // A crawled URL that redirects off-origin (or is any 3xx) has no page of its own to check.
+    if (page.error || !page.status || page.crossOriginRedirectTo || (page.status >= 300 && page.status < 400)) continue;
     const pageObs = { url: page.url, status: page.status, headers: page.headers, body: page.body, error: null };
     raw.push(...runChecks(pageChecks, { origin, isHttps, root: pageObs, pageUrl: page.url, page, cors, httpVariant, probes }));
   }

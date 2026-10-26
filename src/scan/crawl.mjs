@@ -65,7 +65,8 @@ export function pathKey(url) {
 // ---------------------------------------------------------------------------
 
 function attr(tag, name) {
-  const m = tag.match(new RegExp(`\\b${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i'));
+  // (?<![\w-]) so data-href / data-src are not read as href / src.
+  const m = tag.match(new RegExp(`(?<![\\w-])${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s>]+))`, 'i'));
   return m ? (m[1] ?? m[2] ?? m[3] ?? '') : null;
 }
 

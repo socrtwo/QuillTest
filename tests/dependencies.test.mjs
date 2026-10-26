@@ -37,8 +37,8 @@ test('minimumSafeVersion is the max over matched EOL bounds and advisory fixedIn
   assert.equal(minimumSafeVersion('jQuery', '1.12.4'), '3.5.0', 'EOL <3.0.0 and advisories fixed in 3.5.0 → 3.5.0');
   assert.equal(minimumSafeVersion('jQuery', '3.4.1'), '3.5.0');
   assert.equal(minimumSafeVersion('jQuery', '3.5.0'), null, 'clean version has no bound');
-  assert.equal(minimumSafeVersion('Bootstrap', '4.3.0'), '4.3.1');
-  assert.equal(minimumSafeVersion('Bootstrap', '3.3.7'), '4.0.0', 'EOL bound beats same-line fix');
+  assert.equal(minimumSafeVersion('Bootstrap', '4.3.0'), '5.0.0', 'the 4.x line is EOL (Jan 2023), so the bound is 5.0.0, not the 4.3.1 CVE fix');
+  assert.equal(minimumSafeVersion('Bootstrap', '3.3.7'), '5.0.0', 'EOL bound beats same-line fix');
   assert.equal(minimumSafeVersion('Apache', '2.4.49'), '2.4.56');
   assert.equal(minimumSafeVersion('nginx', '1.18.0'), '1.20.1', 'first version token of "1.20.1 / 1.21.0"');
   assert.equal(minimumSafeVersion('PHP', '7.4.3'), '8.2');
@@ -47,7 +47,7 @@ test('minimumSafeVersion is the max over matched EOL bounds and advisory fixedIn
 });
 
 test('sameLineStep offers the last patched release on the detected major only when it is safe', () => {
-  assert.deepEqual(sameLineStep('Bootstrap', '4.3.0'), { version: '4.6.2', lineEol: false });
+  assert.deepEqual(sameLineStep('Bootstrap', '4.3.0'), { version: '4.6.2', lineEol: true }, 'closes CVE-2019-8331 but the 4.x line is EOL');
   assert.deepEqual(sameLineStep('Bootstrap', '3.3.7'), { version: '3.4.1', lineEol: true }, 'closes CVE-2019-8331 but the 3.x line is EOL');
   assert.equal(sameLineStep('jQuery', '1.12.4'), null, 'no lines table');
   const saved = BUMPS.Bootstrap.lines[4];
@@ -78,7 +78,7 @@ test('planDependencyBumps merges findings per component, collects CVEs, and skip
   assert.deepEqual(jq.commands, ['npm install jquery@^3.7.1']);
 
   const bs = plan.bumps.find((b) => b.component === 'Bootstrap');
-  assert.deepEqual(bs.sameLine, { version: '4.6.2', lineEol: false });
+  assert.deepEqual(bs.sameLine, { version: '4.6.2', lineEol: true });
   assert.equal(bs.cdn.style, 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css');
 
   const php = plan.bumps.find((b) => b.component === 'PHP');

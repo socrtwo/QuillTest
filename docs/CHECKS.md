@@ -41,7 +41,6 @@ Active checks send a request the target would not otherwise receive. In Anne's T
 | Access control | IDOR / horizontal and vertical privilege checks using only accounts you supply, forced browsing to admin paths |
 | Authentication/session | Weak lockout, session fixation, predictable tokens, password-reset flaws (detection only) |
 | Deserialization | Endpoints accepting serialized objects |
-| Redirects | Open redirects |
 | Business-logic hints | Surfaces candidates for manual review rather than auto-asserting |
 
 ## Severity and confidence
@@ -64,4 +63,4 @@ The **passive** set is implemented in `src/scan/passive.mjs` (checks are data in
 
 **Component versions.** Fingerprinted versions are assessed against an offline table of end-of-life lines and well-known advisories (`src/scan/versions.mjs`, dated `KNOWN_DATA_AS_OF`): jQuery, Bootstrap, PHP, nginx, Apache httpd, IIS, Drupal, WordPress, Joomla, Angular. Findings `components.eol` and `components.known-vulnerable` name the CVEs and the fixed version. Because distributions backport fixes without changing banners, these are reported with confidence *firm* and a caveat to confirm against the vendor advisory. With `--online-cve`, libraries that map to a package ecosystem (jQuery and Bootstrap on npm, Drupal on Packagist) are also looked up in [OSV.dev](https://osv.dev) (`components.osv`); this is the only check that leaves the machine for anything other than the target, and it is off by default.
 
-**Protocol checks** (TLS, FTP, SMTP, IMAP, POP3, DNS) are implemented, observation-only, in `src/scan/protocols.mjs`; see [PROTOCOLS.md](PROTOCOLS.md). **Active checks** (injection, XSS, CSRF, SSRF, XXE, access control, open redirects) remain planned; see [ROADMAP.md](ROADMAP.md) M3.
+**Protocol checks** (TLS, FTP, SMTP, IMAP, POP3, DNS) are implemented, observation-only, in `src/scan/protocols.mjs`; see [PROTOCOLS.md](PROTOCOLS.md). **Active checks**: HTTP methods / Cross-Site Tracing, open redirect and input reflection are implemented in `src/scan/active.mjs` (`scan --active`); the injection family (SQLi, command, SSTI, SSRF, XXE), CSRF, access control and the rest of the table above remain planned; see [ROADMAP.md](ROADMAP.md) M3. The passive table at the top of this file is the specification; the paragraph above lists what `PASSIVE_CHECKS` implements today (COOP/COEP/CORP, cookie Domain/Path scoping, stack traces, source maps, backup files and autocomplete are not yet checked).

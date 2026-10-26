@@ -62,7 +62,8 @@ test('assessVersions flags EOL and advisory ranges with exact boundaries', () =>
   const a51 = out.find((f) => /Apache 2\.4\.51/.test(f.title));
   assert.ok(a51 && !a51.title.includes('41773'), '2.4.51 is outside the traversal range but inside the mod_proxy range');
   assert.ok(has(/PHP 7\.4\.3 is end-of-life/)); assert.ok(!has(/PHP 8\.2\.0/));
-  assert.ok(has(/Bootstrap 4\.3\.0 has known vulnerabilities \(CVE-2019-8331\)/)); assert.ok(!has(/Bootstrap 4\.3\.1/));
+  assert.ok(has(/Bootstrap 4\.3\.0 has known vulnerabilities \(CVE-2019-8331\)/));
+  assert.ok(has(/Bootstrap 4\.3\.1 is end-of-life/) && !has(/Bootstrap 4\.3\.1 has known vulnerabilities/), '4.3.1 closed the CVE but the 4.x line is EOL');
   assert.ok(has(/Bootstrap 3\.3\.7 is end-of-life/) && has(/Bootstrap 3\.3\.7 has known vulnerabilities/));
   assert.ok(!has(/WordPress 6\.4\.2/));
   assert.ok(has(/Drupal 7\.98 is end-of-life/));
