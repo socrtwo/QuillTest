@@ -14,7 +14,7 @@
  * any server.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { resolve, join, relative, basename } from 'node:path';
+import { resolve, join, relative, basename, isAbsolute, sep } from 'node:path';
 import { argv, exit } from 'node:process';
 import { generateFixes, TARGETS } from '../src/fix/artifacts.mjs';
 import { generatePatchForFile } from '../src/fix/patch.mjs';
@@ -25,7 +25,7 @@ function parseArgs(args) {
   return out;
 }
 const args = parseArgs(argv.slice(2));
-if (args.help || !args.report) {
+if (args.help || typeof args.report !== 'string') {
   console.log(`Usage: node scripts/fix.mjs --report <scan.json> [--target ${TARGETS.join('|')}] [--all] [--out <dir>] [--print]
        node scripts/fix.mjs --report <scan.json> --patch <package.json|composer.json> [--patch <file> ...] [--out <dir>] [--print]
 
@@ -50,7 +50,7 @@ export function printFixes(result, { print = false } = {}) {
   if (result.notes.length) { console.log('\nNotes:'); for (const n of result.notes) console.log('  - ' + n); }
   if (result.coverage.manual.length) {
     console.log('\nStill manual (textual remediation only):');
-    for (const m of result.coverage.manual) console.log(`  ${m.id}  ${m.title}\n        → ${m.remediation.split('\n')[0]}`);
+    for (const m of result.coverage.manual) console.log(`  ${m.id}  ${m.title}\n        → ${String(m.remediation || '(no remediation text in the report)').split('\n')[0]}`);
   }
 }
 
@@ -79,8 +79,10 @@ if (patchFiles.length) {
     if (!existsSync(abs)) { console.error(`  ${pf}: no such file`); continue; }
     const contents = readFileSync(abs, 'utf8');
     // Use a path git apply can resolve: relative to cwd when the file is under it, else the basename.
+    // (On Windows `relative` can return an absolute path on another drive, and uses backslashes;
+    // the diff header must be a forward-slash relative path.)
     const rel = relative(process.cwd(), abs);
-    const diffPath = !rel || rel.startsWith('..') ? basename(abs) : rel;
+    const diffPath = (!rel || rel.startsWith('..') || isAbsolute(rel) ? basename(abs) : rel).split(sep).join('/');
     let res;
     try { res = generatePatchForFile(report, { filename: pf, contents, path: diffPath }); }
     catch (e) { console.error(`  ${pf}: ${e.message}`); continue; }
@@ -90,7 +92,8 @@ if (patchFiles.length) {
       continue;
     }
     mkdirSync(outDir, { recursive: true });
-    const outPath = join(outDir, pf.split(/[\\/]/).pop() + '.patch');
+    // Name the patch after the diff path so two manifests with the same basename do not overwrite each other.
+    const outPath = join(outDir, diffPath.replace(/\//g, '__') + '.patch');
     writeFileSync(outPath, res.patch, { mode: 0o600 });
     wrote++;
     console.log(`  ${pf}: ${res.changes.map((x) => `${x.pkg} ${x.from} -> ${x.to}`).join(', ')}`);

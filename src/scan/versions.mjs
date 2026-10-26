@@ -82,9 +82,12 @@ export const KNOWN = {
     ],
   },
   'Bootstrap': {
-    upgrade: 'Upgrade to a current Bootstrap 5.x (or at least 4.3.1 / 3.4.1 on the older lines).',
+    upgrade: 'Upgrade to a current Bootstrap 5.x; the 3.x and 4.x lines are end-of-life.',
     osv: { ecosystem: 'npm', name: 'bootstrap' },
-    eol: [{ below: '4.0.0', note: 'Bootstrap 3.x reached end of life in 2019.' }],
+    eol: [
+      { below: '4.0.0', note: 'Bootstrap 3.x reached end of life in July 2019.' },
+      { below: '5.0.0', note: 'Bootstrap 4.x reached end of life on 1 January 2023.' },
+    ],
     advisories: [
       { from: '4.0.0', below: '4.3.1', ids: ['CVE-2019-8331'], severity: 'medium', summary: 'XSS in tooltip/popover data-template.', fixedIn: '4.3.1' },
       { below: '3.4.1', ids: ['CVE-2019-8331'], severity: 'medium', summary: 'XSS in tooltip/popover data-template.', fixedIn: '3.4.1' },
@@ -134,13 +137,16 @@ export const KNOWN = {
     advisories: [],
   },
   'Joomla': {
-    upgrade: 'Upgrade to a supported Joomla release (5.x, or 4.4 LTS at minimum).',
-    eol: [{ below: '4.0', note: 'Joomla 3.x reached end of life in August 2023.' }],
+    upgrade: 'Upgrade to a supported Joomla release (5.x).',
+    eol: [
+      { below: '4.0', note: 'Joomla 3.x reached end of life in August 2023.' },
+      { below: '5.0', note: 'Joomla 4.4 LTS security support ended on 17 October 2025.' },
+    ],
     advisories: [],
   },
   'Angular': {
     upgrade: 'Upgrade along the supported Angular LTS path.',
-    eol: [{ below: '17.0.0', note: 'Angular versions before 17 are out of long-term support as of this data.' }],
+    eol: [{ below: '20.0.0', note: 'Angular LTS lasts 18 months per major: v17 ended May 2025, v18 November 2025, v19 May 2026. Versions before 20 are unsupported as of this data.' }],
     advisories: [],
   },
 };

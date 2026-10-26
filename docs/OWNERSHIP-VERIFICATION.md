@@ -10,7 +10,7 @@ The model is the same one used by Let's Encrypt (ACME HTTP-01), Google/Bing Sear
    - a random 256-bit `token` (base32, no padding),
    - a `verification file` named `<token>.txt`,
    - whose contents are `quilltest-site-verification=<token>` on the first line and a SHA-256 `checksum=<hex>` of the token plus the normalized origin on the second line,
-   - and an issue timestamp. The token is bound to the exact origin and expires after a configurable window (default 24h).
+   - and an issue timestamp. The token is bound to the exact origin and expires after a configurable window (default 24h). A successful verification is then valid for that same window counted from the moment of verification (the record keeps the challenge's own expiry as `challengeExpires`).
 2. **Upload.** You place the file at the well-known path on the target:
    ```
    https://<target-origin>/.well-known/quilltest-verification/<token>.txt
@@ -21,9 +21,9 @@ The model is the same one used by Let's Encrypt (ACME HTTP-01), Google/Bing Sear
    - `Content-Type` is `text/plain` (or close; a mislabeled type is a warning, not a hard fail),
    - the body's first line token matches the issued token,
    - the checksum line matches a freshly computed SHA-256,
-   - the response was not a redirect to a different origin (a redirect that changes host/scheme/port fails — otherwise an open redirect could be used to "prove" ownership of a site you don't control),
-   - the file is small (Anne's Test reads at most 8 KiB).
-4. **Gate.** Only a fully successful verify unlocks scanning *for that origin only*. Subdomains, sibling hosts, and other ports each require their own verification. The verification record (origin, token hash, time, method, verifying IP) is written into the scan report.
+   - the response was not a redirect to a different origin or away from the well-known path (a redirect that changes host/scheme/port, or lands anywhere but `/.well-known/quilltest-verification/<token>.txt`, fails — otherwise an open redirect, or a tenant who can publish under some other path of a shared origin, could be used to "prove" ownership),
+   - the file is small (Anne's Test stops reading at 8 KiB and refuses a larger declared `Content-Length`).
+4. **Gate.** Only a fully successful verify unlocks scanning *for that origin only*. Subdomains, sibling hosts, and other ports each require their own verification. The verification record (origin, token hash, time, method) is kept in the local store and its method, time and expiry are written into the scan report.
 
 ## Why a file upload specifically
 

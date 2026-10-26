@@ -84,7 +84,9 @@ export function buildCsp(report) {
     ['img-src', ["'self'", 'data:', 'https:']],
     ['font-src', ["'self'", 'https:', 'data:']],
     ['connect-src', ["'self'"]],
-    ['frame-src', a.frameOrigins.length ? a.frameOrigins : ["'none'"]],
+    // The crawler records only cross-origin frames, so same-origin <iframe>s are invisible here;
+    // 'self' keeps them working (script-src/style-src start with 'self' for the same reason).
+    ['frame-src', ["'self'", ...a.frameOrigins]],
     ['object-src', ["'none'"]],
     ['base-uri', ["'self'"]],
     ['form-action', ["'self'"]],
@@ -167,7 +169,9 @@ const renderers = {
     if (plan.csp) {
       const d = plan.csp.directives;
       const obj = Object.entries(d).map(([k, v]) => `      "${k}": ${JSON.stringify(v)},`).join('\n');
-      opts.push('  contentSecurityPolicy: {', '    reportOnly: true, // flip to false when clean', '    directives: {', obj, '    },', '  },');
+      // useDefaults:false — helmet would otherwise merge in script-src-attr 'none' (undoing the
+      // 'unsafe-inline' concession for onclick= handlers) and upgrade-insecure-requests.
+      opts.push('  contentSecurityPolicy: {', '    useDefaults: false, // the directive list below is complete', '    reportOnly: true, // flip to false when clean', '    directives: {', obj, '    },', '  },');
     }
     lines.push('app.use(helmet({', ...opts, '}));');
     if (byName['Permissions-Policy']) lines.push('', `app.use((req, res, next) => { res.setHeader('Permissions-Policy', '${byName['Permissions-Policy']}'); next(); });`);

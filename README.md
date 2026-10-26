@@ -2,7 +2,7 @@
 
 *Part of the Anne's Office suite: [Anne's Pen](https://github.com/socrtwo/QuillPen) (documents), [Anne's Grid](https://github.com/socrtwo/QuillGrid) (spreadsheets), [Anne's Post](https://github.com/socrtwo/QuillPost) (email), [Anne's Stage](https://github.com/socrtwo/QuillStage) (presentations), [Anne's Loom](https://github.com/socrtwo/QuillLoom) (web authoring), [Anne's Press](https://github.com/socrtwo/QuillPress) (desktop publishing), and [Anne's Folio](https://github.com/socrtwo/QuillFolio) (PDF).*
 
-**Quill Test** (repository `Anne's Test`) is an original, open-source web application security **testing and fixing** tool for Windows, macOS, Linux, ChromeOS and the web. It tests a target website for known classes of security flaws and uses AI, through the major provider APIs, to reason about the vulnerabilities an attacker — including an AI-assisted one — would look for, then helps you **fix** them with concrete, mapped remediations. It does not exploit anything. Its goal is the same as the rest of the Anne's Office suite: **no missing commands**. It provides the familiar office-suite workflow plus the best ideas from current and former web security scanners.
+**Anne's Test** (repository `QuillTest`) is an original, open-source web application security **testing and fixing** tool for Windows, macOS, Linux, ChromeOS and the web. It tests a target website for known classes of security flaws and uses AI, through the major provider APIs, to reason about the vulnerabilities an attacker — including an AI-assisted one — would look for, then helps you **fix** them with concrete, mapped remediations. It does not exploit anything. Its goal is the same as the rest of the Anne's Office suite: **no missing commands**. It provides the familiar office-suite workflow plus the best ideas from current and former web security scanners.
 
 > **Status: runnable, engine feature-complete.** Built and covered by an offline test suite: the ownership-verification gate; a same-origin crawler; the passive scan engine (headers, transport, cookies, CORS, disclosure, mixed content, forms, SRI, exposed files); stack fingerprinting with EOL/CVE assessment; observation-only protocol checks (TLS/FTP/mail/DNS); a detection-only active engine with scan profiles (HTTP methods / Cross-Site Tracing, open redirect, input reflection); fix-artifact generation (server header blocks, crawl-derived CSP, cookie settings, dependency bumps) and applyable manifest patches; the staging-mirror capture/serve/scan pipeline; the multi-provider AI setup wizard, config-schema validation and the analysis layer with cross-provider consensus; report/export (HTML/Markdown/CSV), findings diff and review packages; the command registry with a web shell and target management; and the app builds (Vite web, Electron desktop, Capacitor mobile config). Not yet built: the injection family of active checks (SQLi/SSTI/SSRF/XXE — reserved behind a higher intrusiveness profile), and the generated native mobile projects (they need the Android/iOS SDKs). The whole pipeline runs end-to-end from the command line.
 
@@ -11,7 +11,7 @@
 Anne's Test is a **defensive** tool. It **detects, reports, and helps fix** weaknesses; it does not ship working exploit code, payloads, or anything whose purpose is to compromise, deface, exfiltrate from, or damage a target.
 
 - **Proof of ownership is mandatory.** Before any scan, Anne's Test issues a unique verification file and requires you to upload it to a well-known path on the target (e.g. `https://target/.well-known/quilltest-verification/<token>.txt`). Anne's Test fetches that file and confirms the token and checksum match before a single check runs. No valid verification file, no scan. This is the same domain-control challenge model used by ACME/Let's Encrypt (HTTP-01) and Search Console. See [docs/OWNERSHIP-VERIFICATION.md](docs/OWNERSHIP-VERIFICATION.md).
-- **Authorization is mandatory.** Scan only sites you own or are explicitly authorized in writing to test. Scanning systems without authorization is illegal in most jurisdictions (in the United States, the Computer Fraud and Abuse Act). The ownership check above is the technical gate; you also confirm authorization for each target, and Anne's Test records both in the scan report.
+- **Authorization is mandatory.** Scan only sites you own or are explicitly authorized in writing to test. Scanning systems without authorization is illegal in most jurisdictions (in the United States, the Computer Fraud and Abuse Act). The ownership check above is the technical gate, and the scan report records how and when the origin was verified; confirming that you are authorized to test it is on you.
 - **Detect, don't weaponize.** Like OWASP ZAP, nuclei, and Nikto, Anne's Test confirms a finding with the least intrusive probe that proves it, then stops. It does not escalate, pivot, or carry out an attack.
 - **AI is for analysis, not attack.** The AI providers are used to triage findings, explain risk, reduce false positives, map findings to CWE/OWASP categories, and reason about what an attacker would prioritize. Prompts are constructed so the models analyze the target's responses; they are not used to generate live attack payloads against third-party systems.
 
@@ -67,7 +67,7 @@ Scanning an origin without a valid verification exits with code 3; there is no o
 
 ## The AI setup wizard
 
-A runnable wizard is included now, ahead of the scanner. It walks you through selecting one or more providers, entering credentials, picking a model and analysis mode, and running a connectivity test against each, then writes a local `quilltest.ai.json` config (git-ignored).
+The wizard walks you through selecting one or more providers, entering credentials, picking a model and analysis mode, and running a connectivity test against each, then writes a local `quilltest.ai.json` config (git-ignored).
 
 ```bash
 # Interactive CLI wizard (Node 18+) — multi-select providers, choose mode
@@ -84,7 +84,7 @@ node scripts/ai-setup-wizard.mjs --provider anthropic --model claude-opus-5-5 --
 node scripts/ai-setup-wizard.mjs --provider openai --yes --dry-run --no-save
 ```
 
-With providers configured, the **analysis layer** can be run today over a findings file (the scanner that will produce findings is not built yet; a sample is included):
+With providers configured, the **analysis layer** runs as part of `scan --analyze`, or on its own over any saved report or findings file (a sample is included):
 
 ```bash
 # See exactly what would be sent to each provider — scrubbed, capped, no keys needed
@@ -117,7 +117,7 @@ Supported providers out of the box:
 
 ## Platforms
 
-Windows, macOS, Linux (including Raspberry Pi OS), ChromeOS and the web, with the same stack as Anne's Stage (Vite, Electron, Capacitor). The web build and the Electron desktop app are built here; the native mobile projects are generated on a machine with the Android/iOS SDKs. See [docs/BUILD.md](docs/BUILD.md).
+Windows, macOS, Linux (x64 installers from the release workflow; Raspberry Pi OS and other arm64 systems run the CLI on Node and can build the desktop app locally), ChromeOS and the web, with the same stack as Anne's Stage (Vite, Electron, Capacitor). The web build and the Electron desktop app are built here; the native mobile projects are generated on a machine with the Android/iOS SDKs. See [docs/BUILD.md](docs/BUILD.md).
 
 ## Documentation
 

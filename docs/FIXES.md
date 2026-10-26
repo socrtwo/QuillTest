@@ -6,17 +6,16 @@ Anne's Test is a test-*and*-fix tool. A finding that only says "you have a probl
 
 1. **Guidance** — always present. Plain-language explanation of the flaw, its impact, the CWE and OWASP category, and what to change. This is the minimum every finding ships with.
 2. **Generated artifact** — where the fix is config or markup that does not require seeing the site's source. Examples:
-   - a security-header block for nginx, Apache, Caddy, IIS, or a Cloudflare/Fastly rule,
+   - a security-header block for nginx, Apache, Caddy, IIS, Express (helmet) or Netlify (`_headers`),
    - a `Content-Security-Policy` derived from the resources the crawler actually observed the page loading,
    - corrected cookie attributes (`Secure`, `HttpOnly`, `SameSite`),
-   - a CORS policy narrowed to the origins in use,
    - a `Strict-Transport-Security` header with sane max-age,
    - a dependency version bump when a known-vulnerable library/version is fingerprinted.
 3. **Applyable patch** — where Anne's Test can see the artifact to change (a config file or dependency manifest you provide, or a file at a verified origin) and produce a diff. Anne's Test **generates** the patch; it never applies it to a live site itself. You review and apply.
 
 ## The fix is mapped, not generic
 
-Anne's Test fingerprints the server and framework from response headers, error pages, cookie names, and asset paths, then selects the remediation that fits. A missing-CSP finding on an Express app gets a `helmet` snippet; on nginx it gets an `add_header` block; on a static host it gets the `<meta http-equiv>` fallback and a note on why a header is better. The mapping lives in `src/fix/artifacts.mjs` as data (`renderers` per server target, `COOKIE_FIXES` per framework), same as the check registry.
+Anne's Test fingerprints the server and framework from response headers, error pages, cookie names, and asset paths, then selects the remediation that fits. A missing-CSP finding on an Express app gets a `helmet` snippet; on nginx it gets an `add_header` block; on Netlify a `_headers` file; when the server is unknown, a generic header list to transcribe. (A CORS artifact and a `<meta http-equiv>` fallback are not generated; CORS findings carry textual remediation only.) The mapping lives in `src/fix/artifacts.mjs` as data (`renderers` per server target, `COOKIE_FIXES` per framework), same as the check registry.
 
 ## Role of AI in fixes
 

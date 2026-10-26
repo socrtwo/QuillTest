@@ -167,8 +167,13 @@ export async function verifyHttp(challenge, opts = {}) {
     if (!abs || !sameOrigin(abs, challenge.origin)) {
       return { ok: false, method, error: `Verification file redirected to a different origin (${loc || 'unknown'}); refusing.` };
     }
+    // The redirect must also stay at the well-known path: on a shared origin a tenant who can
+    // publish under /uploads/ but not /.well-known/ must not be able to satisfy the check.
+    if (new URL(abs).pathname !== WELL_KNOWN_DIR + challenge.token + '.txt') {
+      return { ok: false, method, error: `Verification file redirected away from ${WELL_KNOWN_DIR} (${loc}); refusing.` };
+    }
     try {
-      res = await fetchImpl(abs, { method: 'GET', redirect: 'manual', headers: { accept: 'text/plain' }, signal: AbortSignal.timeout(timeoutMs) });
+      res = await fetchImpl(abs, { method: 'GET', redirect: 'manual', headers: { accept: 'text/plain', 'user-agent': 'QuillTest-Verify/0.1 (+ownership check)' }, signal: AbortSignal.timeout(timeoutMs) });
     } catch (e) {
       return { ok: false, method, error: `Could not fetch ${abs}: ${e?.cause?.message || e.message}` };
     }
@@ -177,8 +182,10 @@ export async function verifyHttp(challenge, opts = {}) {
 
   if (res.status !== 200) return { ok: false, method, error: `Expected HTTP 200 for ${url}, got ${res.status}.` };
 
-  const text = await res.text();
-  if (Buffer.byteLength(text, 'utf8') > MAX_FILE_BYTES) return { ok: false, method, error: `Verification file is larger than ${MAX_FILE_BYTES} bytes; refusing.` };
+  const declared = Number.parseInt(res.headers.get('content-length') || '', 10);
+  if (Number.isFinite(declared) && declared > MAX_FILE_BYTES) return { ok: false, method, error: `Verification file is larger than ${MAX_FILE_BYTES} bytes; refusing.` };
+  const text = await readCapped(res, MAX_FILE_BYTES);
+  if (text === null) return { ok: false, method, error: `Verification file is larger than ${MAX_FILE_BYTES} bytes; refusing.` };
 
   const parsed = parseVerificationFile(text);
   const warnings = [];
@@ -190,6 +197,24 @@ export async function verifyHttp(challenge, opts = {}) {
   if ((parsed.checksum || '').toLowerCase() !== expected) return { ok: false, method, error: 'Checksum in the verification file does not match (token/origin mismatch or edited file).' };
 
   return { ok: true, method, details: { url, contentType: ct || null, warnings } };
+}
+
+/** Read a response body up to `max` bytes; null when it is larger (the download stops there). */
+async function readCapped(res, max) {
+  if (res.body && typeof res.body.getReader === 'function') {
+    const reader = res.body.getReader();
+    const chunks = []; let total = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > max) { try { await reader.cancel(); } catch { /* ignore */ } return null; }
+      chunks.push(value);
+    }
+    return Buffer.concat(chunks.map((c) => Buffer.from(c))).toString('utf8');
+  }
+  const text = await res.text();
+  return Buffer.byteLength(text, 'utf8') > max ? null : text;
 }
 
 /**
@@ -236,12 +261,17 @@ export async function verifyChallenge(challenge, opts = {}) {
   // Never persist the token itself: hash it, and strip it from any detail
   // (the well-known URL contains it).
   const details = JSON.parse(JSON.stringify(winner.details || {}).split(challenge.token).join('<token>'));
+  // The record is valid for the challenge's TTL counted from *verification*, not from issuance:
+  // otherwise a file placed 23 hours after `verify issue` would unlock scanning for one hour.
+  const ttlMs = Date.parse(challenge.expires) - Date.parse(challenge.issued);
+  const expires = Number.isFinite(ttlMs) && ttlMs > 0 ? new Date(now.getTime() + ttlMs).toISOString() : challenge.expires;
   const record = {
     origin: challenge.origin,
     tokenHash: createHash('sha256').update(challenge.token).digest('hex'),
     method: winner.method,
     verifiedAt: now.toISOString(),
-    expires: challenge.expires,
+    expires,
+    challengeExpires: challenge.expires,
     details,
   };
   return { ok: true, record, attempts };

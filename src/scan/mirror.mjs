@@ -151,9 +151,13 @@ export function serveMirror(manifest, opts = {}) {
     let page = null;
     try { page = index.get(keyOf(new URL(req.url, manifest.origin).toString())); } catch { /* bad path */ }
     if (!page) { res.writeHead(404, { 'content-type': 'text/plain' }); res.end('Not in mirror\n'); return; }
-    const headers = {};
-    for (const [k, v] of Object.entries(page.headers || {})) if (!HOP_BY_HOP.has(k) && k !== 'set-cookie') headers[k] = v;
-    res.writeHead(page.status || 200, headers);
+    // Replay headers one at a time: a captured value Node refuses (non-Latin-1 chars, odd arrays)
+    // must drop that header, not throw inside the handler and take the whole server down.
+    for (const [k, v] of Object.entries(page.headers || {})) {
+      if (HOP_BY_HOP.has(k) || k === 'set-cookie') continue;
+      try { res.setHeader(k, v); } catch { /* skip an unreplayable header */ }
+    }
+    res.writeHead(page.status || 200);
     res.end(page.body || '');
   });
   return new Promise((resolveP) => {

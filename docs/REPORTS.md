@@ -27,11 +27,11 @@ Findings are matched across scans by a stable key — `checkId`, title and locat
 ## Review packages
 
 ```sh
-node scripts/report.mjs --report r.json --package review/ [--diff previous.json] [--regenerate-fixes]
+node scripts/report.mjs --report r.json --package review/ [--diff previous.json] [--regenerate-fixes] [--title "..."]
 node scripts/report.mjs --verify review/
 ```
 
-A package directory holds `report.json` (raw), `report.html`, `report.md`, `findings.csv`, `fixes/` (the artifacts recorded in the report, or regenerated with `--regenerate-fixes`), `diff.json` and `previous-report.json` when `--diff` was given, a `README.txt` describing the contents and scope, and `manifest.json` with the byte size and SHA-256 of every file. `--verify` recomputes the hashes and exits non-zero (code 4) on any mismatch, so a package can be handed over, archived or attached to a change request and checked later.
+A package directory holds `report.json` (raw), `report.html`, `report.md`, `findings.csv`, `fixes/` (the artifacts recorded in the report; generated on the spot when the report has none, or regenerated with `--regenerate-fixes`), `diff.json` and `previous-report.json` when `--diff` was given, a `README.txt` describing the contents and scope, and `manifest.json` with the byte size and SHA-256 of every file. `--verify` recomputes the hashes and exits non-zero (code 4) on any mismatch, so a package can be handed over, archived or attached to a change request and checked later.
 
 Files are written with mode `0600`. Cookie values in the report were already masked by the scanner; the package adds no new secrets, but it does contain your site's response headers and page URLs, so share it as you would any internal security document.
 

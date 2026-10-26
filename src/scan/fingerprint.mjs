@@ -13,7 +13,7 @@
 const SIGNALS = [
   // --- servers (from Server header) ---
   { kind: 'server', name: 'nginx', header: 'server', re: /^nginx(?:\/(\S+))?/i },
-  { kind: 'server', name: 'Apache', header: 'server', re: /^apache(?:\/(\S+))?/i },
+  { kind: 'server', name: 'Apache', header: 'server', re: /^apache(?:\/(\S+))?(?=\s|$)/i }, // not Apache-Coyote (Tomcat)
   { kind: 'server', name: 'Microsoft-IIS', header: 'server', re: /^microsoft-iis(?:\/(\S+))?/i },
   { kind: 'server', name: 'LiteSpeed', header: 'server', re: /litespeed/i },
   { kind: 'server', name: 'Caddy', header: 'server', re: /^caddy/i },
@@ -44,7 +44,7 @@ const SIGNALS = [
   { kind: 'framework', name: 'Java (Servlet)', cookie: /^JSESSIONID$/i },
   { kind: 'framework', name: 'Django', cookie: /^(csrftoken|sessionid|django_language)$/i },
   { kind: 'framework', name: 'Laravel', cookie: /^(laravel_session|XSRF-TOKEN)$/i },
-  { kind: 'framework', name: 'Ruby on Rails', cookie: /_session$|^_rails/i },
+  { kind: 'framework', name: 'Ruby on Rails', cookie: /^_[a-z0-9_-]+_session$|^_rails/i }, // Rails default is _<app>_session; not laravel_session / ci_session
   { kind: 'framework', name: 'Express (express-session)', cookie: /^connect\.sid$/i },
   { kind: 'framework', name: 'Flask', cookie: /^session$/ },
   { kind: 'cms', name: 'WordPress', cookie: /^(wordpress_|wp-settings-|wp_)/i },

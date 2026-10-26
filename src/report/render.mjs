@@ -31,7 +31,13 @@ export function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
 const mdCell = (s) => String(s ?? '').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
-const csvCell = (s) => { const v = String(s ?? ''); return /[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v; };
+// Quote on CSV metacharacters, and neutralise spreadsheet formula injection: a cell beginning
+// with = + - @ or a tab/CR is prefixed with an apostrophe so Excel/Sheets treat it as text.
+const csvCell = (s) => {
+  let v = String(s ?? '');
+  if (/^[=+\-@\t\r]/.test(v)) v = `'${v}`;
+  return /[",\r\n']/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+};
 const fmtDate = (iso) => (iso ? String(iso).replace('T', ' ').replace(/\.\d+Z$/, ' UTC').replace(/Z$/, ' UTC') : '—');
 const pretty = (v) => JSON.stringify(v, null, 2);
 
@@ -356,7 +362,9 @@ export function buildReviewPackage(report, opts = {}) {
   files.push({ filename: 'findings.csv', contents: renderCsv(report) });
   if (diff) files.push({ filename: 'diff.json', contents: JSON.stringify(diff, null, 2) + '\n' });
   if (opts.previousReport) files.push({ filename: 'previous-report.json', contents: JSON.stringify(opts.previousReport, null, 2) + '\n' });
-  for (const f of fixes?.files || []) files.push({ filename: `fixes/${f.filename}`, contents: f.contents });
+  // Fix file names come from the report (which may have been produced elsewhere): keep them to a
+  // plain basename so a crafted report cannot write outside the package directory.
+  for (const f of fixes?.files || []) files.push({ filename: `fixes/${safeArtifactName(f.filename)}`, contents: f.contents });
   if (fixes) files.push({ filename: 'fixes/fixes.json', contents: JSON.stringify(fixes, null, 2) + '\n' });
 
   const s = summarize(report);
@@ -388,11 +396,29 @@ export function buildReviewPackage(report, opts = {}) {
   return { files, manifest };
 }
 
+/**
+ * A file name an artifact may be written under: one path segment, no traversal, not hidden.
+ * Throws on anything else so a crafted report cannot direct writes outside the output directory.
+ */
+export function safeArtifactName(name) {
+  const s = String(name ?? '');
+  if (!s || s !== s.replace(/[\\/]/g, '') || s === '.' || s === '..' || s.startsWith('.') || /[\0]/.test(s)) throw new Error(`Refusing unsafe artifact file name: ${JSON.stringify(s)}`);
+  return s;
+}
+
+/** A manifest entry path is relative, uses forward slashes, and never leaves the package directory. */
+export function isSafePackagePath(p) {
+  const s = String(p ?? '');
+  if (!s || s.startsWith('/') || /^[a-zA-Z]:/.test(s) || s.includes('\\') || /[\0]/.test(s)) return false;
+  return s.split('/').every((seg) => seg && seg !== '.' && seg !== '..');
+}
+
 /** Verify a package directory's files against its manifest. Pure; the caller supplies file contents. */
 export function verifyManifest(manifest, readFile) {
   const results = [];
   for (const entry of manifest.files || []) {
     let ok = false, reason = null;
+    if (!isSafePackagePath(entry.path)) { results.push({ path: String(entry.path), ok: false, reason: 'unsafe path in manifest' }); continue; }
     try { const c = readFile(entry.path); ok = c != null && sha256(c) === entry.sha256; if (!ok) reason = c == null ? 'missing' : 'hash mismatch'; } catch (e) { reason = e.message; }
     results.push({ path: entry.path, ok, reason });
   }

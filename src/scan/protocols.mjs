@@ -129,6 +129,8 @@ export async function inspectTls(host, port, { tlsConnect, timeoutMs = DEFAULT_T
     validFrom: cert.valid_from || null,
     validTo: cert.valid_to || null,
     keyBits: cert.bits || null,
+    // EC certificates expose the curve name; RSA (and DSA) ones do not. Used by the weak-key check.
+    keyType: cert.asn1Curve || cert.nistCurve ? 'ec' : (cert.bits ? 'rsa' : null),
     selfSigned: Boolean(cert.subject && cert.issuer && JSON.stringify(cert.subject) === JSON.stringify(cert.issuer)),
     daysToExpiry: null,
     nameMatches: null,
@@ -140,7 +142,9 @@ export async function inspectTls(host, port, { tlsConnect, timeoutMs = DEFAULT_T
 
   if (probeLegacy) {
     try {
-      const legacy = await connect({ maxVersion: 'TLSv1.1', minVersion: 'TLSv1' });
+      // OpenSSL 3 (Node 18+) refuses TLS 1.0/1.1 at its default security level, so the
+      // probe must lower it or it fails for every server and the check never fires.
+      const legacy = await connect({ maxVersion: 'TLSv1.1', minVersion: 'TLSv1', ciphers: 'DEFAULT:@SECLEVEL=0' });
       result.legacyProtocol = (legacy.getProtocol && legacy.getProtocol()) || 'accepted';
       try { legacy.end(); } catch { /* ignore */ }
     } catch { result.legacyProtocol = null; }
@@ -172,7 +176,7 @@ function tlsFindings(label, location, tlsInfo) {
   else if (!tlsInfo.authorized && tlsInfo.authError) F('tls.untrusted-chain', 'high', 'firm', `TLS certificate chain is not trusted (${tlsInfo.authError})`, 'CWE-295', 'Serve the full certificate chain (leaf + intermediates) from a trusted CA.', { authError: tlsInfo.authError });
   if (tlsInfo.nameMatches === false) F('tls.name-mismatch', 'high', 'firm', 'TLS certificate does not cover this hostname', 'CWE-295', 'Issue a certificate whose CN/SAN includes this exact hostname.', { altNames: tlsInfo.altNames });
   if (tlsInfo.legacyProtocol && /TLSv1(?:\.1)?$|SSLv3/.test(tlsInfo.legacyProtocol)) F('tls.legacy-protocol', 'medium', 'confirmed', `Legacy TLS accepted (${tlsInfo.legacyProtocol})`, 'CWE-327', 'Disable TLS 1.0/1.1 and SSLv3; require TLS 1.2 or newer.', { legacyProtocol: tlsInfo.legacyProtocol });
-  if (tlsInfo.keyBits && /RSA/i.test(JSON.stringify(tlsInfo.subject || '')) && tlsInfo.keyBits < MIN_RSA_BITS) F('tls.weak-key', 'medium', 'firm', `Weak certificate key (${tlsInfo.keyBits}-bit)`, 'CWE-326', `Reissue with at least a ${MIN_RSA_BITS}-bit RSA key or an ECDSA P-256 key.`, { keyBits: tlsInfo.keyBits });
+  if (tlsInfo.keyBits && tlsInfo.keyType === 'rsa' && tlsInfo.keyBits < MIN_RSA_BITS) F('tls.weak-key', 'medium', 'firm', `Weak certificate key (${tlsInfo.keyBits}-bit)`, 'CWE-326', `Reissue with at least a ${MIN_RSA_BITS}-bit RSA key or an ECDSA P-256 key.`, { keyBits: tlsInfo.keyBits });
   return out;
 }
 
@@ -233,11 +237,15 @@ export async function probePop3(host, port, { dial, timeoutMs } = {}) {
   try {
     const greeting = await s.readLine();
     await s.send('CAPA');
+    // CAPA is optional (RFC 2449): a server may answer -ERR, in which case no "." terminator ever comes.
     let caps = '';
-    for (let i = 0; i < 20; i++) { const l = await s.readLine(); if (/^\./.test(l)) break; caps += ' ' + l; }
+    const first = await s.readLine();
+    if (/^\+OK/i.test(first)) {
+      for (let i = 0; i < 20; i++) { const l = await s.readLine(); if (/^\./.test(l)) break; caps += ' ' + l; }
+    }
     await s.send('QUIT');
     const up = (greeting + caps).toUpperCase();
-    return { present: true, banner: sanitizeBanner(greeting), stls: /\bSTLS\b/.test(up), caps: sanitizeBanner(caps) };
+    return { present: true, banner: sanitizeBanner(greeting), stls: /\bSTLS\b/.test(up), capa: /^\+OK/i.test(first), caps: sanitizeBanner(caps) };
   } catch (e) { return { present: true, error: e.message }; } finally { s.close(); }
 }
 
@@ -344,7 +352,9 @@ async function loadResolvers(opts) {
   return {
     resolveTxt: opts.resolveTxt || ((n) => dns.resolveTxt(n)),
     resolveCaa: opts.resolveCaa || ((n) => dns.resolveCaa(n).catch(() => [])),
-    resolveDs: opts.resolveDs || ((n) => dns.resolve(n, 'DS').catch(() => [])),
+    // Node's resolver cannot query DS records (dns.resolve rejects the rrtype), so without an
+    // injected resolver the DNSSEC check is "not checked" (null), never "missing".
+    resolveDs: opts.resolveDs || (async () => null),
   };
 }
 
@@ -370,9 +380,9 @@ export async function dnsFindings(host, opts = {}, now = new Date()) {
   try { caa = await r.resolveCaa(host); } catch { /* none */ }
   if (!caa || !caa.length) out.push({ checkId: 'dns.caa-missing', severity: 'info', confidence: 'confirmed', cwe: 'CWE-295', owasp: 'A05:2021 Security Misconfiguration', title: 'No CAA record', location: loc, evidence: { note: 'No CAA record restricts which CAs may issue certificates for this domain.' }, remediation: 'Publish a CAA record naming only the CA(s) you use (e.g. 0 issue "letsencrypt.org"), to limit mis-issuance.' });
 
-  let ds = [];
-  try { ds = await r.resolveDs(host); } catch { /* none */ }
-  if (!ds || !ds.length) out.push({ checkId: 'dns.dnssec-missing', severity: 'info', confidence: 'tentative', cwe: 'CWE-345', owasp: 'A05:2021 Security Misconfiguration', title: 'No DNSSEC delegation (DS record) found', location: loc, evidence: { note: 'No DS record at the parent; the zone may be unsigned.' }, remediation: 'Consider signing the zone with DNSSEC and publishing a DS record at the registrar, so resolvers can detect tampered DNS answers.' });
+  let ds = null;
+  try { ds = await r.resolveDs(host); } catch { ds = null; }
+  if (Array.isArray(ds) && !ds.length) out.push({ checkId: 'dns.dnssec-missing', severity: 'info', confidence: 'tentative', cwe: 'CWE-345', owasp: 'A05:2021 Security Misconfiguration', title: 'No DNSSEC delegation (DS record) found', location: loc, evidence: { note: 'No DS record at the parent; the zone may be unsigned.' }, remediation: 'Consider signing the zone with DNSSEC and publishing a DS record at the registrar, so resolvers can detect tampered DNS answers.' });
 
   return out;
 }

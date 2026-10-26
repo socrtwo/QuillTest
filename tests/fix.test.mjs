@@ -62,7 +62,8 @@ test('assessVersions flags EOL and advisory ranges with exact boundaries', () =>
   const a51 = out.find((f) => /Apache 2\.4\.51/.test(f.title));
   assert.ok(a51 && !a51.title.includes('41773'), '2.4.51 is outside the traversal range but inside the mod_proxy range');
   assert.ok(has(/PHP 7\.4\.3 is end-of-life/)); assert.ok(!has(/PHP 8\.2\.0/));
-  assert.ok(has(/Bootstrap 4\.3\.0 has known vulnerabilities \(CVE-2019-8331\)/)); assert.ok(!has(/Bootstrap 4\.3\.1/));
+  assert.ok(has(/Bootstrap 4\.3\.0 has known vulnerabilities \(CVE-2019-8331\)/));
+  assert.ok(has(/Bootstrap 4\.3\.1 is end-of-life/) && !has(/Bootstrap 4\.3\.1 has known vulnerabilities/), '4.3.1 closed the CVE but the 4.x line is EOL');
   assert.ok(has(/Bootstrap 3\.3\.7 is end-of-life/) && has(/Bootstrap 3\.3\.7 has known vulnerabilities/));
   assert.ok(!has(/WordPress 6\.4\.2/));
   assert.ok(has(/Drupal 7\.98 is end-of-life/));
@@ -135,14 +136,14 @@ test('buildCsp derives the allow-list from observed assets and explains every co
   const csp = buildCsp(fakeReport());
   assert.match(csp.enforced, /script-src 'self' https:\/\/cdn\.test;/);
   assert.match(csp.enforced, /style-src 'self' https:\/\/fonts\.test 'unsafe-inline';/);
-  assert.match(csp.enforced, /frame-src 'none';/);
+  assert.match(csp.enforced, /frame-src 'self';/, 'same-origin iframes are invisible to the crawler, so never block them');
   assert.match(csp.enforced, /object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'/);
   assert.ok(!csp.enforced.includes("script-src 'self' https://cdn.test 'unsafe-inline'"), 'no script unsafe-inline without inline scripts');
   assert.equal(csp.concessions.length, 1); assert.match(csp.concessions[0], /style-src 'unsafe-inline'/);
   assert.ok(!csp.enforced.includes('upgrade-insecure-requests'));
   const mixed = buildCsp(fakeReport({ findings: [{ checkId: 'content.mixed' }], assets: { scriptOrigins: [], styleOrigins: [], frameOrigins: ['https://yt.test'], inlineScripts: true, inlineStyles: false, eventHandlers: true } }));
   assert.match(mixed.enforced, /upgrade-insecure-requests/);
-  assert.match(mixed.enforced, /frame-src https:\/\/yt\.test/);
+  assert.match(mixed.enforced, /frame-src 'self' https:\/\/yt\.test/);
   assert.match(mixed.concessions[0], /inline <script> blocks and inline event handlers/);
 });
 
