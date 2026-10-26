@@ -1,5 +1,5 @@
 /*
- * QuillTest — command registry tests (offline)
+ * Anne's Test — command registry tests (offline)
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

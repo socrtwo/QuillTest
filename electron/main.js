@@ -1,6 +1,6 @@
 /*
- * QuillTest — Electron main process (desktop build)
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — Electron main process (desktop build)
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * The desktop shell loads the same web app the browser build serves (the
  * command shell and the AI wizard), but in a privileged context: unlike the
@@ -10,7 +10,7 @@
  * Security posture: the renderer runs with contextIsolation on, nodeIntegration
  * off and sandbox on. It cannot touch Node or the filesystem directly. The one
  * capability it is granted, through a narrow preload bridge, is to ask the main
- * process to run a KNOWN QuillTest command by its registry id — never an
+ * process to run a KNOWN Anne's Test command by its registry id — never an
  * arbitrary command line. The main process validates the id against the command
  * registry, requires string arguments, and spawns the mapped script with an
  * argument array (no shell), so there is no command-injection surface.
@@ -24,6 +24,10 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join } from 'node:path';
 import { execFile } from 'node:child_process';
 
+// The data folder keeps the app's former name (QuillTest) so settings and keys stay where earlier versions put them. // rename:keep
+app.setPath('userData', join(app.getPath('appData'), 'QuillTest')); // rename:keep
+app.setPath('sessionData', app.getPath('userData')); // rename:keep
+
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..');
 
@@ -35,7 +39,7 @@ const RUNNABLE = buildRunnableMap(COMMANDS);
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200, height: 800, minWidth: 720,
-    title: 'QuillTest',
+    title: 'Anne\'s Test',
     webPreferences: {
       preload: join(here, 'preload.cjs'),
       contextIsolation: true,
@@ -49,7 +53,7 @@ function createWindow() {
   return win;
 }
 
-// Guarded command bridge: run a known QuillTest command id with string args.
+// Guarded command bridge: run a known Anne's Test command id with string args.
 ipcMain.handle('quilltest:run', async (_event, payload) => {
   const { id, args } = payload || {};
   const check = resolveRun(RUNNABLE, id, args);

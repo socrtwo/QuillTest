@@ -1,4 +1,4 @@
-# QuillTest — cross-platform desktop release (parity with QuillStage).
+# Anne's Test — cross-platform desktop release (parity with Anne's Stage).
 # Builds the web app and packages the Electron desktop app for Linux, macOS and
 # Windows when a version tag is pushed, attaching the installers to the GitHub
 # release. Mobile (Capacitor/Android/iOS) is built from a maintainer machine

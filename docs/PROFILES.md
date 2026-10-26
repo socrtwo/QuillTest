@@ -1,6 +1,6 @@
 # Scan profiles and intrusiveness
 
-Every QuillTest check declares how intrusive it is, and every scan runs under a profile that caps that level. This is how the tool keeps a promise it can state plainly: with the default profile it only observes; it never sends the target a request it would not have received anyway.
+Every Anne's Test check declares how intrusive it is, and every scan runs under a profile that caps that level. This is how the tool keeps a promise it can state plainly: with the default profile it only observes; it never sends the target a request it would not have received anyway.
 
 ## Intrusiveness levels
 

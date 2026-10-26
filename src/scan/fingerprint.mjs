@@ -1,6 +1,6 @@
 /*
- * QuillTest — stack fingerprinting
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — stack fingerprinting
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * Infers the server, language/framework, and CMS from what the site already
  * volunteers: response headers, cookie names, and page markup. Purely passive.

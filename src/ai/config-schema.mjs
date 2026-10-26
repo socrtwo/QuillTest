@@ -1,6 +1,6 @@
 /*
- * QuillTest — schema validation for quilltest.ai.json
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — schema validation for quilltest.ai.json
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * normalizeConfig() in providers.mjs is forgiving by design: it reads whatever
  * it can and silently drops the rest, so the analysis layer never crashes on a

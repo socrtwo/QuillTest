@@ -1,5 +1,5 @@
 /*
- * QuillTest — level-3 patch generation tests (offline)
+ * Anne's Test — level-3 patch generation tests (offline)
  *
  * Besides unit checks, the CLI test applies every generated patch with the
  * real `git apply`, so a diff that git would reject fails the suite.

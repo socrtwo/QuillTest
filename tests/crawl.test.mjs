@@ -1,5 +1,5 @@
 /*
- * QuillTest — crawler, fingerprint, and site-wide passive scan tests (offline)
+ * Anne's Test — crawler, fingerprint, and site-wide passive scan tests (offline)
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';

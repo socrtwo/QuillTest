@@ -1,5 +1,5 @@
 /*
- * QuillTest — Electron command-bridge tests (offline; no Electron needed)
+ * Anne's Test — Electron command-bridge tests (offline; no Electron needed)
  *
  * The bridge is the security boundary: the renderer may run only a known
  * command id, with string args. These tests pin that, independent of Electron.

@@ -2,7 +2,7 @@
   "name": "quilltest",
   "version": "0.1.0",
   "private": true,
-  "description": "QuillTest \u2014 open-source web application security testing and fixing tool, part of the Quill suite. Runnable from the CLI: ownership-gated passive scan, stack fingerprinting with EOL/CVE assessment, protocol checks, fix-artifact generation, and multi-provider AI analysis.",
+  "description": "Anne's Test \u2014 open-source web application security testing and fixing tool, part of the Anne's Office suite. Runnable from the CLI: ownership-gated passive scan, stack fingerprinting with EOL/CVE assessment, protocol checks, fix-artifact generation, and multi-provider AI analysis.",
   "type": "module",
   "license": "MIT",
   "author": {
@@ -56,7 +56,7 @@
     "vulnerability-scanner",
     "web-security",
     "owasp",
-    "quill-suite",
+    "annes-office-suite",
     "ai"
   ],
   "devDependencies": {
@@ -73,7 +73,9 @@
   "main": "electron/main.js",
   "build": {
     "appId": "com.quillsuite.quilltest",
-    "productName": "QuillTest",
+    "productName": "Anne's Test",
+    "executableName": "QuillTest",
+    "artifactName": "QuillTest-${version}-${os}-${arch}.${ext}",
     "directories": {
       "output": "release"
     },

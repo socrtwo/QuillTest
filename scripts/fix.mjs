@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
- * QuillTest — generate fix artifacts from a scan report
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — generate fix artifacts from a scan report
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  *   node scripts/fix.mjs --report scans/<host>/<timestamp>.json
  *   node scripts/fix.mjs --report r.json --target apache          # force a server
@@ -97,5 +97,5 @@ if (patchFiles.length) {
     console.log(`      -> ${outPath}   (apply from the directory holding ${diffPath}: git apply "${outPath}")`);
     if (args.print) console.log(res.patch.split('\n').map((l) => '      ' + l).join('\n'));
   }
-  if (wrote) console.log(`\nWrote ${wrote} patch file(s). Review each diff before applying; QuillTest never modifies your files.`);
+  if (wrote) console.log(`\nWrote ${wrote} patch file(s). Review each diff before applying; Anne\'s Test never modifies your files.`);
 }

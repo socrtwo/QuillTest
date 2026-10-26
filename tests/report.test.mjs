@@ -1,5 +1,5 @@
 /*
- * QuillTest — report rendering, diff and review-package tests (offline)
+ * Anne's Test — report rendering, diff and review-package tests (offline)
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -92,7 +92,7 @@ test('renderCsv quotes commas, quotes and newlines and orders by severity', () =
 
 test('renderMarkdown has the summary table, findings table, per-finding sections and escapes pipes', () => {
   const md = renderMarkdown(report(), { diff: diffReports(report(), report()) });
-  assert.match(md, /^# QuillTest report — https:\/\/w\.test/m);
+  assert.match(md, /^# Anne\'s Test report — https:\/\/w\.test/m);
   assert.match(md, /\| Findings \| \*\*3\*\* — 1 high, 1 medium, 1 low \|/);
   assert.match(md, /\| Ownership \| verified via http-file/);
   assert.match(md, /^\| F-003 \| low \| firm \| Server version disclosed \\\| pipe, "quote", comma \| https:\/\/w\.test\/ \|$/m);
@@ -119,7 +119,7 @@ test('renderHtml is self-contained, script-free and escapes everything from the 
   assert.ok(!/\bsrc\s*=|<link\b|@import|url\(/i.test(html), 'no external resources');
   assert.match(html, /<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:">/);
   assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
-  assert.match(html, /<title>QuillTest report — https:\/\/w\.test<\/title>/);
+  assert.match(html, /<title>Anne&#39;s Test report — https:\/\/w\.test<\/title>/);
   for (const id of ['F-001', 'F-002', 'F-003']) assert.match(html, new RegExp(`<section class="finding" id="${id}">`));
   assert.match(html, /<a href="#F-002">F-002<\/a>/);
   assert.match(html, /<span class="sev sev-high">high<\/span>/);

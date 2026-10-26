@@ -1,6 +1,6 @@
 /*
- * QuillTest — protocol configuration checks beyond HTTP (TLS, FTP, mail, DNS)
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — protocol configuration checks beyond HTTP (TLS, FTP, mail, DNS)
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * Detection-only configuration review of the other services a verified host
  * exposes. The contract is docs/PROTOCOLS.md; the rules enforced here:
@@ -12,7 +12,7 @@
  *   - Observe what the service advertises — nothing more. The only commands
  *     sent are the capability handshakes every ordinary client issues on
  *     every connection: FTP FEAT, SMTP EHLO, IMAP CAPABILITY, POP3 CAPA,
- *     each followed by a clean QUIT/LOGOUT. QuillTest never sends credentials,
+ *     each followed by a clean QUIT/LOGOUT. Anne's Test never sends credentials,
  *     never attempts a login, never issues MAIL/RCPT/DATA, never requests a
  *     zone transfer, never writes or deletes anything.
  *   - Weaknesses that can only be confirmed by an action (anonymous FTP
@@ -286,7 +286,7 @@ export async function runProtocolScan(host, opts = {}) {
     if (info.present && !info.error) {
       const loc = `ftp://${host}:${ports.ftp}`;
       if (!info.authTls) findings.push({ checkId: 'ftp.plaintext', severity: 'high', confidence: 'firm', cwe: 'CWE-319', owasp: 'A02:2021 Cryptographic Failures', title: 'FTP does not advertise AUTH TLS (logins and data in cleartext)', location: loc, evidence: { banner: info.banner, feat: info.feat }, remediation: 'Require explicit FTPS (AUTH TLS) or move to SFTP (SSH). Disable plaintext FTP so credentials and file contents are never sent in the clear.' });
-      findings.push({ checkId: 'ftp.anonymous-manual', severity: 'info', confidence: 'tentative', cwe: 'CWE-287', owasp: 'A05:2021 Security Misconfiguration', title: 'FTP is reachable — verify anonymous access is disabled', location: loc, evidence: { banner: info.banner, note: 'QuillTest does not attempt any login. Confirm manually that the anonymous account is disabled or restricted.' }, remediation: 'Disable the anonymous FTP account unless it is deliberately required; if required, confine it to a read-only public directory.' });
+      findings.push({ checkId: 'ftp.anonymous-manual', severity: 'info', confidence: 'tentative', cwe: 'CWE-287', owasp: 'A05:2021 Security Misconfiguration', title: 'FTP is reachable — verify anonymous access is disabled', location: loc, evidence: { banner: info.banner, note: 'Anne\'s Test does not attempt any login. Confirm manually that the anonymous account is disabled or restricted.' }, remediation: 'Disable the anonymous FTP account unless it is deliberately required; if required, confine it to a read-only public directory.' });
       findings.push(...svcFindings('ftp', loc, info));
     }
   }
@@ -300,7 +300,7 @@ export async function runProtocolScan(host, opts = {}) {
       const loc = `smtp://${host}:${port}`;
       if (!info.starttls) findings.push({ checkId: 'smtp.no-starttls', severity: 'medium', confidence: 'firm', cwe: 'CWE-319', owasp: 'A02:2021 Cryptographic Failures', title: 'SMTP does not offer STARTTLS (mail can travel in cleartext)', location: loc, evidence: { banner: info.banner }, remediation: 'Enable STARTTLS on this SMTP listener (and offer implicit TLS on 465 for submission). Require TLS for authenticated submission.' });
       if (info.authOffered && !info.starttls) findings.push({ checkId: 'smtp.auth-before-tls', severity: 'high', confidence: 'firm', cwe: 'CWE-319', owasp: 'A07:2021 Identification and Authentication Failures', title: 'SMTP offers AUTH without STARTTLS (credentials in cleartext)', location: loc, evidence: { banner: info.banner, ehlo: info.ehlo }, remediation: 'Only advertise AUTH after STARTTLS (or on an implicit-TLS port). Set the MTA to refuse AUTH on a plaintext connection.' });
-      findings.push({ checkId: 'smtp.open-relay-manual', severity: 'info', confidence: 'tentative', cwe: 'CWE-269', owasp: 'A05:2021 Security Misconfiguration', title: 'SMTP is reachable — verify it is not an open relay', location: loc, evidence: { note: 'QuillTest does not send test mail or issue MAIL/RCPT. Confirm with your MTA\'s own tooling that relaying is restricted to authenticated or local senders.' }, remediation: 'Restrict relaying to authenticated users and your own networks; reject mail to external domains from unauthenticated senders.' });
+      findings.push({ checkId: 'smtp.open-relay-manual', severity: 'info', confidence: 'tentative', cwe: 'CWE-269', owasp: 'A05:2021 Security Misconfiguration', title: 'SMTP is reachable — verify it is not an open relay', location: loc, evidence: { note: 'Anne\'s Test does not send test mail or issue MAIL/RCPT. Confirm with your MTA\'s own tooling that relaying is restricted to authenticated or local senders.' }, remediation: 'Restrict relaying to authenticated users and your own networks; reject mail to external domains from unauthenticated senders.' });
       findings.push(...svcFindings('smtp', loc, info));
     }
   }

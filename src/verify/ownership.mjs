@@ -1,6 +1,6 @@
 /*
- * QuillTest — ownership verification
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — ownership verification
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * Every scan is gated behind proof that the operator controls the target
  * origin. The contract is docs/OWNERSHIP-VERIFICATION.md:

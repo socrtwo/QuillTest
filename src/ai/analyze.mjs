@@ -1,8 +1,8 @@
 /*
- * QuillTest — AI analysis layer
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — AI analysis layer
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
- * Consults the configured AI providers over a set of QuillTest findings and
+ * Consults the configured AI providers over a set of Anne's Test findings and
  * returns their analyses plus a cross-provider consensus. This is the layer
  * that answers "what would an attacker — including an AI-assisted one — go
  * after first, and how do we fix it?"
@@ -17,7 +17,7 @@
  *   - Size caps. Evidence and the total payload are truncated to bounded sizes.
  *   - Output filter. A model reply that contains payload-shaped text has those
  *     lines removed and the result is flagged `filtered`, so a misbehaving
- *     model cannot turn QuillTest into a relay for attack strings.
+ *     model cannot turn Anne's Test into a relay for attack strings.
  *   - The scan itself is never driven by the model; the model only sees output.
  *
  * Usage:
@@ -48,9 +48,9 @@ const SENSITIVE_HEADER_RE = /^(authorization|proxy-authorization|cookie|set-cook
 /** Query/body parameter names whose values are redacted. */
 const SENSITIVE_PARAM_RE = /([?&;]|^)(token|access_token|refresh_token|id_token|api[_-]?key|apikey|key|secret|password|passwd|pwd|session|sessionid|sid|auth|jwt|bearer)=([^&;\s]*)/gi;
 
-export const SYSTEM_PROMPT = `You are a defensive application-security reviewer inside QuillTest, a tool that tests and fixes websites and internet services the operator has verified they own.
+export const SYSTEM_PROMPT = `You are a defensive application-security reviewer inside Anne\'s Test, a tool that tests and fixes websites and internet services the operator has verified they own.
 
-You will receive a list of findings produced by QuillTest's own deterministic checks, with scrubbed evidence. Your job is analysis and remediation only:
+You will receive a list of findings produced by Anne\'s Test's own deterministic checks, with scrubbed evidence. Your job is analysis and remediation only:
 
 1. For each finding, judge whether the evidence genuinely supports it. Mark likely false positives.
 2. Rate confidence (tentative | firm | confirmed) and severity (info | low | medium | high | critical).
@@ -292,7 +292,7 @@ function briefNotes(result) {
 /**
  * Analyze findings with every active provider in the config.
  *
- * @param {object[]} findings   QuillTest finding records (see docs/AI.md for the shape)
+ * @param {object[]} findings   Anne's Test finding records (see docs/AI.md for the shape)
  * @param {object}   config     quilltest.ai.json contents (v1 or v2)
  * @param {object}   [opts]
  * @param {string}   [opts.mode]        override the config's analysisMode

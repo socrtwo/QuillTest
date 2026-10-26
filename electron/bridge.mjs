@@ -1,9 +1,9 @@
 /*
- * QuillTest — Electron command bridge (pure, testable)
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — Electron command bridge (pure, testable)
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * The security boundary between the renderer and the main process. The renderer
- * may ask to run a QuillTest command, but only a KNOWN one, by its registry id,
+ * may ask to run an Anne's Test command, but only a KNOWN one, by its registry id,
  * with string arguments. These helpers enforce that; main.js wires them to IPC
  * and child_process. Keeping the rule here (not inline in main.js) lets it be
  * unit-tested without launching Electron.

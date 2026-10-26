@@ -1,8 +1,8 @@
 /*
- * QuillTest — command registry (commands are data, not code)
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — command registry (commands are data, not code)
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
- * The Quill suite's organizing principle is "no missing commands": every
+ * The Anne's Office suite's organizing principle is "no missing commands": every
  * operation is a registry entry with an id, a human title, the ribbon group it
  * belongs to, search keywords, and a descriptor of how it maps to the CLI
  * today. The shell (ribbon, quick-access bar, Alt+Q command palette) and the

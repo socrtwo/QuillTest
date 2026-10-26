@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
- * QuillTest — staging-mirror CLI (capture / serve / scan a copy of your site)
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — staging-mirror CLI (capture / serve / scan a copy of your site)
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  *   node scripts/mirror.mjs capture https://example.com [--out dir] [--max-pages 25] [--max-bytes 8388608]
  *   node scripts/mirror.mjs serve   scans/example.com/<ts>/            [--port 0]
@@ -37,7 +37,7 @@ function parseArgs(args) {
 }
 
 function usage(code = 0) {
-  console.log(`${c.bold('QuillTest staging mirror')}
+  console.log(`${c.bold('Anne\'s Test staging mirror')}
 
   capture <origin>   Capture a bounded, same-origin snapshot of a verified site into ./scans/<host>/<ts>/.
       --out <dir>        Snapshot directory (default under scans/).
@@ -62,7 +62,7 @@ function gateOrigin(originArg) {
   const gate = isOriginVerified(store.loadVerified(), originArg);
   if (!gate.ok) {
     console.error(c.red('Refusing: ') + gate.error);
-    console.error(c.dim('QuillTest only mirrors origins you have proven you control. See docs/OWNERSHIP-VERIFICATION.md.'));
+    console.error(c.dim('Anne\'s Test only mirrors origins you have proven you control. See docs/OWNERSHIP-VERIFICATION.md.'));
     exit(3);
   }
   return gate.origin;
@@ -103,7 +103,7 @@ async function cmdScan() {
     console.log(c.dim(`  snapshot: ${dir}/ (${cap.manifest.pageCount} page(s))`));
   } else if (!existsSync(resolve(process.cwd(), dir, MIRROR_MANIFEST))) { console.error(c.red(`No ${MIRROR_MANIFEST} in ${dir}`)); exit(1); }
 
-  console.log(c.bold(`\nQuillTest mirror scan — ${origin}`));
+  console.log(c.bold(`\nAnne\'s Test mirror scan — ${origin}`));
   const report = await scanMirror(origin, { dir });
   report.findings = sortFindings(report.findings);
   console.log(c.dim(`stack: ${report.stack.summary}  ·  ${report.findings.length} finding(s) from a snapshot of ${report.mirror.pageCount} page(s)`));

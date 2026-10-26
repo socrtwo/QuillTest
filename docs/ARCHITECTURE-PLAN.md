@@ -1,6 +1,6 @@
 # Architecture plan
 
-QuillTest follows the same shape as the rest of the Quill suite: a thin cross-platform shell over a command registry, with the domain engine behind it. Stack and CI/release mirror QuillStage (TypeScript, Vite, Capacitor, Electron).
+Anne's Test follows the same shape as the rest of the Anne's Office suite: a thin cross-platform shell over a command registry, with the domain engine behind it. Stack and CI/release mirror Anne's Stage (TypeScript, Vite, Capacitor, Electron).
 
 ## Layers
 
@@ -33,7 +33,7 @@ QuillTest follows the same shape as the rest of the Quill suite: a thin cross-pl
 - **Deterministic engine, optional AI.** The crawler and checks are plain code with reproducible output. AI is a layer on top that reads findings; the product is fully functional with AI disabled.
 - **Non-destructive by construction.** The check engine's probe library contains only detection probes. There is no payload library. Intrusiveness is a declared property of each check and capped per scan profile.
 - **Secret hygiene.** API keys default to env-var references. Target request/response fragments are secret-scrubbed before any AI call. `quilltest.ai.json` is git-ignored.
-- **Local-first.** Scans run from the user's machine/network. No QuillTest server, no phoning home. A local model option means the whole pipeline can run offline.
+- **Local-first.** Scans run from the user's machine/network. No Anne's Test server, no phoning home. A local model option means the whole pipeline can run offline.
 
 ## Platforms and builds
 

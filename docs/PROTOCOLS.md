@@ -1,6 +1,6 @@
 # Protocol checks beyond HTTP
 
-QuillTest's first target is web applications over HTTP(S), but a site rarely runs HTTP alone. The same host often exposes FTP, mail, and other internet-facing services, and a weakness in any of them is a weakness in the site. QuillTest therefore checks additional protocols for **known misconfigurations and exposure** — detection only, under the same gates as the web checks.
+Anne's Test's first target is web applications over HTTP(S), but a site rarely runs HTTP alone. The same host often exposes FTP, mail, and other internet-facing services, and a weakness in any of them is a weakness in the site. Anne's Test therefore checks additional protocols for **known misconfigurations and exposure** — detection only, under the same gates as the web checks.
 
 Every rule from [ETHICS.md](ETHICS.md) applies without exception:
 
@@ -29,7 +29,7 @@ Every rule from [ETHICS.md](ETHICS.md) applies without exception:
 
 ## Remediations
 
-Each protocol finding carries a mapped fix the same way web findings do (see [FIXES.md](FIXES.md)): switch FTP to SFTP/FTPS and disable plaintext; disable anonymous access; enforce STARTTLS; publish SPF/DKIM/DMARC; disable public AXFR; upgrade a fingerprinted vulnerable version. Where the fix is a config artifact, QuillTest generates it.
+Each protocol finding carries a mapped fix the same way web findings do (see [FIXES.md](FIXES.md)): switch FTP to SFTP/FTPS and disable plaintext; disable anonymous access; enforce STARTTLS; publish SPF/DKIM/DMARC; disable public AXFR; upgrade a fingerprinted vulnerable version. Where the fix is a config artifact, Anne's Test generates it.
 
 ## Status
 

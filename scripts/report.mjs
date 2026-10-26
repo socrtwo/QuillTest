@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
- * QuillTest — render, export, diff and package a scan report
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — render, export, diff and package a scan report
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  *   node scripts/report.mjs --report scans/<host>/<ts>.json                      # → <ts>.html next to it
  *   node scripts/report.mjs --report r.json --format md --out report.md
@@ -61,7 +61,7 @@ if (args.verify) {
 // ---- load inputs -------------------------------------------------------------
 const reportPath = resolve(process.cwd(), String(args.report));
 const report = load(reportPath, 'report');
-if (!Array.isArray(report.findings)) { console.error('That file has no findings[]; is it a QuillTest scan report?'); exit(1); }
+if (!Array.isArray(report.findings)) { console.error('That file has no findings[]; is it an Anne\'s Test scan report?'); exit(1); }
 let diff = null;
 if (args.diff) {
   const previous = load(String(args.diff), 'previous report');
@@ -71,7 +71,7 @@ if (args.diff) {
 const renderOpts = { diff, includeEvidence: !args['no-evidence'], includeFixes: !args['no-fixes'], includeAnalysis: !args['no-analysis'], title: typeof args.title === 'string' ? args.title : undefined };
 
 const s = summarize(report);
-console.log(`QuillTest report — ${s.origin || reportPath}: ${s.total} finding(s)${s.total ? ` (${Object.entries(s.bySeverity).filter(([, n]) => n).map(([k, n]) => `${n} ${k}`).join(', ')})` : ''}${diff ? ` · diff: +${diff.summary.new} new, −${diff.summary.resolved} resolved, ${diff.summary.changed} changed` : ''}`);
+console.log(`Anne\'s Test report — ${s.origin || reportPath}: ${s.total} finding(s)${s.total ? ` (${Object.entries(s.bySeverity).filter(([, n]) => n).map(([k, n]) => `${n} ${k}`).join(', ')})` : ''}${diff ? ` · diff: +${diff.summary.new} new, −${diff.summary.resolved} resolved, ${diff.summary.changed} changed` : ''}`);
 
 // ---- --package ---------------------------------------------------------------
 if (args.package) {

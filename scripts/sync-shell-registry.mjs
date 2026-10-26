@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /*
- * QuillTest — copy the command registry into the browser shell
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — copy the command registry into the browser shell
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * public/shell.html is a static page (file:// or any plain web server), so it
  * cannot import src/commands/registry.mjs; it carries an inlined copy between

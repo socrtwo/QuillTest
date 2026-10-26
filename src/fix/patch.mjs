@@ -1,12 +1,12 @@
 /*
- * QuillTest — level-3 fixes: applyable patches for dependency manifests
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — level-3 fixes: applyable patches for dependency manifests
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * Level 1 is guidance, level 2 is a generated artifact to paste (see
  * artifacts.mjs / dependencies.mjs). Level 3 is a patch against a file the
- * OPERATOR provides: QuillTest reads their package.json or composer.json and
+ * OPERATOR provides: Anne's Test reads their package.json or composer.json and
  * emits a unified diff that bumps the versions a scan flagged as vulnerable or
- * end-of-life. QuillTest generates the diff; it never applies it. The operator
+ * end-of-life. Anne's Test generates the diff; it never applies it. The operator
  * reviews it and runs `git apply` / `patch -p1` themselves.
  *
  * Only dependency manifests are patched, because only there can the edit be

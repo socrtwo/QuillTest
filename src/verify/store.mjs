@@ -1,6 +1,6 @@
 /*
- * QuillTest — on-disk store for ownership challenges and verification records
- * Part of the Quill suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
+ * Anne's Test — on-disk store for ownership challenges and verification records
+ * Part of the Anne's Office suite. MIT License. Copyright (c) 2026 Paul D Pruitt.
  *
  * Two small JSON files under ./scans/ (git-ignored), written mode 0600:
  *   scans/verify/challenges.json  — pending challenges (these hold the token)
