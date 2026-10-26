@@ -25,7 +25,7 @@ import { runProtocolScan } from '../src/scan/protocols.mjs';
 import { runActiveScan, SCAN_PROFILES } from '../src/scan/active.mjs';
 import { analyzeFindings } from '../src/ai/analyze.mjs';
 import { generateFixes, TARGETS } from '../src/fix/artifacts.mjs';
-import { renderHtml, renderMarkdown, renderCsv } from '../src/report/render.mjs';
+import { renderHtml, renderMarkdown, renderCsv, safeArtifactName } from '../src/report/render.mjs';
 import { validateConfig, formatValidation } from '../src/ai/config-schema.mjs';
 import { createTargetStore } from '../src/targets/store.mjs';
 import { ANALYSIS_MODES } from '../src/ai/providers.mjs';
@@ -252,7 +252,7 @@ async function cmdScan() {
   if (report.fixes?.files?.length) {
     const fixDir = outPath.replace(/\.json$/, '') + '-fixes';
     mkdirSync(fixDir, { recursive: true });
-    for (const f of report.fixes.files) writeFileSync(resolve(fixDir, f.filename), f.contents, { mode: 0o600 });
+    for (const f of report.fixes.files) writeFileSync(resolve(fixDir, safeArtifactName(f.filename)), f.contents, { mode: 0o600 });
     console.log(c.dim(`Fix files written to ${fixDir}/`));
   }
   if (args.export) {

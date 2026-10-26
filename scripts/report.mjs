@@ -15,9 +15,9 @@
  * to PDF. Nothing here contacts the network.
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from 'node:fs';
-import { resolve, join, dirname, basename } from 'node:path';
+import { resolve, join, dirname, basename, sep } from 'node:path';
 import { argv, exit } from 'node:process';
-import { renderHtml, renderMarkdown, renderCsv, diffReports, buildReviewPackage, verifyManifest, summarize } from '../src/report/render.mjs';
+import { renderHtml, renderMarkdown, renderCsv, diffReports, buildReviewPackage, verifyManifest, summarize, isSafePackagePath } from '../src/report/render.mjs';
 import { generateFixes } from '../src/fix/artifacts.mjs';
 
 const FORMATS = ['html', 'md', 'csv', 'json', 'all'];
@@ -52,7 +52,8 @@ const write = (p, contents) => { mkdirSync(dirname(p), { recursive: true }); wri
 if (args.verify) {
   const dir = resolve(process.cwd(), String(args.verify));
   const manifest = load(join(dir, 'manifest.json'), 'manifest');
-  const res = verifyManifest(manifest, (rel) => (existsSync(join(dir, rel)) ? readFileSync(join(dir, rel)) : null));
+  // verifyManifest rejects traversal paths itself; the extra check keeps this reader honest on its own.
+  const res = verifyManifest(manifest, (rel) => (isSafePackagePath(rel) && existsSync(join(dir, rel)) ? readFileSync(join(dir, rel)) : null));
   for (const r of res.results) console.log(`  ${r.ok ? 'ok     ' : 'FAILED '} ${r.path}${r.reason ? `  (${r.reason})` : ''}`);
   console.log(res.ok ? `\nPackage intact: ${res.results.length} file(s) match the manifest.` : '\nPackage does NOT match its manifest.');
   exit(res.ok ? 0 : 4);
@@ -80,7 +81,11 @@ if (args.package) {
   if (args['regenerate-fixes'] || !fixes) fixes = generateFixes(report);
   const previous = args.diff ? load(String(args.diff), 'previous report') : null;
   const pkg = buildReviewPackage(report, { diff, fixes, previousReport: previous });
-  for (const f of pkg.files) write(join(dir, f.filename), f.contents);
+  for (const f of pkg.files) {
+    const target = resolve(dir, f.filename);
+    if (!target.startsWith(dir + sep)) { console.error(`Refusing to write outside the package directory: ${f.filename}`); exit(1); }
+    write(target, f.contents);
+  }
   console.log(`\nReview package: ${pkg.files.length} file(s) in ${dir}. Verify later with: node scripts/report.mjs --verify ${args.package}`);
   exit(0);
 }

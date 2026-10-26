@@ -255,8 +255,9 @@ function renderHtml(bumps) {
   if (!withCdn.length) return null;
   const lines = [
     '<!-- Anne\'s Test — replacement tags for libraries the scan found at a vulnerable version. -->',
-    '<!-- Self-hosted: download the file at the URL shown and replace your copy. CDN: use the tag as is. -->',
-    '<!-- Fill integrity="" from the file you deploy: openssl dgst -sha384 -binary FILE | openssl base64 -A -->',
+    '<!-- Self-hosted: download the file at the URL shown and replace your copy. -->',
+    '<!-- CDN: replace sha384-REPLACE with the real hash BEFORE deploying; browsers block a tag whose -->',
+    '<!-- integrity does not match. Compute it from the file you deploy: openssl dgst -sha384 -binary FILE | openssl base64 -A -->',
   ];
   for (const b of withCdn) {
     lines.push(`<!-- ${b.component}: ${b.from || 'detected'} → ${b.recommended}${b.sameLine ? ` (smallest step on your line: ${b.sameLine.version}${b.sameLine.lineEol ? ', but that line is end-of-life' : ''})` : ''} -->`);

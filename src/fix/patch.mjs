@@ -162,7 +162,7 @@ function replaceVersionInBlock(text, blockKey, depName, newRange) {
   for (; i < text.length && depth > 0; i++) { if (text[i] === '{') depth++; else if (text[i] === '}') depth--; }
   const blockEnd = i - 1;
   const block = text.slice(start, blockEnd);
-  const depRe = new RegExp(`("${depName.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}"\\s*:\\s*")([^"]*)(")`);
+  const depRe = new RegExp(`("${depName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\s*:\\s*")([^"]*)(")`);
   const dm = depRe.exec(block);
   if (!dm) return { text, changed: false, oldRange: null };
   const oldRange = dm[2];

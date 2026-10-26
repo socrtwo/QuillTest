@@ -136,14 +136,14 @@ test('buildCsp derives the allow-list from observed assets and explains every co
   const csp = buildCsp(fakeReport());
   assert.match(csp.enforced, /script-src 'self' https:\/\/cdn\.test;/);
   assert.match(csp.enforced, /style-src 'self' https:\/\/fonts\.test 'unsafe-inline';/);
-  assert.match(csp.enforced, /frame-src 'none';/);
+  assert.match(csp.enforced, /frame-src 'self';/, 'same-origin iframes are invisible to the crawler, so never block them');
   assert.match(csp.enforced, /object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'/);
   assert.ok(!csp.enforced.includes("script-src 'self' https://cdn.test 'unsafe-inline'"), 'no script unsafe-inline without inline scripts');
   assert.equal(csp.concessions.length, 1); assert.match(csp.concessions[0], /style-src 'unsafe-inline'/);
   assert.ok(!csp.enforced.includes('upgrade-insecure-requests'));
   const mixed = buildCsp(fakeReport({ findings: [{ checkId: 'content.mixed' }], assets: { scriptOrigins: [], styleOrigins: [], frameOrigins: ['https://yt.test'], inlineScripts: true, inlineStyles: false, eventHandlers: true } }));
   assert.match(mixed.enforced, /upgrade-insecure-requests/);
-  assert.match(mixed.enforced, /frame-src https:\/\/yt\.test/);
+  assert.match(mixed.enforced, /frame-src 'self' https:\/\/yt\.test/);
   assert.match(mixed.concessions[0], /inline <script> blocks and inline event handlers/);
 });
 
