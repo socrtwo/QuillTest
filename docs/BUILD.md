@@ -25,7 +25,7 @@ The desktop build loads the same web app but in a privileged context: the main p
 
 **Packaged layout.** electron-builder packs the app into `app.asar`; `src/` and `scripts/` are listed in `build.asarUnpack` so the main process can spawn them as plain Node from `app.asar.unpacked/`. When packaged, the scripts run with the user data folder as their working directory, so reports (`scans/`), the verification store and `quilltest.ai.json` land there rather than in the read-only archive. The Capacitor native packages are excluded from the desktop bundle. (The packaged flow is exercised by the release workflow, not by the per-commit CI.)
 
-`electron-builder` targets AppImage/deb (Linux), dmg/zip (macOS) and nsis/portable (Windows). The `release.yml` workflow builds all three on a version tag and attaches the installers to the GitHub Release for that tag (via `softprops/action-gh-release`), so they appear on the release page for download.
+`electron-builder` targets AppImage/deb (Linux x64), dmg/zip (macOS, Apple silicon and Intel) and an NSIS installer (`…-setup.exe`) plus a portable executable (`…-portable.exe`) on Windows; the two Windows targets carry distinct artifact names because the shared default name made the portable build overwrite the installer. The `release.yml` workflow builds all three on a version tag and attaches the installers to the GitHub Release for that tag (via `softprops/action-gh-release`), so they appear on the release page for download.
 
 ## Mobile (Capacitor)
 

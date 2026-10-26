@@ -43,7 +43,8 @@ jobs:
           tag_name: ${{ inputs.tag || github.ref_name }}
           target_commitish: ${{ github.sha }}
           name: Anne's Test ${{ inputs.tag || github.ref_name }}
-          generate_release_notes: true
+          # Only one of the three OS jobs writes the notes: each call appends a fresh copy to the body.
+          generate_release_notes: ${{ matrix.os == 'ubuntu-latest' }}
           files: |
             release/*.AppImage
             release/*.deb
